@@ -2,7 +2,7 @@
 // HAG — Browser Agent Loop (no server, direct LLM calls)
 // ============================================================
 
-import type { Message, Tool, ToolContext, LLMResponse } from '../../../src/types/index.js';
+import type { Message, Tool, ToolContext, LLMResponse, AgentConfig } from '../types/index.js';
 import { llmChatStream } from './llm_client.js';
 import { buildSystemPrompt, toolsToSchemas, loadSkills, type PromptContext } from './prompt_builder.js';
 import type { MemoryStore } from './memory.js';
@@ -68,7 +68,7 @@ export class Agent {
 
   async run(
     userMessage: string,
-    config: { model: string; baseUrl: string; apiKey: string; maxTurns: number },
+    config: AgentConfig,
     sessionMessages?: Message[],
     sessionId?: string
   ): Promise<string> {
@@ -77,7 +77,7 @@ export class Agent {
 
     // Load memory and skills
     const { memories, profile } = await this.memory.getAllMemory();
-    const skills = loadSkills();
+    const skills = await loadSkills();
 
     // Build system prompt
     const promptCtx: PromptContext = {
@@ -152,7 +152,6 @@ export class Agent {
           history.push({
             role: 'tool',
             tool_call_id: tc.id,
-            name: toolName,
             content: result,
           });
         }

@@ -11,12 +11,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'web/src'),
+      '@types': resolve(__dirname, 'web/src/types'),
     },
   },
-  server: {
-    proxy: {
-      '/api': 'http://localhost:3456',
-      '/ws': { target: 'ws://localhost:3456', ws: true },
-    },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    include: ['tests/**/*.test.ts'],
   },
 });

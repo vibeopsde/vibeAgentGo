@@ -2,7 +2,8 @@
 // HAG — Prompt Builder (browser-side, no fs access)
 // ============================================================
 
-import type { MemoryEntry, Skill, Tool, ToolSchema } from '../../../src/types/index.js';
+import type { MemoryEntry, Skill, Tool, ToolSchema } from '../types/index.js';
+import { SkillStore } from './memory.js';
 
 const IDENTITY_BLOCK = `You are HAG (Hermes Agent Go), a helpful AI assistant running entirely in the user's browser. You can write and execute code, manage files in the browser's IndexedDB, search the web, and build interactive mini-apps.
 
@@ -82,8 +83,14 @@ export function toolsToSchemas(tools: Tool[]): ToolSchema[] {
   }));
 }
 
-// Skills are stored in IndexedDB too — loaded by agent
-export function loadSkills(): Skill[] {
-  // TODO: load from IndexedDB. For now return empty — skills UI is future work.
-  return [];
+// Skills are loaded from IndexedDB via SkillStore. The UI to create/edit skills is future work.
+export async function loadSkills(): Promise<Skill[]> {
+  const store = new SkillStore();
+  const records = await store.listSkills();
+  return records.map(r => ({
+    name: r.name,
+    description: r.description,
+    content: r.content,
+    trigger: r.trigger,
+  }));
 }
