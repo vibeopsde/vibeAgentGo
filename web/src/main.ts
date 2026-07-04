@@ -35,6 +35,7 @@ const views: ViewTab[] = [];
 let activeView: string | null = null;
 let currentSessionId: string | null = null;
 let agent: Agent | null = null;
+let isRunning = false;
 
 // --- Core instances ---
 
@@ -49,7 +50,16 @@ const settingsModal = new SettingsModal();
 const memoryPanel = new MemoryPanel();
 const sessionPanel = new SessionPanel();
 
-// --- Agent event handlers ---
+// --- Agent lifecycle ---
+
+function createAgent(): Agent {
+  if (agent) {
+    try { agent.abort(); } catch { /* ignore */ }
+  }
+  const a = new Agent(tools, memory);
+  setupAgent(a);
+  return a;
+}
 
 function setupAgent(a: Agent) {
   a.on('message', ({ role, content }) => {
@@ -83,6 +93,11 @@ function setupAgent(a: Agent) {
     chatPanel.finalizeStream();
     chatPanel.setStatus('idle');
     currentSessionId = sessionId;
+    isRunning = false;
+  });
+  a.on('abort', () => {
+    chatPanel.setStatus('idle');
+    isRunning = false;
   });
 }
 
@@ -100,11 +115,18 @@ function addView(title: string, html: string) {
 // --- Session Resume ---
 
 async function resumeSession(sessionId: string) {
+  // Abort any running agent before switching sessions
+  if (agent && isRunning) {
+    agent.abort();
+  }
   currentSessionId = sessionId;
   chatPanel.clear();
   views.length = 0;
   activeView = null;
   renderPanel.render(views, null);
+
+  // Create a fresh agent bound to the resumed session
+  agent = createAgent();
 
   try {
     const session = await memory.getSession(sessionId);
@@ -191,39 +213,43 @@ function buildLayout() {
       return;
     }
 
+    if (isRunning && agent) {
+      chatPanel.appendError('Agent is already running. Please wait or abort.');
+      return;
+    }
+
     chatPanel.appendUser(text);
     chatPanel.setStatus('thinking');
     chatPanel.startStream();
+    isRunning = true;
 
-    // Create fresh agent for each message, reusing session messages if resuming
-    agent = new Agent(tools, memory);
-    setupAgent(agent);
+    // Reuse existing agent for the current session, or create a fresh one
+    if (!agent || agent.getLastSessionId() !== currentSessionId) {
+      agent = createAgent();
+    }
 
     try {
-      // If resuming, load previous session messages
-      let sessionMessages: any[] | undefined;
-      if (currentSessionId) {
-        const existing = await memory.getSession(currentSessionId);
-        if (existing) {
-          sessionMessages = existing.messages;
-        }
-      }
-
-      await agent.run(text, config, sessionMessages, currentSessionId || undefined);
+      await agent.run(text, config, currentSessionId || undefined);
     } catch (e: any) {
       chatPanel.appendError(e.message);
       chatPanel.setStatus('idle');
+      isRunning = false;
     }
   };
 }
 
 function newChat() {
+  if (agent && isRunning) {
+    agent.abort();
+  }
+  agent = null;
   currentSessionId = null;
   chatPanel.clear();
   views.length = 0;
   activeView = null;
   renderPanel.render(views, null);
   chatPanel.setStatus('idle');
+  isRunning = false;
 }
 
 function openMobileMenu() {

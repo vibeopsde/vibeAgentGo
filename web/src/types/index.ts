@@ -49,7 +49,7 @@ export interface AgentConfig {
 export interface ToolContext {
   workspace: string;
   emit: (event: string, data: any) => void;
-  env: Record<string, any>;
+  env: Record<string, any>; // tools may receive memoryStore or other runtime deps
 }
 
 export interface Tool {

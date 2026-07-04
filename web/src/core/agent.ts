@@ -17,6 +17,7 @@ export interface AgentEventMap {
   'error': { message: string };
   'turn': { turn: number; total: number };
   'done': { sessionId: string };
+  'abort': {};
 }
 
 type EventHandler<K extends keyof AgentEventMap> = (data: AgentEventMap[K]) => void;
@@ -53,6 +54,7 @@ export class Agent {
   abort() {
     if (this.abortController) {
       this.abortController.abort();
+      this.emit('abort', {});
     }
   }
 
@@ -61,19 +63,27 @@ export class Agent {
       workspace: 'indexeddb://workspace',
       emit: (event, data) => this.emit(event as any, data as any),
       env: {
-        __memoryStore: this.memory as any,
-      } as any,
+        memoryStore: this.memory,
+      },
     };
   }
 
   async run(
     userMessage: string,
     config: AgentConfig,
-    sessionMessages?: Message[],
     sessionId?: string
   ): Promise<string> {
-    this.sessionId = sessionId || null;
+    this.sessionId = sessionId || this.sessionId || null;
     this.abortController = new AbortController();
+
+    // Load existing session messages if resuming
+    let sessionMessages: Message[] | undefined;
+    if (this.sessionId) {
+      const existing = await this.memory.getSession(this.sessionId);
+      if (existing) {
+        sessionMessages = existing.messages;
+      }
+    }
 
     // Load memory and skills
     const { memories, profile } = await this.memory.getAllMemory();
@@ -160,8 +170,9 @@ export class Agent {
       }
 
       // Final response
-      this.emit('message', { role: 'assistant', content: response.content || '' });
-      history.push({ role: 'assistant', content: response.content });
+      const finalContent = response.content || '';
+      this.emit('message', { role: 'assistant', content: finalContent });
+      history.push({ role: 'assistant', content: finalContent });
 
       // Save session
       const id = this.sessionId || randomUUID().slice(0, 8);
@@ -201,11 +212,10 @@ export class Agent {
     if (history.length < 2) return;
 
     const existing = await this.memory.getAllMemory(200);
-    const existingFacts = [...existing.memories, ...existing.profile].map(m => m.content.toLowerCase().trim());
-    const existingFactsNormalized = existingFacts.map(f => f.replace(/[^\w\s]/g, ''));
+    const existingEntries = [...existing.memories, ...existing.profile];
 
-    const memoryContext = existingFacts.length > 0
-      ? `Existing memory (do NOT duplicate these):\n${existingFacts.map(f => `- ${f}`).join('\n')}\n\n`
+    const memoryContext = existingEntries.length > 0
+      ? `Existing memory (do NOT duplicate these):\n${existingEntries.map(m => `- ${m.content}`).join('\n')}\n\n`
       : '';
 
     const extractionMessages: Message[] = [
@@ -253,10 +263,25 @@ Rules:
         const content = m.content.trim();
         if (content.length < 8 || content.length > 200) continue;
 
-        const lower = content.toLowerCase();
-        const normalized = lower.replace(/[^\w\s]/g, '');
-        if (existingFacts.includes(lower)) continue;
-        if (existingFactsNormalized.some(f => normalized.includes(f) || f.includes(normalized))) continue;
+        const lower = content.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        if (!lower) continue;
+
+        // Reject exact or near-exact duplicates only; avoid substring false positives
+        const isDuplicate = existingEntries.some(e => {
+          const existingLower = e.content.toLowerCase().replace(/[^\w\s]/g, '').trim();
+          if (!existingLower) return false;
+          // Exact match after normalization
+          if (existingLower === lower) return true;
+          // Avoid adding shorter phrasings of an existing memory
+          if (lower.length < existingLower.length && existingLower.includes(lower)) return true;
+          // Avoid adding longer rephrasings that add no new information
+          const existingWords = existingLower.split(/\s+/).filter(Boolean).sort().join(' ');
+          const newWords = lower.split(/\s+/).filter(Boolean).sort().join(' ');
+          if (existingWords === newWords) return true;
+          return false;
+        });
+
+        if (isDuplicate) continue;
 
         const category = m.category === 'user' ? 'user' : 'memory';
         await this.memory.saveMemory(content, category);

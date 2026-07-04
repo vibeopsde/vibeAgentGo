@@ -1,9 +1,14 @@
 // ============================================================
-// HAG — Browser Tools (client-side, IndexedDB + sandbox eval)
+// HAG — Browser Tools (client-side, IndexedDB + iframe sandbox)
 // ============================================================
 
 import type { Tool, ToolContext } from '../types/index.js';
 import { MemoryStore, loadConfig } from './memory.js';
+import { runInSandbox } from '../utils/sandbox.js';
+
+// --- Helpers ---
+
+const getMemoryStore = (ctx: ToolContext): MemoryStore => ctx.env.memoryStore as MemoryStore;
 
 // --- File Tools (IndexedDB workspace) ---
 
@@ -18,7 +23,7 @@ const read_file: Tool = {
     required: ['path'],
   },
   handler: async (args, ctx) => {
-    const mem = ctx.env.__memoryStore as unknown as MemoryStore;
+    const mem = getMemoryStore(ctx);
     const content = await mem.readFile(args.path);
     if (content === null) return `File not found: ${args.path}`;
     return content;
@@ -37,7 +42,7 @@ const write_file: Tool = {
     required: ['path', 'content'],
   },
   handler: async (args, ctx) => {
-    const mem = ctx.env.__memoryStore as unknown as MemoryStore;
+    const mem = getMemoryStore(ctx);
     await mem.writeFile(args.path, args.content);
     return `Wrote ${args.content.length} bytes to ${args.path}`;
   },
@@ -55,7 +60,7 @@ const search_files: Tool = {
     required: ['pattern'],
   },
   handler: async (args, ctx) => {
-    const mem = ctx.env.__memoryStore as unknown as MemoryStore;
+    const mem = getMemoryStore(ctx);
     const target = args.target || 'files';
     const results = await mem.searchFiles(args.pattern, target);
     return results.length > 0 ? results.join('\n') : 'No matches found';
@@ -66,38 +71,24 @@ const search_files: Tool = {
 
 const run_code: Tool = {
   name: 'run_code',
-  description: 'Execute JavaScript code in a sandboxed environment in the browser. Use log() or console.log() for output. Returns the result value and captured logs. No access to IndexedDB or DOM.',
+  description: 'Execute JavaScript code in a sandboxed iframe environment. Use log() or console.log() for output. Returns the result value and captured logs. No access to IndexedDB or the parent page.',
   parameters: {
     type: 'object',
     properties: {
       code: { type: 'string', description: 'JavaScript code to execute' },
+      timeout: { type: 'number', description: 'Optional timeout in milliseconds (default: 5000, max: 30000)' },
     },
     required: ['code'],
   },
   handler: async (args) => {
     try {
-      const logs: string[] = [];
-      const logFn = (...args: any[]) => {
-        logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
-      };
-
-      // Sandbox: create a function with no access to window, document, fetch, etc.
-      // Only Math, JSON, Date, Array, Object, String, Number, Boolean, Map, Set, Promise
-      const sandbox = {
-        log: logFn,
-        console: { log: logFn, error: logFn, warn: logFn, info: logFn },
-        Math, JSON, Date, Array, Object, String, Number, Boolean, Map, Set, Promise,
-        parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent,
-        RegExp, Error, Symbol,
-      };
-
-      const fn = new Function(...Object.keys(sandbox), `"use strict";\n${args.code}`);
-      const result = fn(...Object.values(sandbox));
-
-      const resultStr = result === undefined ? 'undefined' : typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result);
-      return logs.length > 0 ? `Logs:\n${logs.join('\n')}\n\nResult: ${resultStr}` : `Result: ${resultStr}`;
+      const requested = typeof args.timeout === 'number' ? args.timeout : 5000;
+      const timeoutMs = Math.max(100, Math.min(requested, 30000));
+      const { logs, result, error } = await runInSandbox(args.code, timeoutMs);
+      const output = logs.length > 0 ? `Logs:\n${logs.join('\n')}\n\nResult: ${result}` : `Result: ${result}`;
+      return error ? `Sandbox error: ${error}\n\n${output}` : output;
     } catch (e: any) {
-      return `Sandbox error: ${e.message}`;
+      return `Sandbox error: ${e.message || String(e)}`;
     }
   },
 };
@@ -174,7 +165,7 @@ const memory_save: Tool = {
     required: ['content'],
   },
   handler: async (args, ctx) => {
-    const mem = ctx.env.__memoryStore as unknown as MemoryStore;
+    const mem = getMemoryStore(ctx);
     const id = await mem.saveMemory(args.content, args.category || 'memory');
     return `Saved to ${args.category || 'memory'} memory (id: ${id})`;
   },
@@ -193,7 +184,7 @@ const memory_search: Tool = {
     required: ['query'],
   },
   handler: async (args, ctx) => {
-    const mem = ctx.env.__memoryStore as unknown as MemoryStore;
+    const mem = getMemoryStore(ctx);
     const all = await mem.searchAllMemory(args.category ? 1000 : args.limit || 10);
     const filtered = args.category ? all.filter(m => m.category === args.category) : all;
     const query = args.query.toLowerCase();
@@ -224,7 +215,7 @@ const render_view: Tool = {
     if (args.html) {
       html = args.html;
     } else if (args.path) {
-      const mem = ctx.env.__memoryStore as unknown as MemoryStore;
+      const mem = getMemoryStore(ctx);
       const content = await mem.readFile(args.path);
       if (content === null) return `File not found: ${args.path}`;
       html = content;
