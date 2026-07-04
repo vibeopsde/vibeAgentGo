@@ -64,7 +64,7 @@ web/
 | `write_file` | Write a file to the IndexedDB workspace |
 | `search_files` | Search filenames or contents in the workspace |
 | `run_code` | Execute JS in a lightweight browser sandbox (Function constructor) |
-| `web_search` | Web search via DuckDuckGo (CORS-dependent) |
+| `web_search` | Web search via configured provider (Tavily, CORS-dependent) |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `render_view` | Render HTML as a live view in the iframe panel |
 

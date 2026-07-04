@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — PWA Main Entry (v0.3 — fully client-side, no server)
+// HAG — PWA Main Entry (v0.4.0 — fully client-side, no server)
 // Agent runs in browser, data in IndexedDB, LLM via direct fetch
 // ============================================================
 
