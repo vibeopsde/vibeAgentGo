@@ -1,6 +1,6 @@
 {
   "name": "hag",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Hermes Agent Go — Minimal AI agent with memory, skills, and render_view for mobile",
   "type": "module",
   "main": "dist/index.js",
