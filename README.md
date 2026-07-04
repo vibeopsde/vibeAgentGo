@@ -1,10 +1,12 @@
-# vibeAgentGo — Hermes Agent Go
+# vibeAgentGo
 
 A fully client-side AI agent PWA. Memory, sessions, files, and skills live in your browser. Only LLM API calls leave the device.
 
+> **Conceptual origin:** vibeAgentGo is an independent, from-scratch reimplementation of ideas from **Hermes Agent** by **Nous Research** (MIT licensed). See [`LICENSE-THIRD-PARTY.md`](./LICENSE-THIRD-PARTY.md) for the full MIT license text and attribution.
+
 ## What is this?
 
-A TypeScript reimplementation of the Hermes Agent core, designed for mobile and data sovereignty:
+A TypeScript reimplementation of the Hermes Agent core concepts, designed for mobile and data sovereignty:
 
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
