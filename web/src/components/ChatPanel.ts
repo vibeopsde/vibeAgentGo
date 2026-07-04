@@ -1,6 +1,8 @@
 // ============================================================
-// HAG — ChatPanel Component (streaming-aware)
+// HAG — ChatPanel Component (streaming-aware + markdown)
 // ============================================================
+
+import { renderMarkdown } from '../utils/markdown.js';
 
 export class ChatPanel {
   element: HTMLElement;
@@ -81,11 +83,16 @@ export class ChatPanel {
     // Non-streaming path: append to last assistant msg or create new
     const last = this.messagesEl.lastElementChild as HTMLElement;
     if (last && last.classList.contains('msg-assistant') && !last.dataset.streaming) {
-      last.textContent += text;
+      const contentEl = last.querySelector('.msg-content') as HTMLElement;
+      if (contentEl) {
+        contentEl.innerHTML = renderMarkdown(contentEl.dataset.raw + text);
+        contentEl.dataset.raw = (contentEl.dataset.raw || '') + text;
+      }
     } else {
       const el = document.createElement('div');
       el.className = 'msg msg-assistant';
-      el.textContent = text;
+      el.dataset.raw = text;
+      el.innerHTML = `<div class="msg-content">${renderMarkdown(text)}</div>`;
       this.messagesEl.appendChild(el);
     }
     this.streamEl = null;
@@ -97,7 +104,8 @@ export class ChatPanel {
     const el = document.createElement('div');
     el.className = 'msg msg-assistant';
     el.dataset.streaming = 'true';
-    el.textContent = '';
+    el.dataset.raw = '';
+    el.innerHTML = '<div class="msg-content"></div>';
     this.messagesEl.appendChild(el);
     this.streamEl = el;
     this.scrollToBottom();
@@ -107,7 +115,9 @@ export class ChatPanel {
     if (!this.streamEl) {
       this.startStream();
     }
-    this.streamEl!.textContent += delta;
+    const contentEl = this.streamEl!.querySelector('.msg-content') as HTMLElement;
+    this.streamEl!.dataset.raw = (this.streamEl!.dataset.raw || '') + delta;
+    contentEl.innerHTML = renderMarkdown(this.streamEl!.dataset.raw!);
     this.scrollToBottom();
   }
 
@@ -122,20 +132,35 @@ export class ChatPanel {
     // Finalize any streaming content before tool call
     this.finalizeStream();
 
-    const el = document.createElement('div');
-    el.className = 'msg msg-tool';
     const argStr = Object.keys(args).length > 0 ? JSON.stringify(args).slice(0, 120) : '';
-    el.innerHTML = `<span class="tool-icon">🔧</span> <span class="tool-name">${name}</span> <span class="tool-args">${argStr}</span>`;
+    const el = document.createElement('details');
+    el.className = 'msg msg-tool';
+    el.innerHTML = `
+      <summary>
+        <span class="tool-icon">🔧</span>
+        <span class="tool-name">${name}</span>
+        <span class="tool-args">${argStr}</span>
+      </summary>
+    `;
     this.messagesEl.appendChild(el);
     this.scrollToBottom();
   }
 
   appendToolResult(name: string, result: string) {
-    const el = document.createElement('div');
-    el.className = 'msg msg-tool-result';
-    const preview = result.length > 150 ? result.slice(0, 150) + '...' : result;
-    el.innerHTML = `<span class="tool-result-icon">↳</span> <span class="tool-result-text">${this.escape(preview)}</span>`;
-    this.messagesEl.appendChild(el);
+    const el = this.messagesEl.lastElementChild as HTMLElement;
+    if (el && el.tagName === 'DETAILS' && el.classList.contains('msg-tool')) {
+      const body = document.createElement('div');
+      body.className = 'tool-result-body';
+      const preview = result.length > 400 ? result.slice(0, 400) + '...' : result;
+      body.textContent = preview;
+      el.appendChild(body);
+    } else {
+      const fallback = document.createElement('div');
+      fallback.className = 'msg msg-tool-result';
+      const preview = result.length > 150 ? result.slice(0, 150) + '...' : result;
+      fallback.innerHTML = `<span class="tool-result-icon">↳</span> <span class="tool-result-text">${this.escape(preview)}</span>`;
+      this.messagesEl.appendChild(fallback);
+    }
     this.scrollToBottom();
   }
 

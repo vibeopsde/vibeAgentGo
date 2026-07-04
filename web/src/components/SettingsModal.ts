@@ -46,15 +46,15 @@ export class SettingsModal {
       <h2>⚙️ Settings</h2>
       <div class="form-group">
         <label for="cfg-model">Model</label>
-        <input id="cfg-model" type="text" value="${config.model}" placeholder="qwen/qwen3.6-35b-a3b" />
+        <input id="cfg-model" type="text" value="${this.escape(config.model)}" placeholder="qwen/qwen3.6-35b-a3b" />
       </div>
       <div class="form-group">
         <label for="cfg-baseurl">Base URL</label>
-        <input id="cfg-baseurl" type="text" value="${config.baseUrl}" placeholder="https://ki.vibeops.de/v1" />
+        <input id="cfg-baseurl" type="text" value="${this.escape(config.baseUrl)}" placeholder="https://ki.vibeops.de/v1" />
       </div>
       <div class="form-group">
         <label for="cfg-apikey">API Key ${config.apiKey ? '✓' : ''}</label>
-        <input id="cfg-apikey" type="password" value="${config.apiKey}" placeholder="lm-studio:..." />
+        <input id="cfg-apikey" type="password" value="${this.escape(config.apiKey)}" placeholder="lm-studio:..." />
       </div>
       <div class="form-group">
         <label for="cfg-maxturns">Max Turns</label>
@@ -66,6 +66,7 @@ export class SettingsModal {
       </div>
       <div class="config-hint">
         <p><strong>🔒 Datenhoheit:</strong> Alle Daten liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen gehen an den konfigurierten Server.</p>
+        <p><strong>⚠️ Sicherheit:</strong> Der API-Key wird unverschlüsselt im localStorage gespeichert. Nicht auf fremden Geräten oder im Inkognito-Modus verwenden.</p>
         <p><strong>Provider:</strong> Jeder OpenAI-kompatible Endpoint mit CORS funktioniert.</p>
         <p><strong>Beispiele:</strong></p>
         <ul>
@@ -88,5 +89,11 @@ export class SettingsModal {
 
     saveConfig({ model, baseUrl, apiKey, maxTurns });
     this.close();
+  }
+
+  private escape(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }

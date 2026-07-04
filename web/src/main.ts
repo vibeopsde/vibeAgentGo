@@ -9,6 +9,7 @@ import { RenderPanel } from './components/RenderPanel.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { MemoryPanel } from './components/MemoryPanel.js';
 import { SessionPanel } from './components/SessionPanel.js';
+import { MobileNav } from './components/MobileNav.js';
 import { Agent } from './core/agent.js';
 import { MemoryStore, loadConfig, saveConfig, hasApiKey } from './core/memory.js';
 import { createDefaultTools } from './core/tools.js';
@@ -155,14 +156,24 @@ function buildLayout() {
   main.appendChild(chatSection);
   main.appendChild(renderSection);
 
+  const mobileNav = new MobileNav((action) => {
+    if (action === 'sessions') sessionPanel.open();
+    if (action === 'new') newChat();
+    if (action === 'menu') openMobileMenu();
+  });
+
   app.appendChild(header);
   app.appendChild(main);
+  app.appendChild(mobileNav.element);
 
   // Wire buttons
   header.querySelector('#btn-settings')!.addEventListener('click', () => settingsModal.open());
   header.querySelector('#btn-memory')!.addEventListener('click', () => memoryPanel.open());
   header.querySelector('#btn-sessions')!.addEventListener('click', () => sessionPanel.open());
   header.querySelector('#btn-new')!.addEventListener('click', () => newChat());
+
+  // Make header icons desktop-only on very small screens (CSS hides them, but keep fallback)
+  header.classList.add('has-mobile-nav');
 
   // Chat submit — runs agent directly in browser
   chatPanel.onSubmit = async (text: string) => {
@@ -206,6 +217,39 @@ function newChat() {
   activeView = null;
   renderPanel.render(views, null);
   chatPanel.setStatus('idle');
+}
+
+function openMobileMenu() {
+  // Simple bottom sheet with Settings and Memory for mobile
+  const overlay = document.createElement('div');
+  overlay.className = 'mobile-menu-overlay';
+  overlay.innerHTML = `
+    <div class="mobile-menu-sheet">
+      <div class="mobile-menu-header">
+        <span>Menu</span>
+        <button class="mobile-menu-close">✕</button>
+      </div>
+      <button class="mobile-menu-item" data-action="settings">⚙️ Settings</button>
+      <button class="mobile-menu-item" data-action="memory">🧠 Memory</button>
+      <button class="mobile-menu-item" data-action="sessions">💬 Sessions</button>
+    </div>
+  `;
+
+  const close = () => overlay.remove();
+  overlay.querySelector('.mobile-menu-close')!.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  overlay.querySelectorAll('.mobile-menu-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const action = (item as HTMLElement).dataset.action!;
+      close();
+      if (action === 'settings') settingsModal.open();
+      if (action === 'memory') memoryPanel.open();
+      if (action === 'sessions') sessionPanel.open();
+    });
+  });
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('open'));
 }
 
 // --- Init ---
