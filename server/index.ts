@@ -1,16 +1,15 @@
 // ============================================================
-// HAG — PWA Backend (Express + Agent Core)
+// HAG — PWA Backend (Express + Agent Core, streaming + sessions)
 // ============================================================
 
 import express from 'express';
 import { Agent } from '../src/core/agent.js';
 import { MemoryStore } from '../src/core/memory.js';
 import { createDefaultTools } from '../src/tools/registry.js';
-import type { AgentConfig } from '../src/types/index.js';
+import type { AgentConfig, Message } from '../src/types/index.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { mkdirSync, existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { randomUUID } from 'crypto';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 
@@ -131,13 +130,89 @@ interface ClientState {
   ws: WebSocket;
   agent: Agent | null;
   config: AgentConfig;
+  currentSessionId: string | null;
+  pendingQueue: string[];
 }
 
 const clients = new Map<WebSocket, ClientState>();
 
+function send(ws: WebSocket, msg: any) {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(msg));
+  }
+}
+
+async function handleChat(client: ClientState, msg: any) {
+  const ws = client.ws;
+  const config = client.config;
+
+  if (!config.apiKey) {
+    send(ws, { type: 'error', message: 'No API key configured. Open Settings.' });
+    return;
+  }
+
+  // Create agent with tools
+  const tools = createDefaultTools();
+  const agent = new Agent(config, tools, memory);
+  client.agent = agent;
+
+  // Wire events to WebSocket
+  agent.on('message', ({ role, content }) => {
+    send(ws, { type: 'message', role, content });
+  });
+  agent.on('stream_delta', ({ delta }) => {
+    send(ws, { type: 'stream_delta', delta });
+  });
+  agent.on('tool_call', ({ name, args }) => {
+    send(ws, { type: 'tool_call', name, args });
+  });
+  agent.on('tool_result', ({ name, result }) => {
+    send(ws, { type: 'tool_result', name, result });
+  });
+  agent.on('render_view', ({ title, html }) => {
+    send(ws, { type: 'render_view', title, html });
+  });
+  agent.on('error', ({ message }) => {
+    send(ws, { type: 'error', message });
+  });
+  agent.on('turn', ({ turn, total }) => {
+    send(ws, { type: 'turn', turn, total });
+  });
+
+  send(ws, { type: 'status', status: 'thinking' });
+
+  // Session resume: load previous messages if sessionId provided
+  let sessionMessages: Message[] | undefined;
+  let sessionId: string | undefined = msg.sessionId;
+
+  if (msg.sessionId) {
+    const existing = memory.getSession(msg.sessionId);
+    if (existing) {
+      sessionMessages = existing.messages;
+      client.currentSessionId = msg.sessionId;
+    }
+  }
+
+  try {
+    const result = await agent.run(msg.content, sessionMessages, sessionId);
+    // Get the session ID — either from the agent's save or the one we passed
+    const finalSessionId = agent.getLastSessionId() || sessionId || client.currentSessionId;
+    client.currentSessionId = finalSessionId || null;
+    send(ws, { type: 'done', result, sessionId: finalSessionId });
+  } catch (e: any) {
+    send(ws, { type: 'error', message: e.message });
+  }
+}
+
 wss.on('connection', (ws: WebSocket) => {
   const config = loadConfig();
-  const client: ClientState = { ws, agent: null, config };
+  const client: ClientState = {
+    ws,
+    agent: null,
+    config,
+    currentSessionId: null,
+    pendingQueue: [],
+  };
   clients.set(ws, client);
 
   console.log('Client connected');
@@ -147,48 +222,11 @@ wss.on('connection', (ws: WebSocket) => {
     try { msg = JSON.parse(data.toString()); } catch { return; }
 
     if (msg.type === 'chat') {
-      if (!config.apiKey) {
-        ws.send(JSON.stringify({ type: 'error', message: 'No API key configured. Open Settings.' }));
-        return;
-      }
-
-      // Create fresh agent for each conversation
-      const tools = createDefaultTools();
-      const agent = new Agent(config, tools, memory);
-      client.agent = agent;
-
-      // Wire events to WebSocket
-      agent.on('message', ({ role, content }) => {
-        ws.send(JSON.stringify({ type: 'message', role, content }));
-      });
-      agent.on('tool_call', ({ name, args }) => {
-        ws.send(JSON.stringify({ type: 'tool_call', name, args }));
-      });
-      agent.on('tool_result', ({ name, result }) => {
-        ws.send(JSON.stringify({ type: 'tool_result', name, result }));
-      });
-      agent.on('render_view', ({ title, html }) => {
-        ws.send(JSON.stringify({ type: 'render_view', title, html }));
-      });
-      agent.on('error', ({ message }) => {
-        ws.send(JSON.stringify({ type: 'error', message }));
-      });
-      agent.on('turn', ({ turn, total }) => {
-        ws.send(JSON.stringify({ type: 'turn', turn, total }));
-      });
-
-      ws.send(JSON.stringify({ type: 'status', status: 'thinking' }));
-
-      try {
-        const result = await agent.run(msg.content, msg.sessionMessages);
-        ws.send(JSON.stringify({ type: 'done', result }));
-      } catch (e: any) {
-        ws.send(JSON.stringify({ type: 'error', message: e.message }));
-      }
+      await handleChat(client, msg);
     }
 
     if (msg.type === 'ping') {
-      ws.send(JSON.stringify({ type: 'pong' }));
+      send(ws, { type: 'pong' });
     }
   });
 
@@ -196,7 +234,21 @@ wss.on('connection', (ws: WebSocket) => {
     clients.delete(ws);
     console.log('Client disconnected');
   });
+
+  ws.on('error', (err) => {
+    console.error('WS error:', err.message);
+  });
 });
+
+// --- Heartbeat: detect dead connections ---
+
+setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.ping();
+    }
+  });
+}, 30000);
 
 // --- Serve static PWA (built by Vite) ---
 
@@ -207,10 +259,11 @@ app.use((_req, res) => {
 
 const PORT = parseInt(process.env.HAG_PORT || '3456');
 server.listen(PORT, () => {
+  const cfg = loadConfig();
   console.log(`\n┌─────────────────────────────────────────────┐`);
-  console.log(`│  HAG Server v0.1.0                          │`);
+  console.log(`│  HAG Server v0.2.0                          │`);
   console.log(`│  http://localhost:${PORT}                       │`);
-  console.log(`│  Model: ${loadConfig().model.padEnd(33)}│`);
+  console.log(`│  Model: ${cfg.model.padEnd(33)}│`);
   console.log(`│  Workspace: ${WORKSPACE.slice(-31).padStart(33)}│`);
   console.log(`└─────────────────────────────────────────────┘\n`);
 });

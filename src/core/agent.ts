@@ -1,9 +1,9 @@
 // ============================================================
-// HAG — Agent Loop
+// HAG — Agent Loop (streaming + session resume)
 // ============================================================
 
 import type { Message, Tool, ToolContext, AgentConfig, LLMResponse } from '../types/index.js';
-import { llmChat } from './llm_client.js';
+import { llmChatStream } from './llm_client.js';
 import { buildSystemPrompt, toolsToSchemas, loadSkills, type PromptContext } from './prompt_builder.js';
 import type { MemoryStore } from './memory.js';
 import { join } from 'path';
@@ -11,6 +11,7 @@ import { randomUUID } from 'crypto';
 
 export interface AgentEventMap {
   'message': { role: string; content: string };
+  'stream_delta': { delta: string };
   'tool_call': { name: string; args: any };
   'tool_result': { name: string; result: string };
   'render_view': { title: string; html: string };
@@ -24,12 +25,17 @@ export class Agent {
   private config: AgentConfig;
   private tools: Tool[];
   private memory: MemoryStore;
+  private sessionId: string | null = null;
   private listeners: { [K in keyof AgentEventMap]?: EventHandler<K>[] } = {};
 
   constructor(config: AgentConfig, tools: Tool[], memory: MemoryStore) {
     this.config = config;
     this.tools = tools;
     this.memory = memory;
+  }
+
+  getLastSessionId(): string | null {
+    return this.sessionId;
   }
 
   on<K extends keyof AgentEventMap>(event: K, handler: EventHandler<K>): void {
@@ -53,7 +59,9 @@ export class Agent {
     };
   }
 
-  async run(userMessage: string, sessionMessages?: Message[]): Promise<string> {
+  async run(userMessage: string, sessionMessages?: Message[], sessionId?: string): Promise<string> {
+    this.sessionId = sessionId || null;
+
     // Load memory and skills
     const { memories, profile } = this.memory.getAllMemory();
     const skills = loadSkills(join(this.config.workspace, 'skills'));
@@ -69,14 +77,16 @@ export class Agent {
     };
     const systemPrompt = buildSystemPrompt(promptCtx);
 
-    // Build message history
-    const history: Message[] = sessionMessages || [];
+    // Build message history — use provided session messages or start fresh
+    const history: Message[] = sessionMessages ? [...sessionMessages] : [];
+
+    // Ensure system prompt is at index 0
     if (history.length === 0 || history[0].role !== 'system') {
       history.unshift({ role: 'system', content: systemPrompt });
     } else {
-      // Update system prompt if it exists
       history[0] = { role: 'system', content: systemPrompt };
     }
+
     history.push({ role: 'user', content: userMessage });
 
     const toolSchemas = toolsToSchemas(this.tools);
@@ -87,12 +97,13 @@ export class Agent {
 
       let response: LLMResponse;
       try {
-        response = await llmChat({
+        response = await llmChatStream({
           messages: history,
           tools: toolSchemas,
           model: this.config.model,
           baseUrl: this.config.baseUrl,
           apiKey: this.config.apiKey,
+          onDelta: (delta) => this.emit('stream_delta', { delta }),
         });
       } catch (e: any) {
         this.emit('error', { message: e.message });
@@ -144,6 +155,9 @@ export class Agent {
       // No tool calls — final response
       this.emit('message', { role: 'assistant', content: response.content });
 
+      // Add final assistant message to history before saving
+      history.push({ role: 'assistant', content: response.content });
+
       // Save session
       this.saveSession(history);
 
@@ -163,7 +177,8 @@ export class Agent {
   }
 
   private saveSession(messages: Message[]) {
-    const id = randomUUID().slice(0, 8);
+    const id = this.sessionId || randomUUID().slice(0, 8);
+    this.sessionId = id; // Store so getLastSessionId() can return it
     const title = messages.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Untitled';
     this.memory.saveSession({
       id,

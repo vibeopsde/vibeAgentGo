@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — ChatPanel Component
+// HAG — ChatPanel Component (streaming-aware)
 // ============================================================
 
 export class ChatPanel {
@@ -8,6 +8,7 @@ export class ChatPanel {
   private inputEl: HTMLTextAreaElement;
   private sendBtn: HTMLButtonElement;
   private statusEl: HTMLElement;
+  private streamEl: HTMLElement | null = null;
   onSubmit: ((text: string) => void) | null = null;
 
   constructor() {
@@ -63,6 +64,11 @@ export class ChatPanel {
     if (this.onSubmit) this.onSubmit(text);
   }
 
+  clear() {
+    this.messagesEl.innerHTML = '';
+    this.streamEl = null;
+  }
+
   appendUser(text: string) {
     const el = document.createElement('div');
     el.className = 'msg msg-user';
@@ -72,21 +78,50 @@ export class ChatPanel {
   }
 
   appendAssistant(text: string) {
-    const el = document.createElement('div');
-    el.className = 'msg msg-assistant';
-
-    // If the last message is also assistant, append to it
+    // Non-streaming path: append to last assistant msg or create new
     const last = this.messagesEl.lastElementChild as HTMLElement;
-    if (last && last.classList.contains('msg-assistant')) {
+    if (last && last.classList.contains('msg-assistant') && !last.dataset.streaming) {
       last.textContent += text;
     } else {
+      const el = document.createElement('div');
+      el.className = 'msg msg-assistant';
       el.textContent = text;
       this.messagesEl.appendChild(el);
     }
+    this.streamEl = null;
     this.scrollToBottom();
   }
 
+  startStream() {
+    // Create a new assistant message element for streaming
+    const el = document.createElement('div');
+    el.className = 'msg msg-assistant';
+    el.dataset.streaming = 'true';
+    el.textContent = '';
+    this.messagesEl.appendChild(el);
+    this.streamEl = el;
+    this.scrollToBottom();
+  }
+
+  appendStreamDelta(delta: string) {
+    if (!this.streamEl) {
+      this.startStream();
+    }
+    this.streamEl!.textContent += delta;
+    this.scrollToBottom();
+  }
+
+  finalizeStream() {
+    if (this.streamEl) {
+      delete this.streamEl.dataset.streaming;
+      this.streamEl = null;
+    }
+  }
+
   appendToolCall(name: string, args: any) {
+    // Finalize any streaming content before tool call
+    this.finalizeStream();
+
     const el = document.createElement('div');
     el.className = 'msg msg-tool';
     const argStr = Object.keys(args).length > 0 ? JSON.stringify(args).slice(0, 120) : '';
@@ -105,6 +140,7 @@ export class ChatPanel {
   }
 
   appendError(message: string) {
+    this.finalizeStream();
     const el = document.createElement('div');
     el.className = 'msg msg-error';
     el.textContent = `❌ ${message}`;
@@ -116,6 +152,8 @@ export class ChatPanel {
     const labels: Record<string, string> = {
       idle: 'Bereit',
       thinking: 'Denke nach...',
+      connected: 'Verbunden',
+      disconnected: 'Getrennt — verbinde...',
     };
     this.statusEl.textContent = labels[status] || status;
     this.statusEl.className = `status-bar status-${status}`;
@@ -123,6 +161,11 @@ export class ChatPanel {
 
   setTurn(turn: number, total: number) {
     this.statusEl.textContent = `Runde ${turn}/${total}`;
+  }
+
+  setConnectionStatus(connected: boolean) {
+    this.sendBtn.disabled = !connected;
+    this.sendBtn.style.opacity = connected ? '1' : '0.4';
   }
 
   private scrollToBottom() {
