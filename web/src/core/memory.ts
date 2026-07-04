@@ -75,6 +75,11 @@ export class MemoryStore {
     return { memories, profile };
   }
 
+  async searchAllMemory(limit = 1000): Promise<MemoryEntry[]> {
+    const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
+    return all.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
+  }
+
   async deleteMemory(id: number): Promise<boolean> {
     try {
       await tx('memory', 'readwrite', store => store.delete(id));

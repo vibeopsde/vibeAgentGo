@@ -180,6 +180,31 @@ const memory_save: Tool = {
   },
 };
 
+const memory_search: Tool = {
+  name: 'memory_search',
+  description: 'Search persistent memory entries in the browser (IndexedDB). Returns matching memory entries by content or category. Use this to recall relevant facts before answering or when the user refers to something from the past.',
+  parameters: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'Search term or phrase to look for in memory contents' },
+      category: { type: 'string', enum: ['memory', 'user'], description: 'Optional filter by category' },
+      limit: { type: 'number', description: 'Maximum number of results to return. Default: 10' },
+    },
+    required: ['query'],
+  },
+  handler: async (args, ctx) => {
+    const mem = ctx.env.__memoryStore as unknown as MemoryStore;
+    const all = await mem.searchAllMemory(args.category ? 1000 : args.limit || 10);
+    const filtered = args.category ? all.filter(m => m.category === args.category) : all;
+    const query = args.query.toLowerCase();
+    const matches = filtered
+      .filter(m => m.content.toLowerCase().includes(query))
+      .slice(0, args.limit || 10);
+    if (matches.length === 0) return `No memory entries found for "${args.query}".`;
+    return matches.map(m => `§ ${m.category}: ${m.content}`).join('\n\n');
+  },
+};
+
 // --- Render View (iframe, same as before) ---
 
 const render_view: Tool = {
@@ -214,5 +239,5 @@ const render_view: Tool = {
 // --- Registry ---
 
 export function createDefaultTools(): Tool[] {
-  return [read_file, write_file, search_files, run_code, web_search, memory_save, render_view];
+  return [read_file, write_file, search_files, run_code, web_search, memory_save, memory_search, render_view];
 }
