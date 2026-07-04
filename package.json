@@ -1,0 +1,41 @@
+{
+  "name": "hag",
+  "version": "0.1.0",
+  "description": "Hermes Agent Go — Minimal AI agent with memory, skills, and render_view for mobile",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "vite build && tsc",
+    "build:web": "vite build",
+    "build:server": "tsc",
+    "dev": "concurrently \"vite\" \"tsx server/index.ts\"",
+    "server": "tsx server/index.ts",
+    "chat": "tsx src/index.ts",
+    "test": "tsx tests/test_agent.ts"
+  },
+  "keywords": [
+    "hermes",
+    "agent",
+    "mobile",
+    "ai",
+    "typescript",
+    "quickjs"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.1",
+    "better-sqlite3": "^11.0.0",
+    "express": "^5.2.1",
+    "quickjs-emscripten": "^0.31.0",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "concurrently": "^10.0.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vite": "^8.1.3"
+  }
+}
