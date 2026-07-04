@@ -4,6 +4,7 @@
 
 import { loadConfig, saveConfig, hasApiKey } from '../core/memory.js';
 import { testConnection } from '../core/llm_client.js';
+import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 
 export class SettingsModal {
   element: HTMLElement;
@@ -43,8 +44,18 @@ export class SettingsModal {
   private renderForm() {
     const config = loadConfig();
 
+    const theme = getTheme();
+
     this.modal.innerHTML = `
       <h2>⚙️ Settings</h2>
+      <div class="form-group">
+        <label for="cfg-theme">Theme</label>
+        <select id="cfg-theme">
+          <option value="system" ${theme === 'system' ? 'selected' : ''}>System</option>
+          <option value="light" ${theme === 'light' ? 'selected' : ''}>Light</option>
+          <option value="dark" ${theme === 'dark' ? 'selected' : ''}>Dark</option>
+        </select>
+      </div>
       <div class="form-group">
         <label for="cfg-model">Model</label>
         <input id="cfg-model" type="text" value="${this.escape(config.model)}" placeholder="qwen/qwen3.6-35b-a3b" />
@@ -125,7 +136,9 @@ export class SettingsModal {
     const maxTurns = parseInt((this.modal.querySelector('#cfg-maxturns') as HTMLInputElement).value);
     const searchProvider = (this.modal.querySelector('#cfg-search-provider') as HTMLSelectElement).value as 'none' | 'tavily';
     const searchApiKey = (this.modal.querySelector('#cfg-search-apikey') as HTMLInputElement).value;
+    const theme = (this.modal.querySelector('#cfg-theme') as HTMLSelectElement).value as ThemeMode;
 
+    setTheme(theme);
     saveConfig({ model, baseUrl, apiKey, maxTurns, searchProvider, searchApiKey });
     this.close();
   }

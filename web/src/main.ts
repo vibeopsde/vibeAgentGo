@@ -4,6 +4,7 @@
 // ============================================================
 
 import './styles/app.css';
+import { initTheme, toggleTheme } from './core/theme.js';
 import { ChatPanel } from './components/ChatPanel.js';
 import { RenderPanel } from './components/RenderPanel.js';
 import { SettingsModal } from './components/SettingsModal.js';
@@ -13,6 +14,9 @@ import { MobileNav } from './components/MobileNav.js';
 import { Agent } from './core/agent.js';
 import { MemoryStore, loadConfig, saveConfig, hasApiKey } from './core/memory.js';
 import { createDefaultTools } from './core/tools.js';
+
+// Initialize theme before first render to avoid flash
+initTheme();
 
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -135,6 +139,7 @@ function buildLayout() {
       <span class="subtitle">Hermes Agent Go</span>
     </div>
     <div class="header-right">
+      <button id="btn-theme" class="icon-btn" title="Toggle theme">🌓</button>
       <button id="btn-sessions" class="icon-btn" title="Sessions">💬</button>
       <button id="btn-new" class="icon-btn" title="New Chat">✨</button>
       <button id="btn-memory" class="icon-btn" title="Memory">🧠</button>
@@ -171,6 +176,7 @@ function buildLayout() {
   header.querySelector('#btn-memory')!.addEventListener('click', () => memoryPanel.open());
   header.querySelector('#btn-sessions')!.addEventListener('click', () => sessionPanel.open());
   header.querySelector('#btn-new')!.addEventListener('click', () => newChat());
+  header.querySelector('#btn-theme')!.addEventListener('click', () => toggleTheme());
 
   // Make header icons desktop-only on very small screens (CSS hides them, but keep fallback)
   header.classList.add('has-mobile-nav');
@@ -229,6 +235,7 @@ function openMobileMenu() {
         <span>Menu</span>
         <button class="mobile-menu-close">✕</button>
       </div>
+      <button class="mobile-menu-item" data-action="theme">🌓 Theme</button>
       <button class="mobile-menu-item" data-action="settings">⚙️ Settings</button>
       <button class="mobile-menu-item" data-action="memory">🧠 Memory</button>
       <button class="mobile-menu-item" data-action="sessions">💬 Sessions</button>
@@ -242,6 +249,7 @@ function openMobileMenu() {
     item.addEventListener('click', () => {
       const action = (item as HTMLElement).dataset.action!;
       close();
+      if (action === 'theme') toggleTheme();
       if (action === 'settings') settingsModal.open();
       if (action === 'memory') memoryPanel.open();
       if (action === 'sessions') sessionPanel.open();

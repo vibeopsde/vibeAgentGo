@@ -1,5 +1,5 @@
 /* ============================================================
-   HAG — PWA Styles (dark, mobile-first)
+   HAG — PWA Styles (system + manual theme, mobile-first)
    ============================================================ */
 
 :root {
@@ -14,9 +14,50 @@
   --green: #3fb950;
   --red: #f85149;
   --yellow: #d29922;
+  --text-on-accent: #ffffff;
   --radius: 8px;
   --header-h: 48px;
   --mobile-nav-h: 64px;
+}
+
+/* Light theme: manual override or system preference */
+:root[data-theme="light"],
+:root:not([data-theme]) {
+  color-scheme: light dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-elev: #f6f8fa;
+  --bg-hover: #eef1f4;
+  --border: #d1d9e0;
+  --text: #1f2328;
+  --text-muted: #656d76;
+  --accent: #0969da;
+  --accent-hover: #0550ae;
+  --green: #1a7f37;
+  --red: #cf222e;
+  --yellow: #9a6700;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff;
+    --bg-elev: #f6f8fa;
+    --bg-hover: #eef1f4;
+    --border: #d1d9e0;
+    --text: #1f2328;
+    --text-muted: #656d76;
+    --accent: #0969da;
+    --accent-hover: #0550ae;
+    --green: #1a7f37;
+    --red: #cf222e;
+    --yellow: #9a6700;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 * {
@@ -181,7 +222,7 @@ html, body {
 .msg-user {
   align-self: flex-end;
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .msg-assistant {
@@ -375,7 +416,7 @@ html, body {
 
 .send-btn {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
   border: none;
   border-radius: var(--radius);
   padding: 0 16px;
@@ -441,14 +482,14 @@ html, body {
 .view-container {
   flex: 1;
   position: relative;
-  background: #fff;
+  background: var(--bg);
 }
 
 .view-iframe {
   width: 100%;
   height: 100%;
   border: none;
-  background: #fff;
+  background: var(--bg);
 }
 
 .view-empty {
@@ -520,7 +561,7 @@ html, body {
 
 .mobile-nav-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -742,7 +783,7 @@ select {
 
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .btn-primary:active {
