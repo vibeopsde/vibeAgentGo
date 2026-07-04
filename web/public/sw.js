@@ -1,6 +1,6 @@
-// vibeAgentGo Service Worker — v2607.1.2
+// vibeAgentGo Service Worker — v2607.1.3
 // Network-first for HTML (always get latest), cache-first for hashed assets
-const CACHE_NAME = 'vibeAgentGo-v2607.1.2';
+const CACHE_NAME = 'vibeAgentGo-v2607.1.3';
 const ASSETS = ['./manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {

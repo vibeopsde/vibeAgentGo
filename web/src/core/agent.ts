@@ -25,13 +25,15 @@ type EventHandler<K extends keyof AgentEventMap> = (data: AgentEventMap[K]) => v
 export class Agent {
   private tools: Tool[];
   private memory: MemoryStore;
+  private extraEnv: Record<string, any>;
   private sessionId: string | null = null;
   private listeners: { [K in keyof AgentEventMap]?: EventHandler<K>[] } = {};
   private abortController: AbortController | null = null;
 
-  constructor(tools: Tool[], memory: MemoryStore) {
+  constructor(tools: Tool[], memory: MemoryStore, extraEnv: Record<string, any> = {}) {
     this.tools = tools;
     this.memory = memory;
+    this.extraEnv = extraEnv;
   }
 
   on<K extends keyof AgentEventMap>(event: K, handler: EventHandler<K>): void {
@@ -64,6 +66,7 @@ export class Agent {
       emit: (event, data) => this.emit(event as any, data as any),
       env: {
         memoryStore: this.memory,
+        ...this.extraEnv,
       },
     };
   }

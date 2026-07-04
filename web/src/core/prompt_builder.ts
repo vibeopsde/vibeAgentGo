@@ -55,7 +55,8 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 - All data stored locally in IndexedDB — no server-side storage
 - You have access to a sandboxed JavaScript runtime via run_code
 - You can read and write files in the browser workspace (IndexedDB)
-- You can render HTML views via render_view`);
+- You can render HTML views via render_view
+- You can inspect rendered views with inspect_view to read console logs, errors, warnings, and uncaught exceptions for debugging`);
 
   const memory = buildMemoryBlock(ctx.memories);
   if (memory) parts.push(memory);

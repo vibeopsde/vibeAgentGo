@@ -57,7 +57,7 @@ function createAgent(): Agent {
   if (agent) {
     try { agent.abort(); } catch { /* ignore */ }
   }
-  const a = new Agent(tools, memory);
+  const a = new Agent(tools, memory, { renderPanel });
   setupAgent(a);
   return a;
 }

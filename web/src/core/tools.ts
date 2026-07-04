@@ -71,7 +71,7 @@ const search_files: Tool = {
 
 const run_code: Tool = {
   name: 'run_code',
-  description: 'Execute JavaScript code in a sandboxed iframe environment. Use log() or console.log() for output. Returns the result value and captured logs. No access to IndexedDB or the parent page.',
+  description: 'Execute JavaScript code in a sandboxed iframe environment. Captures console.log/error/warn/info and uncaught exceptions. Use log() or console.log() for output. Returns the result value, logs, and error details including stack traces. No access to IndexedDB or the parent page.',
   parameters: {
     type: 'object',
     properties: {
@@ -85,8 +85,13 @@ const run_code: Tool = {
       const requested = typeof args.timeout === 'number' ? args.timeout : 5000;
       const timeoutMs = Math.max(100, Math.min(requested, 30000));
       const { logs, result, error } = await runInSandbox(args.code, timeoutMs);
-      const output = logs.length > 0 ? `Logs:\n${logs.join('\n')}\n\nResult: ${result}` : `Result: ${result}`;
-      return error ? `Sandbox error: ${error}\n\n${output}` : output;
+      const logsText = logs.length > 0
+        ? logs.map(l => `[${l.level.toUpperCase()}] ${l.message}${l.stack ? '\n' + l.stack : ''}`).join('\n')
+        : 'No logs';
+      if (error) {
+        return `Sandbox error: ${error.name}: ${error.message}\n${error.stack || ''}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
+      }
+      return logs.length > 0 ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
     } catch (e: any) {
       return `Sandbox error: ${e.message || String(e)}`;
     }
@@ -198,11 +203,16 @@ const memory_search: Tool = {
   },
 };
 
+interface RenderPanelLike {
+  getLogs(title: string): { level: string; message: string; stack?: string; timestamp: string }[];
+  clearLogs(title: string): void;
+}
+
 // --- Render View (iframe, same as before) ---
 
 const render_view: Tool = {
   name: 'render_view',
-  description: 'Render HTML/CSS/JS as a live interactive view alongside the chat. The view runs in a sandboxed iframe. Pass HTML directly or reference a file path in the workspace.',
+  description: 'Render HTML/CSS/JS as a live interactive view alongside the chat. The view runs in a sandboxed iframe. Pass HTML directly or reference a file path in the workspace. To debug a rendered view, use the inspect_view tool to retrieve its console logs and uncaught errors.',
   parameters: {
     type: 'object',
     properties: {
@@ -229,8 +239,34 @@ const render_view: Tool = {
   },
 };
 
+// --- Inspect View (debug logs from rendered views) ---
+
+const inspect_view: Tool = {
+  name: 'inspect_view',
+  description: 'Retrieve captured console logs, errors, warnings, and unhandled exceptions from a rendered view (render_view). Use this to debug HTML/JS mini-apps after rendering them. Set clear=true to reset the captured log buffer after reading.',
+  parameters: {
+    type: 'object',
+    properties: {
+      title: { type: 'string', description: 'Title of the rendered view to inspect' },
+      clear: { type: 'boolean', description: 'Whether to clear the log buffer after reading. Default: false' },
+    },
+    required: ['title'],
+  },
+  handler: async (args, ctx) => {
+    const panel = ctx.env.renderPanel as RenderPanelLike | undefined;
+    if (!panel) return 'No render panel is available';
+    const logs = panel.getLogs(args.title);
+    if (!logs.length) return `No logs captured for view "${args.title}".`;
+    const text = logs.map(l =>
+      `[${l.timestamp}] [${l.level.toUpperCase()}] ${l.message}${l.stack ? '\n' + l.stack : ''}`
+    ).join('\n');
+    if (args.clear) panel.clearLogs(args.title);
+    return `Logs for "${args.title}":\n\n${text}`;
+  },
+};
+
 // --- Registry ---
 
 export function createDefaultTools(): Tool[] {
-  return [read_file, write_file, search_files, run_code, web_search, memory_save, memory_search, render_view];
+  return [read_file, write_file, search_files, run_code, web_search, memory_save, memory_search, render_view, inspect_view];
 }

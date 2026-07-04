@@ -5,6 +5,14 @@
 interface ViewTab {
   title: string;
   html: string;
+  logs?: LogEntry[];
+}
+
+export interface LogEntry {
+  level: 'log' | 'error' | 'warn' | 'info';
+  message: string;
+  stack?: string;
+  timestamp: string;
 }
 
 export class RenderPanel {
@@ -44,6 +52,23 @@ export class RenderPanel {
 
     this.element.appendChild(this.tabsEl);
     this.element.appendChild(this.viewEl);
+
+    this.attachMessageListener();
+  }
+
+  private attachMessageListener() {
+    window.addEventListener('message', (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || data.vibeAgentGoViewLog !== true) return;
+      if (data.title && typeof data.title === 'string') {
+        this.appendLog(data.title, {
+          level: data.level || 'log',
+          message: data.message || '',
+          stack: data.stack,
+          timestamp: data.timestamp || new Date().toISOString(),
+        });
+      }
+    });
   }
 
   render(views: ViewTab[], activeTitle: string | null) {
@@ -51,6 +76,59 @@ export class RenderPanel {
     this.activeTitle = activeTitle;
     this.renderTabs();
     this.renderActiveView();
+  }
+
+  getLogs(title: string): LogEntry[] {
+    return this.views.find(v => v.title === title)?.logs || [];
+  }
+
+  clearLogs(title: string) {
+    const view = this.views.find(v => v.title === title);
+    if (view) view.logs = [];
+  }
+
+  private appendLog(title: string, entry: LogEntry) {
+    const view = this.views.find(v => v.title === title);
+    if (!view) return;
+    if (!view.logs) view.logs = [];
+    view.logs.push(entry);
+    if (view.logs.length > 500) view.logs = view.logs.slice(-250);
+  }
+
+  private setupLogCapture(html: string, title: string): string {
+    const captureScript = `
+<script>
+(function() {
+  const send = (level, args) => {
+    const message = args.map(a => {
+      if (a instanceof Error) return a.stack || a.message;
+      return typeof a === 'object' ? JSON.stringify(a) : String(a);
+    }).join(' ');
+    const stack = args.find(a => a instanceof Error)?.stack || undefined;
+    parent.postMessage({ vibeAgentGoViewLog: true, title: ${JSON.stringify(title)}, level, message, stack, timestamp: new Date().toISOString() }, '*');
+  };
+  const levels = ['log','error','warn','info','debug','trace'];
+  levels.forEach(level => {
+    const orig = console[level] || console.log;
+    console[level] = (...args) => { send(level === 'debug' || level === 'trace' ? 'log' : level, args); try { orig.apply(console, args); } catch {} };
+  });
+  window.onerror = (msg, url, line, col, err) => {
+    send('error', [err || msg + ' at ' + url + ':' + line + ':' + col]);
+    return false;
+  };
+  window.onunhandledrejection = (e) => {
+    send('error', [e.reason instanceof Error ? e.reason : new Error(String(e.reason))]);
+  };
+})();
+</script>
+    `.trim();
+    if (html.includes('<head>')) {
+      return html.replace('<head>', '<head>' + captureScript);
+    }
+    if (html.includes('<body>')) {
+      return html.replace('<body>', '<body>' + captureScript);
+    }
+    return captureScript + html;
   }
 
   private renderTabs() {
@@ -108,7 +186,7 @@ export class RenderPanel {
     this.emptyEl.style.display = 'none';
     this.iframe.style.display = 'block';
 
-    // Render HTML via srcdoc (sandboxed)
-    this.iframe.srcdoc = view.html;
+    // Inject log/error capture and render via srcdoc (sandboxed)
+    this.iframe.srcdoc = this.setupLogCapture(view.html, view.title);
   }
 }
