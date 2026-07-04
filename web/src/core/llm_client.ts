@@ -3,7 +3,7 @@
 // No server proxy — browser calls LLM API directly via CORS
 // ============================================================
 
-import type { Message, ToolSchema, LLMResponse, ToolCall } from '../../../src/types/index.js';
+import type { Message, ToolSchema, LLMResponse, ToolCall } from '../types/index.js';
 
 export async function llmChatStream(opts: {
   messages: Message[];

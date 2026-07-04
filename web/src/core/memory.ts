@@ -2,7 +2,7 @@
 // HAG — IndexedDB Memory Store (client-side, no server)
 // ============================================================
 
-import type { Message, MemoryEntry, Session } from '../../../src/types/index.js';
+import type { Message, MemoryEntry, Session } from '../types/index.js';
 
 const DB_NAME = 'hag-agent';
 const DB_VERSION = 1;
@@ -22,6 +22,9 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('sessions')) {
         const sessStore = db.createObjectStore('sessions', { keyPath: 'id' });
         sessStore.createIndex('updated_at', 'updated_at', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('skills')) {
+        db.createObjectStore('skills', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('files')) {
         db.createObjectStore('files', { keyPath: 'path' });
@@ -156,7 +159,51 @@ export class MemoryStore {
   }
 }
 
-// --- Config (localStorage, never sent to server) ---
+const CONFIG_KEY = 'hag-config';
+
+// --- Skills (IndexedDB) ---
+
+export interface SkillRecord {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  trigger?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export class SkillStore {
+  async saveSkill(skill: Omit<SkillRecord, 'created_at' | 'updated_at'>): Promise<void> {
+    const now = new Date().toISOString();
+    const existing = await this.getSkill(skill.id);
+    const record: SkillRecord = {
+      ...skill,
+      created_at: existing?.created_at || now,
+      updated_at: now,
+    };
+    await tx('skills', 'readwrite', store => store.put(record));
+  }
+
+  async getSkill(id: string): Promise<SkillRecord | null> {
+    try {
+      return await tx<SkillRecord>('skills', 'readonly', store => store.get(id));
+    } catch { return null; }
+  }
+
+  async listSkills(): Promise<SkillRecord[]> {
+    return txAll<SkillRecord>('skills', 'readonly', store => store.getAll()).then(all =>
+      all.sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    );
+  }
+
+  async deleteSkill(id: string): Promise<boolean> {
+    try {
+      await tx('skills', 'readwrite', store => store.delete(id));
+      return true;
+    } catch { return false; }
+  }
+}
 
 export interface ClientConfig {
   model: string;
@@ -164,8 +211,6 @@ export interface ClientConfig {
   apiKey: string;
   maxTurns: number;
 }
-
-const CONFIG_KEY = 'hag-config';
 
 export function loadConfig(): ClientConfig {
   const stored = localStorage.getItem(CONFIG_KEY);

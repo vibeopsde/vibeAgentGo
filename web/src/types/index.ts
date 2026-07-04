@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Hermes Agent Go — Core Types
+// HAG — Shared TypeScript Types (browser PWA)
 // ============================================================
 
 export type Role = 'system' | 'user' | 'assistant' | 'tool';
@@ -18,7 +18,6 @@ export interface Message {
   content: string;
   tool_calls?: ToolCall[];
   tool_call_id?: string; // for role: 'tool'
-  name?: string; // tool name for role: 'tool'
 }
 
 export interface ToolSchema {
@@ -45,14 +44,12 @@ export interface AgentConfig {
   baseUrl: string;
   apiKey: string;
   maxTurns: number;
-  workspace: string;
-  systemPromptExtra?: string;
 }
 
 export interface ToolContext {
   workspace: string;
   emit: (event: string, data: any) => void;
-  env: Record<string, string>;
+  env: Record<string, any>;
 }
 
 export interface Tool {

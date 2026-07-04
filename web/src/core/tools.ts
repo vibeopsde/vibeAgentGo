@@ -2,7 +2,7 @@
 // HAG — Browser Tools (client-side, IndexedDB + sandbox eval)
 // ============================================================
 
-import type { Tool, ToolContext } from '../../../src/types/index.js';
+import type { Tool, ToolContext } from '../types/index.js';
 import { MemoryStore } from './memory.js';
 
 // --- File Tools (IndexedDB workspace) ---
