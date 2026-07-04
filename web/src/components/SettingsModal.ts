@@ -2,7 +2,7 @@
 // HAG — SettingsModal (client-side, localStorage config)
 // ============================================================
 
-import { loadConfig, saveConfig, hasApiKey } from '../core/memory.js';
+import { loadConfig, saveConfig, hasApiKey, resetLocalData } from '../core/memory.js';
 import { testConnection } from '../core/llm_client.js';
 import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 
@@ -91,6 +91,16 @@ export class SettingsModal {
         <button id="cfg-save" class="btn btn-primary">Speichern</button>
       </div>
       <div id="cfg-test-result" class="test-result"></div>
+      <div class="form-actions">
+        <button id="cfg-reset" class="btn btn-danger">Alle lokalen Daten löschen</button>
+      </div>
+      <div id="cfg-reset-confirm" class="reset-confirm" style="display:none;">
+        <p><strong>⚠️ Achtung:</strong> Das löscht alle Sessions, Dateien, Memory-Einträge, Skills und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.</p>
+        <div class="form-actions">
+          <button id="cfg-reset-cancel" class="btn btn-secondary">Abbrechen</button>
+          <button id="cfg-reset-confirm-btn" class="btn btn-danger">Ja, alles löschen</button>
+        </div>
+      </div>
       <div class="config-hint">
         <p><strong>🔒 Datenhoheit:</strong> Alle Daten liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen gehen an den konfigurierten Server.</p>
         <p><strong>⚠️ Sicherheit:</strong> Der API-Key wird unverschlüsselt im localStorage gespeichert. Nicht auf fremden Geräten oder im Inkognito-Modus verwenden.</p>
@@ -107,6 +117,27 @@ export class SettingsModal {
     this.modal.querySelector('#cfg-cancel')!.addEventListener('click', () => this.close());
     this.modal.querySelector('#cfg-save')!.addEventListener('click', () => this.save());
     this.modal.querySelector('#cfg-test')!.addEventListener('click', () => this.testConnection());
+
+    const resetBtn = this.modal.querySelector('#cfg-reset') as HTMLButtonElement;
+    const resetConfirm = this.modal.querySelector('#cfg-reset-confirm') as HTMLElement;
+    const resetCancel = this.modal.querySelector('#cfg-reset-cancel') as HTMLButtonElement;
+    const resetConfirmBtn = this.modal.querySelector('#cfg-reset-confirm-btn') as HTMLButtonElement;
+
+    resetBtn.addEventListener('click', () => {
+      resetConfirm.style.display = 'block';
+      resetBtn.style.display = 'none';
+    });
+
+    resetCancel.addEventListener('click', () => {
+      resetConfirm.style.display = 'none';
+      resetBtn.style.display = 'block';
+    });
+
+    resetConfirmBtn.addEventListener('click', () => {
+      resetLocalData();
+      this.close();
+      window.location.reload();
+    });
   }
 
   private testConnection() {

@@ -160,6 +160,7 @@ export class MemoryStore {
 }
 
 const CONFIG_KEY = 'hag-config';
+const ONBOARDING_KEY = 'hag-onboarding';
 
 // --- Skills (IndexedDB) ---
 
@@ -240,4 +241,30 @@ export function saveConfig(config: Partial<ClientConfig>): ClientConfig {
 
 export function hasApiKey(): boolean {
   return !!loadConfig().apiKey;
+}
+
+export interface OnboardingState {
+  completed: boolean;
+  completedAt?: string;
+}
+
+export function hasCompletedOnboarding(): boolean {
+  const stored = localStorage.getItem(ONBOARDING_KEY);
+  if (!stored) return false;
+  try {
+    const parsed = JSON.parse(stored) as OnboardingState;
+    return parsed.completed === true;
+  } catch { return false; }
+}
+
+export function completeOnboarding(): void {
+  const state: OnboardingState = { completed: true, completedAt: new Date().toISOString() };
+  localStorage.setItem(ONBOARDING_KEY, JSON.stringify(state));
+}
+
+export function resetLocalData(): void {
+  localStorage.removeItem(CONFIG_KEY);
+  localStorage.removeItem(ONBOARDING_KEY);
+  localStorage.removeItem('hag-theme');
+  indexedDB.deleteDatabase(DB_NAME);
 }

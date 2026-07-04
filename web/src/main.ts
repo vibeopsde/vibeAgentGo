@@ -11,8 +11,9 @@ import { SettingsModal } from './components/SettingsModal.js';
 import { MemoryPanel } from './components/MemoryPanel.js';
 import { SessionPanel } from './components/SessionPanel.js';
 import { MobileNav } from './components/MobileNav.js';
+import { OnboardingWizard } from './components/OnboardingWizard.js';
 import { Agent } from './core/agent.js';
-import { MemoryStore, loadConfig, saveConfig, hasApiKey } from './core/memory.js';
+import { MemoryStore, loadConfig, saveConfig, hasApiKey, hasCompletedOnboarding, resetLocalData } from './core/memory.js';
 import { createDefaultTools } from './core/tools.js';
 
 // Initialize theme before first render to avoid flash
@@ -262,9 +263,24 @@ function openMobileMenu() {
 
 // --- Init ---
 
-buildLayout();
+function startApp() {
+  const app = document.getElementById('app')!;
+  app.innerHTML = '';
+  buildLayout();
+}
 
-// Check if API key is set
-if (!hasApiKey()) {
-  settingsModal.open();
+function startOnboarding() {
+  const app = document.getElementById('app')!;
+  app.innerHTML = '';
+  const wizard = new OnboardingWizard();
+  wizard.onComplete = () => {
+    startApp();
+  };
+  app.appendChild(wizard.element);
+}
+
+if (hasCompletedOnboarding()) {
+  startApp();
+} else {
+  startOnboarding();
 }
