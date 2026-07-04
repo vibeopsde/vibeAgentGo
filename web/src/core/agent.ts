@@ -5,7 +5,7 @@
 import type { Message, Tool, ToolContext, LLMResponse, AgentConfig } from '../types/index.js';
 import { llmChatStream } from './llm_client.js';
 import { buildSystemPrompt, toolsToSchemas, loadSkills, type PromptContext } from './prompt_builder.js';
-import type { MemoryStore } from './memory.js';
+import { MemoryStore } from './memory.js';
 import { randomUUID } from './uuid.js';
 
 export interface AgentEventMap {
@@ -175,6 +175,10 @@ export class Agent {
       });
 
       this.emit('done', { sessionId: id });
+
+      // Extract durable memories asynchronously (Hermes-style)
+      this.extractMemoryFromConversation(history, config).catch(() => {});
+
       return response.content;
     }
 
@@ -191,5 +195,58 @@ export class Agent {
 
   getLastSessionId(): string | null {
     return this.sessionId;
+  }
+
+  private async extractMemoryFromConversation(history: Message[], config: AgentConfig): Promise<void> {
+    if (history.length < 2) return;
+
+    const extractionMessages: Message[] = [
+      { role: 'system', content: `You are a memory extraction assistant. Your only job is to identify durable facts about the user, their preferences, their environment, or their ongoing work from the conversation below.
+
+Output JSON only. No markdown, no explanation, no code fences. Use this exact shape:
+
+{"memories": [{"category": "memory" or "user", "content": "declarative fact"}]}
+
+Rules:
+- Save facts that would be useful across future sessions.
+- Use "user" category only for facts about the user's identity, role, preferences, or style.
+- Use "memory" category for environment facts, conventions, project details, workflows.
+- Do NOT save temporary task state, single-session context, or completed work logs.
+- If there are no durable facts, return {"memories": []}.
+- Each memory entry should be 1 concise sentence.` },
+      { role: 'user', content: 'Conversation:\n\n' + history.map(m => `${m.role}: ${m.content || ''}`).join('\n\n') },
+    ];
+
+    try {
+      const res = await llmChatStream({
+        messages: extractionMessages,
+        model: config.model,
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+        onDelta: () => {},
+      });
+
+      const raw = res.content?.trim() || '';
+      let parsed: any = null;
+
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        // Try to extract JSON from a markdown code block if the model misbehaves
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+      }
+
+      const memories = parsed?.memories;
+      if (!Array.isArray(memories) || memories.length === 0) return;
+
+      for (const m of memories) {
+        if (!m.content || typeof m.content !== 'string') continue;
+        const category = m.category === 'user' ? 'user' : 'memory';
+        await this.memory.saveMemory(m.content.trim(), category);
+      }
+    } catch {
+      // Silent: memory extraction should never break the chat flow
+    }
   }
 }
