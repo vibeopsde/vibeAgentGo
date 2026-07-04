@@ -200,20 +200,29 @@ export class Agent {
   private async extractMemoryFromConversation(history: Message[], config: AgentConfig): Promise<void> {
     if (history.length < 2) return;
 
-    const extractionMessages: Message[] = [
-      { role: 'system', content: `You are a memory extraction assistant. Your only job is to identify durable facts about the user, their preferences, their environment, or their ongoing work from the conversation below.
+    const existing = await this.memory.getAllMemory(200);
+    const existingFacts = [...existing.memories, ...existing.profile].map(m => m.content.toLowerCase().trim());
+    const existingFactsNormalized = existingFacts.map(f => f.replace(/[^\w\s]/g, ''));
 
-Output JSON only. No markdown, no explanation, no code fences. Use this exact shape:
+    const memoryContext = existingFacts.length > 0
+      ? `Existing memory (do NOT duplicate these):\n${existingFacts.map(f => `- ${f}`).join('\n')}\n\n`
+      : '';
+
+    const extractionMessages: Message[] = [
+      { role: 'system', content: `You are a memory extraction assistant. Your only job is to identify NEW durable facts about the user, their preferences, their environment, or their ongoing work from the conversation below.
+
+${memoryContext}Output JSON only. No markdown, no explanation, no code fences. Use this exact shape:
 
 {"memories": [{"category": "memory" or "user", "content": "declarative fact"}]}
 
 Rules:
-- Save facts that would be useful across future sessions.
+- Save facts that would be useful across future sessions and are NOT already in the existing memory above.
 - Use "user" category only for facts about the user's identity, role, preferences, or style.
 - Use "memory" category for environment facts, conventions, project details, workflows.
 - Do NOT save temporary task state, single-session context, or completed work logs.
-- If there are no durable facts, return {"memories": []}.
-- Each memory entry should be 1 concise sentence.` },
+- Do NOT save generic filler like greetings or the user asking for help.
+- If there are no new durable facts, return {"memories": []}.
+- Each memory entry should be 1 concise sentence, not longer than 200 characters.` },
       { role: 'user', content: 'Conversation:\n\n' + history.map(m => `${m.role}: ${m.content || ''}`).join('\n\n') },
     ];
 
@@ -232,7 +241,6 @@ Rules:
       try {
         parsed = JSON.parse(raw);
       } catch {
-        // Try to extract JSON from a markdown code block if the model misbehaves
         const match = raw.match(/\{[\s\S]*\}/);
         if (match) parsed = JSON.parse(match[0]);
       }
@@ -242,8 +250,16 @@ Rules:
 
       for (const m of memories) {
         if (!m.content || typeof m.content !== 'string') continue;
+        const content = m.content.trim();
+        if (content.length < 8 || content.length > 200) continue;
+
+        const lower = content.toLowerCase();
+        const normalized = lower.replace(/[^\w\s]/g, '');
+        if (existingFacts.includes(lower)) continue;
+        if (existingFactsNormalized.some(f => normalized.includes(f) || f.includes(normalized))) continue;
+
         const category = m.category === 'user' ? 'user' : 'memory';
-        await this.memory.saveMemory(m.content.trim(), category);
+        await this.memory.saveMemory(content, category);
       }
     } catch {
       // Silent: memory extraction should never break the chat flow
