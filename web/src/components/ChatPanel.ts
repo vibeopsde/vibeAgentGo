@@ -112,6 +112,7 @@ export class ChatPanel {
   }
 
   appendStreamDelta(delta: string) {
+    if (!delta) return;
     if (!this.streamEl) {
       this.startStream();
     }
