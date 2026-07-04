@@ -65,7 +65,7 @@ web/
 | `read_file` | Read a file from the IndexedDB workspace |
 | `write_file` | Write a file to the IndexedDB workspace |
 | `search_files` | Search filenames or contents in the workspace |
-| `run_code` | Execute JS in a lightweight browser sandbox (Function constructor) |
+| `run_code` | Execute JS in a sandboxed iframe (`srcdoc` + `sandbox="allow-scripts"`) |
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent) |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `render_view` | Render HTML as a live view in the iframe panel |
@@ -93,6 +93,10 @@ Agent: writes HTML+JS → calls render_view → Calculator appears in the view p
 ```
 
 The rendered view runs in a sandboxed iframe via `srcdoc`.
+
+### Code Sandbox (`run_code`)
+
+`run_code` executes JavaScript in an isolated `blob:`-origin iframe with `sandbox="allow-scripts"`. It has no access to `parent`, `window.document`, `fetch`, `indexedDB`, or the main page's `localStorage`. A `log()` function and a limited `console` are injected for output.
 
 ## License
 

@@ -3,6 +3,7 @@
 // ============================================================
 
 import { renderMarkdown } from '../utils/markdown.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export class ChatPanel {
   element: HTMLElement;
@@ -93,7 +94,7 @@ export class ChatPanel {
     } else {
       const el = document.createElement('div');
       el.className = 'msg msg-assistant';
-      el.innerHTML = `<div class="msg-content" data-raw="${this.escape(text)}">${renderMarkdown(text)}</div>`;
+      el.innerHTML = `<div class="msg-content" data-raw="${escapeHtml(text)}">${renderMarkdown(text)}</div>`;
       this.messagesEl.appendChild(el);
     }
     this.streamEl = null;
@@ -163,7 +164,7 @@ export class ChatPanel {
       const fallback = document.createElement('div');
       fallback.className = 'msg msg-tool-result';
       const preview = result.length > 150 ? result.slice(0, 150) + '...' : result;
-      fallback.innerHTML = `<span class="tool-result-icon">↳</span> <span class="tool-result-text">${this.escape(preview)}</span>`;
+      fallback.innerHTML = `<span class="tool-result-icon">↳</span> <span class="tool-result-text">${escapeHtml(preview)}</span>`;
       this.messagesEl.appendChild(fallback);
     }
     this.scrollToBottom();
@@ -202,9 +203,5 @@ export class ChatPanel {
     this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
   }
 
-  private escape(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
+
 }

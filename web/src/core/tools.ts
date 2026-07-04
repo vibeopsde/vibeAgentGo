@@ -185,12 +185,14 @@ const memory_search: Tool = {
   },
   handler: async (args, ctx) => {
     const mem = getMemoryStore(ctx);
-    const all = await mem.searchAllMemory(args.category ? 1000 : args.limit || 10);
+    const limit = args.limit || 10;
+    // Load enough entries to filter by category (if requested) then search by query.
+    const all = await mem.searchAllMemory(args.category ? 1000 : limit * 4);
     const filtered = args.category ? all.filter(m => m.category === args.category) : all;
     const query = args.query.toLowerCase();
     const matches = filtered
       .filter(m => m.content.toLowerCase().includes(query))
-      .slice(0, args.limit || 10);
+      .slice(0, limit);
     if (matches.length === 0) return `No memory entries found for "${args.query}".`;
     return matches.map(m => `§ ${m.category}: ${m.content}`).join('\n\n');
   },

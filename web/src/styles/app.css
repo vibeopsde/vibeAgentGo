@@ -84,7 +84,7 @@ html, body {
   font-size: 14px;
   /* Prevent pull-to-refresh and overscroll on mobile */
   overscroll-behavior: none;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 #app {
