@@ -103,6 +103,11 @@ export class SettingsModal {
         <label for="cfg-maxturns">Max Turns</label>
         <input id="cfg-maxturns" type="number" value="${config.maxTurns}" min="1" max="100" />
       </div>
+      <div class="form-group">
+        <label for="cfg-maxtokens">Max Response Tokens</label>
+        <input id="cfg-maxtokens" type="number" value="${config.maxTokens}" min="256" max="65536" step="256" />
+        <p class="field-hint">Limits how many tokens the model may generate per turn. Lower = faster, cheaper answers. 0 = unlimited.</p>
+      </div>
       <h3>🔍 Search Provider</h3>
       <div class="form-group">
         <label for="cfg-search-provider">Provider</label>
@@ -209,12 +214,13 @@ export class SettingsModal {
     const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value;
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value;
     const maxTurns = parseInt((this.modal.querySelector('#cfg-maxturns') as HTMLInputElement).value);
+    const maxTokens = parseInt((this.modal.querySelector('#cfg-maxtokens') as HTMLInputElement).value);
     const searchProvider = (this.modal.querySelector('#cfg-search-provider') as HTMLSelectElement).value as 'none' | 'tavily';
     const searchApiKey = (this.modal.querySelector('#cfg-search-apikey') as HTMLInputElement).value;
     const theme = (this.modal.querySelector('#cfg-theme') as HTMLSelectElement).value as ThemeMode;
 
     setTheme(theme);
-    saveConfig({ model, baseUrl, apiKey, maxTurns, searchProvider, searchApiKey });
+    saveConfig({ model, baseUrl, apiKey, maxTurns, maxTokens, searchProvider, searchApiKey });
     this.close();
   }
 }

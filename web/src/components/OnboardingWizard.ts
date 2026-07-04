@@ -145,6 +145,12 @@ export class OnboardingWizard {
           <input id="ob-maxturns" type="number" value="${this.config.maxTurns}" min="1" max="100" />
         </div>
         
+        <div class="form-group">
+          <label for="ob-maxtokens">Max Response Tokens</label>
+          <input id="ob-maxtokens" type="number" value="${this.config.maxTokens}" min="256" max="65536" step="256" />
+          <p class="field-hint">Limits how many tokens the model may generate per turn. Lower = faster, cheaper answers. 0 = unlimited.</p>
+        </div>
+        
         <div id="ob-test-result" class="test-result"></div>
         
         <div class="onboarding-actions">
@@ -256,13 +262,14 @@ export class OnboardingWizard {
     const model = (this.element.querySelector('#ob-model') as HTMLInputElement).value.trim();
     const apiKey = (this.element.querySelector('#ob-apikey') as HTMLInputElement).value.trim();
     const maxTurns = parseInt((this.element.querySelector('#ob-maxturns') as HTMLInputElement).value) || 30;
+    const maxTokens = parseInt((this.element.querySelector('#ob-maxtokens') as HTMLInputElement).value) || 4096;
 
     if (!baseUrl || !model) {
       alert('Bitte Base URL und Model angeben.');
       return;
     }
 
-    this.config = saveConfig({ ...this.config, baseUrl, model, apiKey, maxTurns });
+    this.config = saveConfig({ ...this.config, baseUrl, model, apiKey, maxTurns, maxTokens });
     this.step = 3;
     this.render();
   }

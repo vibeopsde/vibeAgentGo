@@ -216,6 +216,7 @@ export interface ClientConfig {
   baseUrl: string;
   apiKey: string;
   maxTurns: number;
+  maxTokens: number;
   searchProvider: 'none' | 'tavily';
   searchApiKey: string;
 }
@@ -230,6 +231,7 @@ export function loadConfig(): ClientConfig {
     baseUrl: 'https://ki.vibeops.de/v1',
     apiKey: '',
     maxTurns: 30,
+    maxTokens: 4096,
     searchProvider: 'none',
     searchApiKey: '',
   };

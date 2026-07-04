@@ -44,6 +44,7 @@ export interface AgentConfig {
   baseUrl: string;
   apiKey: string;
   maxTurns: number;
+  maxTokens: number;
 }
 
 export interface ToolContext {

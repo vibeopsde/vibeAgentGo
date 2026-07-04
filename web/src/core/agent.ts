@@ -121,6 +121,7 @@ export class Agent {
           model: config.model,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
+          maxTokens: config.maxTokens,
           onDelta: (delta) => this.emit('stream_delta', { delta }),
           signal: this.abortController.signal,
         });

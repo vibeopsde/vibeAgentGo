@@ -23,6 +23,7 @@ const mockConfig = {
   baseUrl: 'https://example.com/v1',
   apiKey: 'test-key',
   maxTurns: 5,
+  maxTokens: 1024,
 };
 
 function echoTool(): Tool {

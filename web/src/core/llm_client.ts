@@ -31,6 +31,7 @@ export async function llmChatStream(opts: {
   model: string;
   baseUrl: string;
   apiKey: string;
+  maxTokens?: number;
   onDelta?: (delta: string) => void;
   signal?: AbortSignal;
 }): Promise<LLMResponse> {
@@ -41,6 +42,10 @@ export async function llmChatStream(opts: {
     messages: opts.messages,
     stream: true,
   };
+
+  if (opts.maxTokens && opts.maxTokens > 0) {
+    body.max_tokens = opts.maxTokens;
+  }
 
   if (opts.tools && opts.tools.length > 0) {
     body.tools = opts.tools;
