@@ -10,7 +10,7 @@ import { RenderPanel } from './components/RenderPanel.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { MemoryPanel } from './components/MemoryPanel.js';
 import { SessionPanel } from './components/SessionPanel.js';
-import { MobileNav } from './components/MobileNav.js';
+import { MobileNav, type MobileTab } from './components/MobileNav.js';
 import { OnboardingWizard } from './components/OnboardingWizard.js';
 import { Agent } from './core/agent.js';
 import { MemoryStore, loadConfig, saveConfig, hasApiKey, hasCompletedOnboarding, resetLocalData } from './core/memory.js';
@@ -163,11 +163,12 @@ function buildLayout() {
       <span class="version-tag">${VERSION}</span>
     </div>
     <div class="header-right">
-      <button id="btn-theme" class="icon-btn" title="Toggle theme">🌓</button>
-      <button id="btn-sessions" class="icon-btn" title="Sessions">💬</button>
-      <button id="btn-new" class="icon-btn" title="New Chat">✨</button>
-      <button id="btn-memory" class="icon-btn" title="Memory">🧠</button>
-      <button id="btn-settings" class="icon-btn" title="Settings">⚙️</button>
+      <button id="btn-theme" class="icon-btn desktop-only" title="Toggle theme">🌓</button>
+      <button id="btn-sessions" class="icon-btn desktop-only" title="Sessions">💬</button>
+      <button id="btn-new" class="icon-btn desktop-only" title="New Chat">✨</button>
+      <button id="btn-memory" class="icon-btn desktop-only" title="Memory">🧠</button>
+      <button id="btn-settings" class="icon-btn desktop-only" title="Settings">⚙️</button>
+      <button id="btn-mobile-menu" class="icon-btn mobile-only" title="Menu" aria-label="Menu">☰</button>
     </div>
   `;
 
@@ -185,11 +186,17 @@ function buildLayout() {
   main.appendChild(chatSection);
   main.appendChild(renderSection);
 
-  const mobileNav = new MobileNav((action) => {
-    if (action === 'sessions') sessionPanel.open();
-    if (action === 'new') newChat();
-    if (action === 'menu') openMobileMenu();
-  });
+  // Mobile starts on Chat tab
+  chatSection.classList.add('is-active');
+
+  const mobileNav = new MobileNav(
+    (tab: MobileTab) => {
+      chatSection.classList.toggle('is-active', tab === 'chat');
+      renderSection.classList.toggle('is-active', tab === 'render');
+      mobileNav.setActive(tab);
+    },
+    () => newChat()
+  );
 
   app.appendChild(header);
   app.appendChild(main);
@@ -201,9 +208,7 @@ function buildLayout() {
   header.querySelector('#btn-sessions')!.addEventListener('click', () => sessionPanel.open());
   header.querySelector('#btn-new')!.addEventListener('click', () => newChat());
   header.querySelector('#btn-theme')!.addEventListener('click', () => toggleTheme());
-
-  // Make header icons desktop-only on very small screens (CSS hides them, but keep fallback)
-  header.classList.add('has-mobile-nav');
+  header.querySelector('#btn-mobile-menu')!.addEventListener('click', () => openMobileMenu());
 
   // Chat submit — runs agent directly in browser
   chatPanel.onSubmit = async (text: string) => {

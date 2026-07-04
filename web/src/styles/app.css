@@ -173,23 +173,36 @@ html, body {
   min-width: 0;
 }
 
-/* Mobile: stack vertically */
+/* Desktop: side-by-side */
+.chat-section,
+.render-section {
+  display: flex;
+}
+
+/* Mobile: tabbed view */
 @media (max-width: 768px) {
+  .app-header .header-right {
+    display: none;
+  }
+
   .app-main {
     flex-direction: column;
     padding-bottom: 0;
   }
-  .chat-section {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    flex: 0 0 45%;
-  }
+
+  .chat-section,
   .render-section {
-    flex: 1;
-  }
-  .has-mobile-nav .header-right {
     display: none;
+    flex: 1;
+    min-height: 0;
+    border: none;
   }
+
+  .chat-section.is-active,
+  .render-section.is-active {
+    display: flex;
+  }
+
   .mobile-nav {
     display: flex;
   }
@@ -199,6 +212,11 @@ html, body {
   .mobile-nav,
   .mobile-menu-overlay {
     display: none !important;
+  }
+
+  .chat-section,
+  .render-section {
+    display: flex !important;
   }
 }
 
@@ -554,6 +572,12 @@ html, body {
   gap: 2px;
   border-radius: 12px;
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.mobile-nav-btn.active {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .mobile-nav-btn:active {
@@ -586,6 +610,10 @@ html, body {
 
 .mobile-nav-primary .mobile-nav-icon {
   font-size: 26px;
+}
+
+.mobile-nav-primary:active {
+  background: var(--accent-hover);
 }
 
 .mobile-menu-overlay {
