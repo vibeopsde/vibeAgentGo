@@ -1,15 +1,19 @@
 // ============================================================
-// HAG — MemoryPanel Component
+// HAG — MemoryPanel (client-side, IndexedDB)
 // ============================================================
+
+import { MemoryStore } from '../core/memory.js';
 
 export class MemoryPanel {
   element: HTMLElement;
   private overlay: HTMLElement;
   private modal: HTMLElement;
+  private memory: MemoryStore;
 
   constructor() {
     this.element = document.createElement('div');
     this.element.style.display = 'contents';
+    this.memory = new MemoryStore();
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'modal-overlay';
@@ -39,8 +43,7 @@ export class MemoryPanel {
 
   private async loadMemory() {
     try {
-      const res = await fetch('./api/memory');
-      const data = await res.json();
+      const data = await this.memory.getAllMemory();
 
       const profileHtml = data.profile.map((m: any) => `
         <div class="memory-item memory-user">
@@ -59,7 +62,7 @@ export class MemoryPanel {
       `).join('');
 
       this.modal.innerHTML = `
-        <h2>🧠 Memory</h2>
+        <h2>🧠 Memory <span class="mem-location-hint">(IndexedDB — lokal im Browser)</span></h2>
         <div class="memory-section">
           <h3>User Profile (${data.profile.length})</h3>
           <div class="memory-list">${profileHtml || '<p class="empty">Keine Profileinträge</p>'}</div>
@@ -75,11 +78,10 @@ export class MemoryPanel {
 
       this.modal.querySelector('#mem-close')!.addEventListener('click', () => this.close());
 
-      // Wire delete buttons
       this.modal.querySelectorAll('.memory-delete').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-          const id = (e.target as HTMLElement).dataset.id;
-          await fetch(`./api/memory/${id}`, { method: 'DELETE' });
+          const id = parseInt((e.target as HTMLElement).dataset.id!);
+          await this.memory.deleteMemory(id);
           this.loadMemory();
         });
       });

@@ -1,16 +1,20 @@
 // ============================================================
-// HAG — SessionPanel Component (session list + resume)
+// HAG — SessionPanel (client-side, IndexedDB)
 // ============================================================
+
+import { MemoryStore } from '../core/memory.js';
 
 export class SessionPanel {
   element: HTMLElement;
   private overlay: HTMLElement;
   private modal: HTMLElement;
+  private memory: MemoryStore;
   onResume: ((sessionId: string) => void) | null = null;
 
   constructor() {
     this.element = document.createElement('div');
     this.element.style.display = 'contents';
+    this.memory = new MemoryStore();
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'modal-overlay';
@@ -40,12 +44,11 @@ export class SessionPanel {
 
   private async loadSessions() {
     try {
-      const res = await fetch('./api/sessions');
-      const sessions = await res.json();
+      const sessions = await this.memory.listSessions();
 
       if (sessions.length === 0) {
         this.modal.innerHTML = `
-          <h2>💬 Sessions</h2>
+          <h2>💬 Sessions <span class="mem-location-hint">(IndexedDB — lokal im Browser)</span></h2>
           <p class="empty">Keine gespeicherten Sessions. Starte eine Konversation!</p>
           <div class="form-actions">
             <button id="sess-close" class="btn btn-primary">Schließen</button>
@@ -74,7 +77,7 @@ export class SessionPanel {
       }).join('');
 
       this.modal.innerHTML = `
-        <h2>💬 Sessions (${sessions.length})</h2>
+        <h2>💬 Sessions (${sessions.length}) <span class="mem-location-hint">(IndexedDB — lokal im Browser)</span></h2>
         <div class="session-list">${sessionsHtml}</div>
         <div class="form-actions">
           <button id="sess-close" class="btn btn-primary">Schließen</button>
@@ -83,32 +86,29 @@ export class SessionPanel {
 
       this.modal.querySelector('#sess-close')!.addEventListener('click', () => this.close());
 
-      // Wire resume buttons
       this.modal.querySelectorAll('.session-resume').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const id = (e.target as HTMLElement).dataset.id;
+          const id = (e.target as HTMLElement).dataset.id!;
           this.close();
-          if (this.onResume) this.onResume(id!);
+          if (this.onResume) this.onResume(id);
         });
       });
 
-      // Wire delete buttons
       this.modal.querySelectorAll('.session-delete').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
-          const id = (e.target as HTMLElement).dataset.id;
-          await fetch(`./api/sessions/${id}`, { method: 'DELETE' });
+          const id = (e.target as HTMLElement).dataset.id!;
+          await this.memory.deleteSession(id);
           this.loadSessions();
         });
       });
 
-      // Click on item also resumes
       this.modal.querySelectorAll('.session-item').forEach(item => {
         item.addEventListener('click', () => {
-          const id = (item as HTMLElement).dataset.id;
+          const id = (item as HTMLElement).dataset.id!;
           this.close();
-          if (this.onResume) this.onResume(id!);
+          if (this.onResume) this.onResume(id);
         });
       });
 
