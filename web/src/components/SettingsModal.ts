@@ -6,6 +6,25 @@ import { loadConfig, saveConfig, hasApiKey, resetLocalData } from '../core/memor
 import { testConnection } from '../core/llm_client.js';
 import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 
+const PRESETS = {
+  'kimi-code': {
+    model: 'kimi-for-coding',
+    baseUrl: 'https://api.kimi.com/coding/v1',
+  },
+  'openrouter': {
+    model: 'moonshotai/kimi-k2.7-code',
+    baseUrl: 'https://openrouter.ai/api/v1',
+  },
+  'lm-studio': {
+    model: 'qwen/qwen3.6-35b-a3b',
+    baseUrl: 'https://ki.vibeops.de/v1',
+  },
+  'openai': {
+    model: 'gpt-4o-mini',
+    baseUrl: 'https://api.openai.com/v1',
+  },
+};
+
 export class SettingsModal {
   element: HTMLElement;
   private overlay: HTMLElement;
@@ -55,6 +74,17 @@ export class SettingsModal {
           <option value="light" ${theme === 'light' ? 'selected' : ''}>Light</option>
           <option value="dark" ${theme === 'dark' ? 'selected' : ''}>Dark</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label for="cfg-provider">Provider Preset</label>
+        <select id="cfg-provider">
+          <option value="custom">Benutzerdefiniert</option>
+          <option value="kimi-code">Kimi Code</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="lm-studio">Mac Studio (LM Studio)</option>
+          <option value="openai">OpenAI</option>
+        </select>
+        <p class="field-hint">Preset trägt Modell + Base URL ein. API Key musst du selbst einfügen.</p>
       </div>
       <div class="form-group">
         <label for="cfg-model">Model</label>
@@ -108,7 +138,8 @@ export class SettingsModal {
         <p><strong>Beispiele:</strong></p>
         <ul>
           <li>Mac Studio: <code>https://ki.vibeops.de/v1</code></li>
-          <li>OpenRouter: <code>https://openrouter.ai/v1</code></li>
+          <li>Kimi Code: <code>https://api.kimi.com/coding/v1</code> (Modell: <code>kimi-for-coding</code>)</li>
+          <li>OpenRouter: <code>https://openrouter.ai/api/v1</code></li>
           <li>OpenAI: <code>https://api.openai.com/v1</code></li>
         </ul>
       </div>
@@ -117,6 +148,18 @@ export class SettingsModal {
     this.modal.querySelector('#cfg-cancel')!.addEventListener('click', () => this.close());
     this.modal.querySelector('#cfg-save')!.addEventListener('click', () => this.save());
     this.modal.querySelector('#cfg-test')!.addEventListener('click', () => this.testConnection());
+
+    const providerSelect = this.modal.querySelector('#cfg-provider') as HTMLSelectElement;
+    const modelInput = this.modal.querySelector('#cfg-model') as HTMLInputElement;
+    const baseUrlInput = this.modal.querySelector('#cfg-baseurl') as HTMLInputElement;
+
+    providerSelect.addEventListener('change', () => {
+      const preset = PRESETS[providerSelect.value as keyof typeof PRESETS];
+      if (preset) {
+        modelInput.value = preset.model;
+        baseUrlInput.value = preset.baseUrl;
+      }
+    });
 
     const resetBtn = this.modal.querySelector('#cfg-reset') as HTMLButtonElement;
     const resetConfirm = this.modal.querySelector('#cfg-reset-confirm') as HTMLElement;
