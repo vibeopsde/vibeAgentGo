@@ -210,6 +210,8 @@ export interface ClientConfig {
   baseUrl: string;
   apiKey: string;
   maxTurns: number;
+  searchProvider: 'none' | 'tavily';
+  searchApiKey: string;
 }
 
 export function loadConfig(): ClientConfig {
@@ -222,6 +224,8 @@ export function loadConfig(): ClientConfig {
     baseUrl: 'https://ki.vibeops.de/v1',
     apiKey: '',
     maxTurns: 30,
+    searchProvider: 'none',
+    searchApiKey: '',
   };
 }
 
@@ -229,6 +233,7 @@ export function saveConfig(config: Partial<ClientConfig>): ClientConfig {
   const current = loadConfig();
   const updated = { ...current, ...config };
   if (updated.apiKey) updated.apiKey = updated.apiKey.trim();
+  if (updated.searchApiKey) updated.searchApiKey = updated.searchApiKey.trim();
   localStorage.setItem(CONFIG_KEY, JSON.stringify(updated));
   return updated;
 }

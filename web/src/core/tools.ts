@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { Tool, ToolContext } from '../types/index.js';
-import { MemoryStore } from './memory.js';
+import { MemoryStore, loadConfig } from './memory.js';
 
 // --- File Tools (IndexedDB workspace) ---
 
@@ -102,11 +102,11 @@ const run_code: Tool = {
   },
 };
 
-// --- Web Search (direct browser fetch) ---
+// --- Web Search (Tavily) ---
 
 const web_search: Tool = {
   name: 'web_search',
-  description: 'Search the web for information. Returns titles, URLs, and descriptions of search results.',
+  description: 'Search the web for current information using a configured search provider. Returns titles, URLs, and short descriptions of search results.',
   parameters: {
     type: 'object',
     properties: {
@@ -115,21 +115,44 @@ const web_search: Tool = {
     required: ['query'],
   },
   handler: async (args) => {
+    const config = loadConfig();
+    if (config.searchProvider !== 'tavily' || !config.searchApiKey) {
+      return `Web search is not configured. Open Settings → Search Provider and add a Tavily API key.`;
+    }
+
     try {
-      const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(args.query)}&format=json&no_html=1`);
+      const res = await fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.searchApiKey}`,
+        },
+        body: JSON.stringify({
+          query: args.query,
+          search_depth: 'basic',
+          max_results: 8,
+          include_answer: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => `HTTP ${res.status}`);
+        return `Tavily search error: HTTP ${res.status} ${text}`;
+      }
+
       const data = await res.json() as any;
       const results: string[] = [];
 
-      if (data.AbstractText) {
-        results.push(`${data.AbstractText}\nSource: ${data.AbstractURL || 'DuckDuckGo'}`);
+      if (data.answer) {
+        results.push(`Answer: ${data.answer}`);
       }
-      if (data.RelatedTopics) {
-        for (const topic of data.RelatedTopics.slice(0, 8)) {
-          if (topic.Text) {
-            results.push(`- ${topic.Text}\n  ${topic.FirstURL || ''}`);
-          }
+
+      if (data.results?.length) {
+        for (const r of data.results.slice(0, 8)) {
+          results.push(`- ${r.title}\n  ${r.url}\n  ${r.content?.slice(0, 250) || ''}`);
         }
       }
+
       return results.length > 0 ? results.join('\n\n') : `No results for "${args.query}"`;
     } catch (e: any) {
       return `Search error: ${e.message}`;

@@ -61,6 +61,19 @@ export class SettingsModal {
         <label for="cfg-maxturns">Max Turns</label>
         <input id="cfg-maxturns" type="number" value="${config.maxTurns}" min="1" max="100" />
       </div>
+      <h3>🔍 Search Provider</h3>
+      <div class="form-group">
+        <label for="cfg-search-provider">Provider</label>
+        <select id="cfg-search-provider">
+          <option value="none" ${config.searchProvider === 'none' ? 'selected' : ''}>Deaktiviert</option>
+          <option value="tavily" ${config.searchProvider === 'tavily' ? 'selected' : ''}>Tavily</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="cfg-search-apikey">Search API Key ${config.searchApiKey ? '✓' : ''}</label>
+        <input id="cfg-search-apikey" type="password" value="${this.escape(config.searchApiKey)}" placeholder="tvly-..." />
+        <p class="field-hint">Nur im Browser gespeichert. Für Tavily: <a href="https://app.tavily.com/" target="_blank" rel="noopener">app.tavily.com</a></p>
+      </div>
       <div class="form-actions">
         <button id="cfg-cancel" class="btn btn-secondary">Abbrechen</button>
         <button id="cfg-test" class="btn btn-secondary">Verbindung testen</button>
@@ -110,8 +123,10 @@ export class SettingsModal {
     const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value;
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value;
     const maxTurns = parseInt((this.modal.querySelector('#cfg-maxturns') as HTMLInputElement).value);
+    const searchProvider = (this.modal.querySelector('#cfg-search-provider') as HTMLSelectElement).value as 'none' | 'tavily';
+    const searchApiKey = (this.modal.querySelector('#cfg-search-apikey') as HTMLInputElement).value;
 
-    saveConfig({ model, baseUrl, apiKey, maxTurns });
+    saveConfig({ model, baseUrl, apiKey, maxTurns, searchProvider, searchApiKey });
     this.close();
   }
 
