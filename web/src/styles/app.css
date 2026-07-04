@@ -119,9 +119,11 @@ html, body {
   color: var(--accent);
 }
 
-.subtitle {
+.version-tag {
   color: var(--text-muted);
   font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
 }
 
 .header-right {

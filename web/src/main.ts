@@ -1,5 +1,5 @@
 // ============================================================
-// vibeAgentGo — PWA Main Entry (v0.4.0 — fully client-side, no server)
+// vibeAgentGo — PWA Main Entry (VERSION — fully client-side, no server)
 // Agent runs in browser, data in IndexedDB, LLM via direct fetch
 // ============================================================
 
@@ -15,6 +15,7 @@ import { OnboardingWizard } from './components/OnboardingWizard.js';
 import { Agent } from './core/agent.js';
 import { MemoryStore, loadConfig, saveConfig, hasApiKey, hasCompletedOnboarding, resetLocalData } from './core/memory.js';
 import { createDefaultTools } from './core/tools.js';
+import { VERSION } from './version.js';
 
 // Initialize theme before first render to avoid flash
 initTheme();
@@ -159,7 +160,7 @@ function buildLayout() {
   header.innerHTML = `
     <div class="header-left">
       <span class="logo">vibeAgentGo</span>
-      <span class="subtitle">Hermes Agent Go</span>
+      <span class="version-tag">${VERSION}</span>
     </div>
     <div class="header-right">
       <button id="btn-theme" class="icon-btn" title="Toggle theme">🌓</button>
