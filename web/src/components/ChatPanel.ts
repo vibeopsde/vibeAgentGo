@@ -80,19 +80,20 @@ export class ChatPanel {
   }
 
   appendAssistant(text: string) {
+    if (text === undefined || text === null) return;
     // Non-streaming path: append to last assistant msg or create new
     const last = this.messagesEl.lastElementChild as HTMLElement;
     if (last && last.classList.contains('msg-assistant') && !last.dataset.streaming) {
       const contentEl = last.querySelector('.msg-content') as HTMLElement;
       if (contentEl) {
-        contentEl.innerHTML = renderMarkdown(contentEl.dataset.raw + text);
-        contentEl.dataset.raw = (contentEl.dataset.raw || '') + text;
+        const raw = (contentEl.dataset.raw || '') + text;
+        contentEl.dataset.raw = raw;
+        contentEl.innerHTML = renderMarkdown(raw);
       }
     } else {
       const el = document.createElement('div');
       el.className = 'msg msg-assistant';
-      el.dataset.raw = text;
-      el.innerHTML = `<div class="msg-content">${renderMarkdown(text)}</div>`;
+      el.innerHTML = `<div class="msg-content" data-raw="${this.escape(text)}">${renderMarkdown(text)}</div>`;
       this.messagesEl.appendChild(el);
     }
     this.streamEl = null;
