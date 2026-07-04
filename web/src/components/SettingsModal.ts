@@ -9,7 +9,7 @@ import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 const PRESETS = {
   'kimi-code': {
     model: 'kimi-for-coding',
-    baseUrl: 'https://api.kimi.com/coding/v1',
+    baseUrl: 'https://vag.vibeops.de/api/kimi/v1',
   },
   'openrouter': {
     model: 'moonshotai/kimi-k2.7-code',
