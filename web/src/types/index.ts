@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Shared TypeScript Types (browser PWA)
+// vibeAgentGo — Shared TypeScript Types (browser PWA)
 // ============================================================
 
 export type Role = 'system' | 'user' | 'assistant' | 'tool';

@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — MemoryPanel (client-side, IndexedDB)
+// vibeAgentGo — MemoryPanel (client-side, IndexedDB)
 // ============================================================
 
 import { MemoryStore } from '../core/memory.js';

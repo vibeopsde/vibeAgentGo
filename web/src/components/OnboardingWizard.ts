@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Onboarding Wizard (3 steps: welcome, LLM config, search config)
+// vibeAgentGo — Onboarding Wizard (3 steps: welcome, LLM config, search config)
 // ============================================================
 
 import { saveConfig, loadConfig, completeOnboarding } from '../core/memory.js';
@@ -65,8 +65,8 @@ export class OnboardingWizard {
   private renderWelcome() {
     this.element.innerHTML = `
       <div class="onboarding-card">
-        <div class="onboarding-logo">HAG</div>
-        <h1>Willkommen bei HAG</h1>
+        <div class="onboarding-logo">vibeAgentGo</div>
+        <h1>Willkommen bei vibeAgentGo</h1>
         <p class="onboarding-subtitle">Hermes Agent Go — dein KI-Agent, der komplett im Browser läuft.</p>
         
         <div class="onboarding-info">
@@ -88,7 +88,7 @@ export class OnboardingWizard {
             <span class="info-icon">🌐</span>
             <div>
               <strong>OpenAI-kompatibel</strong>
-              <p>HAG spricht mit jedem OpenAI-kompatiblen Endpunkt. OpenAI, Ollama, Claude über OpenRouter, Kimi — du wählst.</p>
+              <p>vibeAgentGo spricht mit jedem OpenAI-kompatiblen Endpunkt. OpenAI, Ollama, Claude über OpenRouter, Kimi — du wählst.</p>
             </div>
           </div>
         </div>
@@ -205,7 +205,7 @@ export class OnboardingWizard {
         
         <div class="onboarding-actions">
           <button id="ob-back" class="btn btn-secondary">Zurück</button>
-          <button id="ob-complete" class="btn btn-primary">HAG starten</button>
+          <button id="ob-complete" class="btn btn-primary">vibeAgentGo starten</button>
         </div>
       </div>
     `;

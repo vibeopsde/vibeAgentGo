@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — PWA Main Entry (v0.4.0 — fully client-side, no server)
+// vibeAgentGo — PWA Main Entry (v0.4.0 — fully client-side, no server)
 // Agent runs in browser, data in IndexedDB, LLM via direct fetch
 // ============================================================
 
@@ -158,7 +158,7 @@ function buildLayout() {
   header.className = 'app-header';
   header.innerHTML = `
     <div class="header-left">
-      <span class="logo">HAG</span>
+      <span class="logo">vibeAgentGo</span>
       <span class="subtitle">Hermes Agent Go</span>
     </div>
     <div class="header-right">

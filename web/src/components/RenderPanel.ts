@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — RenderPanel Component (iframe + tabs)
+// vibeAgentGo — RenderPanel Component (iframe + tabs)
 // ============================================================
 
 interface ViewTab {

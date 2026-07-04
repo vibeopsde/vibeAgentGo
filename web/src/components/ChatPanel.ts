@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — ChatPanel Component (streaming-aware + markdown)
+// vibeAgentGo — ChatPanel Component (streaming-aware + markdown)
 // ============================================================
 
 import { renderMarkdown } from '../utils/markdown.js';
@@ -24,7 +24,7 @@ export class ChatPanel {
     inputArea.className = 'input-area';
 
     this.inputEl = document.createElement('textarea');
-    this.inputEl.placeholder = 'Nachricht an HAG...';
+    this.inputEl.placeholder = 'Nachricht an vibeAgentGo...';
     this.inputEl.rows = 1;
     this.inputEl.addEventListener('input', () => this.autoResize());
     this.inputEl.addEventListener('keydown', (e) => {

@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Agent loop tests (mocked LLM client)
+// vibeAgentGo — Agent loop tests (mocked LLM client)
 // ============================================================
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

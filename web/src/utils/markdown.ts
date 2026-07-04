@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Safe Markdown rendering for assistant messages
+// vibeAgentGo — Safe Markdown rendering for assistant messages
 // ============================================================
 
 import { marked } from 'marked';

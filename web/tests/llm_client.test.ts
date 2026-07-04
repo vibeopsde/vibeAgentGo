@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — LLM Client tests (browser/jsdom, mocked ReadableStream)
+// vibeAgentGo — LLM Client tests (browser/jsdom, mocked ReadableStream)
 // ============================================================
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

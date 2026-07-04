@@ -1,6 +1,6 @@
 {
-  "name": "HAG — Hermes Agent Go",
-  "short_name": "HAG",
+  "name": "vibeAgentGo — Hermes Agent Go",
+  "short_name": "vibeAgentGo",
   "description": "AI Agent with memory, skills, and render_view",
   "start_url": "./",
   "display": "standalone",

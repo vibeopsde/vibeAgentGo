@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Mobile bottom navigation for quick actions
+// vibeAgentGo — Mobile bottom navigation for quick actions
 // ============================================================
 
 export class MobileNav {

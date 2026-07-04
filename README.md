@@ -1,4 +1,4 @@
-# HAG — Hermes Agent Go
+# vibeAgentGo — Hermes Agent Go
 
 A fully client-side AI agent PWA. Memory, sessions, files, and skills live in your browser. Only LLM API calls leave the device.
 

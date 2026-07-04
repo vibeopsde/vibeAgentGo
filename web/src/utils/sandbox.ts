@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Lightweight Browser Code Sandbox (iframe srcdoc)
+// vibeAgentGo — Lightweight Browser Code Sandbox (iframe srcdoc)
 // Runs untrusted JS in a separate browsing context with no
 // access to the parent window, document, or IndexedDB.
 // ============================================================
@@ -54,7 +54,7 @@ export function runInSandbox(code: string, timeoutMs = 5000): Promise<SandboxRes
             const resultStr = result === undefined ? 'undefined' : typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result);
 
             parent.postMessage({
-              hagSandboxResult: true,
+              vibeAgentGoSandboxResult: true,
               logs,
               result: resultStr,
               error
@@ -85,7 +85,7 @@ export function runInSandbox(code: string, timeoutMs = 5000): Promise<SandboxRes
     const handler = (event: MessageEvent) => {
       if (event.source !== iframe.contentWindow) return;
       const data = event.data;
-      if (!data || data.hagSandboxResult !== true) return;
+      if (!data || data.vibeAgentGoSandboxResult !== true) return;
       clearTimeout(timer);
       window.removeEventListener('message', handler);
       cleanup();

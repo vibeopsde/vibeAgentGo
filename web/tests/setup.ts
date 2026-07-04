@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Vitest setup: polyfill IndexedDB in jsdom
+// vibeAgentGo — Vitest setup: polyfill IndexedDB in jsdom
 // ============================================================
 
 import { indexedDB } from 'fake-indexeddb';

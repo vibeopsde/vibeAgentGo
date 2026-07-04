@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — SettingsModal (client-side, localStorage config)
+// vibeAgentGo — SettingsModal (client-side, localStorage config)
 // ============================================================
 
 import { loadConfig, saveConfig, hasApiKey, resetLocalData } from '../core/memory.js';

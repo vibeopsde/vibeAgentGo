@@ -1,10 +1,10 @@
 // ============================================================
-// HAG — Theme Manager (system + manual, persisted in localStorage)
+// vibeAgentGo — Theme Manager (system + manual, persisted in localStorage)
 // ============================================================
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
-const STORAGE_KEY = 'hag-theme';
+const STORAGE_KEY = 'vibeAgentGo-theme';
 const DOC_ATTR = 'data-theme';
 
 export function getTheme(): ThemeMode {

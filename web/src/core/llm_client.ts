@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — LLM Client (browser-side, direct fetch + SSE streaming)
+// vibeAgentGo — LLM Client (browser-side, direct fetch + SSE streaming)
 // No server proxy — browser calls LLM API directly via CORS
 // ============================================================
 

@@ -1,11 +1,11 @@
 // ============================================================
-// HAG — Prompt Builder (browser-side, no fs access)
+// vibeAgentGo — Prompt Builder (browser-side, no fs access)
 // ============================================================
 
 import type { MemoryEntry, Skill, Tool, ToolSchema } from '../types/index.js';
 import { SkillStore } from './memory.js';
 
-const IDENTITY_BLOCK = `You are HAG (Hermes Agent Go), a helpful AI assistant running entirely in the user's browser. You can write and execute code, manage files in the browser's IndexedDB, search the web, and build interactive mini-apps.
+const IDENTITY_BLOCK = `You are vibeAgentGo (Hermes Agent Go), a helpful AI assistant running entirely in the user's browser. You can write and execute code, manage files in the browser's IndexedDB, search the web, and build interactive mini-apps.
 
 You have persistent memory across conversations — use the memory_save tool when you learn a durable fact about the user, their preferences, or their environment. Don't save temporary task state.
 

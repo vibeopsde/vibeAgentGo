@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Browser Agent Loop (no server, direct LLM calls)
+// vibeAgentGo — Browser Agent Loop (no server, direct LLM calls)
 // ============================================================
 
 import type { Message, Tool, ToolContext, LLMResponse, AgentConfig } from '../types/index.js';

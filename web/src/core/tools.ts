@@ -1,5 +1,5 @@
 // ============================================================
-// HAG — Browser Tools (client-side, IndexedDB + iframe sandbox)
+// vibeAgentGo — Browser Tools (client-side, IndexedDB + iframe sandbox)
 // ============================================================
 
 import type { Tool, ToolContext } from '../types/index.js';

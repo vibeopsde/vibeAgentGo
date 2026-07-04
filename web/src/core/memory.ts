@@ -1,10 +1,10 @@
 // ============================================================
-// HAG — IndexedDB Memory Store (client-side, no server)
+// vibeAgentGo — IndexedDB Memory Store (client-side, no server)
 // ============================================================
 
 import type { Message, MemoryEntry, Session } from '../types/index.js';
 
-const DB_NAME = 'hag-agent';
+const DB_NAME = 'vibeAgentGo-agent';
 const DB_VERSION = 1;
 
 function openDB(): Promise<IDBDatabase> {
@@ -164,8 +164,8 @@ export class MemoryStore {
   }
 }
 
-const CONFIG_KEY = 'hag-config';
-const ONBOARDING_KEY = 'hag-onboarding';
+const CONFIG_KEY = 'vibeAgentGo-config';
+const ONBOARDING_KEY = 'vibeAgentGo-onboarding';
 
 // --- Skills (IndexedDB) ---
 
@@ -270,6 +270,6 @@ export function completeOnboarding(): void {
 export function resetLocalData(): void {
   localStorage.removeItem(CONFIG_KEY);
   localStorage.removeItem(ONBOARDING_KEY);
-  localStorage.removeItem('hag-theme');
+  localStorage.removeItem('vibeAgentGo-theme');
   indexedDB.deleteDatabase(DB_NAME);
 }
