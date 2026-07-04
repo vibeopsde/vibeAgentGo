@@ -112,13 +112,16 @@ export class ChatPanel {
   }
 
   appendStreamDelta(delta: string) {
-    if (!delta) return;
+    if (!delta || delta === 'undefined') return;
     if (!this.streamEl) {
       this.startStream();
     }
-    const contentEl = this.streamEl!.querySelector('.msg-content') as HTMLElement;
-    this.streamEl!.dataset.raw = (this.streamEl!.dataset.raw || '') + delta;
-    contentEl.innerHTML = renderMarkdown(this.streamEl!.dataset.raw!);
+    const stream = this.streamEl!;
+    const contentEl = stream.querySelector('.msg-content') as HTMLElement;
+    const current = stream.dataset.raw || '';
+    const next = current + delta;
+    stream.dataset.raw = next;
+    contentEl.innerHTML = renderMarkdown(next);
     this.scrollToBottom();
   }
 

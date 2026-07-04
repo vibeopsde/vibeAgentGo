@@ -48,7 +48,7 @@ const sessionPanel = new SessionPanel();
 
 function setupAgent(a: Agent) {
   a.on('message', ({ role, content }) => {
-    if (role === 'assistant') {
+    if (role === 'assistant' && content) {
       chatPanel.finalizeStream();
       chatPanel.appendAssistant(content);
     }

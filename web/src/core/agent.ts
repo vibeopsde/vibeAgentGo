@@ -160,7 +160,7 @@ export class Agent {
       }
 
       // Final response
-      this.emit('message', { role: 'assistant', content: response.content });
+      this.emit('message', { role: 'assistant', content: response.content || '' });
       history.push({ role: 'assistant', content: response.content });
 
       // Save session
