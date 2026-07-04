@@ -5,6 +5,26 @@
 
 import type { Message, ToolSchema, LLMResponse, ToolCall } from '../types/index.js';
 
+export async function testConnection(config: { baseUrl: string; apiKey: string }): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> {
+  const url = `${config.baseUrl.replace(/\/$/, '')}/models`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${config.apiKey}`,
+      },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => `HTTP ${res.status}`);
+      return { ok: false, error: `HTTP ${res.status}: ${text}` };
+    }
+    const data = await res.json();
+    const models = data.data?.map((m: any) => m.id).slice(0, 20) || [];
+    return { ok: true, models };
+  } catch (e: any) {
+    return { ok: false, error: e.message || String(e) };
+  }
+}
+
 export async function llmChatStream(opts: {
   messages: Message[];
   tools?: ToolSchema[];

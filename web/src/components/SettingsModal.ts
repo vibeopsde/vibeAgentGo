@@ -3,6 +3,7 @@
 // ============================================================
 
 import { loadConfig, saveConfig, hasApiKey } from '../core/memory.js';
+import { testConnection } from '../core/llm_client.js';
 
 export class SettingsModal {
   element: HTMLElement;
@@ -62,8 +63,10 @@ export class SettingsModal {
       </div>
       <div class="form-actions">
         <button id="cfg-cancel" class="btn btn-secondary">Abbrechen</button>
+        <button id="cfg-test" class="btn btn-secondary">Verbindung testen</button>
         <button id="cfg-save" class="btn btn-primary">Speichern</button>
       </div>
+      <div id="cfg-test-result" class="test-result"></div>
       <div class="config-hint">
         <p><strong>🔒 Datenhoheit:</strong> Alle Daten liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen gehen an den konfigurierten Server.</p>
         <p><strong>⚠️ Sicherheit:</strong> Der API-Key wird unverschlüsselt im localStorage gespeichert. Nicht auf fremden Geräten oder im Inkognito-Modus verwenden.</p>
@@ -79,6 +82,27 @@ export class SettingsModal {
 
     this.modal.querySelector('#cfg-cancel')!.addEventListener('click', () => this.close());
     this.modal.querySelector('#cfg-save')!.addEventListener('click', () => this.save());
+    this.modal.querySelector('#cfg-test')!.addEventListener('click', () => this.testConnection());
+  }
+
+  private testConnection() {
+    const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value.trim();
+    const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value.trim();
+    const resultEl = this.modal.querySelector('#cfg-test-result') as HTMLElement;
+
+    resultEl.textContent = 'Teste Verbindung...';
+    resultEl.className = 'test-result test-pending';
+
+    testConnection({ baseUrl, apiKey }).then(res => {
+      if (res.ok) {
+        const list = res.models.length ? `\n${res.models.slice(0, 10).join('\n')}` : 'Keine Models aufgelistet';
+        resultEl.textContent = `✅ Verbindung OK. ${res.models.length} Modelle gefunden.\n${list}`;
+        resultEl.className = 'test-result test-success';
+      } else {
+        resultEl.textContent = `❌ Verbindung fehlgeschlagen: ${res.error}`;
+        resultEl.className = 'test-result test-error';
+      }
+    });
   }
 
   private save() {

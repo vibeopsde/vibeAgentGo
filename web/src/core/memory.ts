@@ -228,6 +228,7 @@ export function loadConfig(): ClientConfig {
 export function saveConfig(config: Partial<ClientConfig>): ClientConfig {
   const current = loadConfig();
   const updated = { ...current, ...config };
+  if (updated.apiKey) updated.apiKey = updated.apiKey.trim();
   localStorage.setItem(CONFIG_KEY, JSON.stringify(updated));
   return updated;
 }
