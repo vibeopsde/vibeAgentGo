@@ -4,6 +4,8 @@
 
 import { saveConfig, loadConfig, completeOnboarding } from '../core/memory.js';
 import { testConnection } from '../core/llm_client.js';
+import { BackupManager } from '../core/backup.js';
+import { VERSION } from '../version.js';
 import { escapeHtml } from '../utils/escape.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 
@@ -100,14 +102,44 @@ export class OnboardingWizard {
         </div>
 
         <div class="onboarding-actions">
+          <button id="onboarding-restore" class="btn btn-secondary btn-large">${t('onboarding.restore')}</button>
           <button id="onboarding-next" class="btn btn-primary btn-large">${t('onboarding.next')}</button>
         </div>
+        <input id="onboarding-restore-file" type="file" accept=".zip" style="display:none;" />
+        <div id="onboarding-restore-result" class="test-result" style="margin-top:12px;"></div>
       </div>
     `;
     this.element.querySelector('#onboarding-next')!.addEventListener('click', () => {
       this.step = 2;
       this.render();
     });
+
+    const restoreBtn = this.element.querySelector('#onboarding-restore') as HTMLButtonElement;
+    const restoreFile = this.element.querySelector('#onboarding-restore-file') as HTMLInputElement;
+    restoreBtn?.addEventListener('click', () => restoreFile?.click());
+    restoreFile?.addEventListener('change', (e) => this.restoreBackup(e));
+  }
+
+  private async restoreBackup(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    const resultEl = this.element.querySelector('#onboarding-restore-result') as HTMLElement;
+    resultEl.textContent = t('common.loading');
+    resultEl.className = 'test-result test-pending';
+
+    const manager = new BackupManager(VERSION);
+    try {
+      await manager.importZip(file);
+      resultEl.textContent = `✅ ${t('settings.importSuccess')}`;
+      resultEl.className = 'test-result test-success';
+      setTimeout(() => window.location.reload(), 600);
+    } catch (err) {
+      resultEl.textContent = `❌ ${t('settings.importError')}: ${(err as Error).message}`;
+      resultEl.className = 'test-result test-error';
+    }
   }
 
   private renderLanguage() {

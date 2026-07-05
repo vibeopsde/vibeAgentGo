@@ -97,6 +97,7 @@ const de: Translations = {
 
   // Onboarding
   'onboarding.welcome': 'Willkommen bei vibeAgentGo',
+  'onboarding.restore': 'Wiederherstellen',
   'onboarding.subtitle': 'Hermes Agent Go — dein KI-Agent, der komplett im Browser läuft.',
   'onboarding.next': 'Weiter',
   'onboarding.back': 'Zurück',
@@ -268,6 +269,7 @@ const en: Translations = {
 
   // Onboarding
   'onboarding.welcome': 'Welcome to vibeAgentGo',
+  'onboarding.restore': 'Restore',
   'onboarding.subtitle': 'Hermes Agent Go — your AI agent that runs entirely in the browser.',
   'onboarding.next': 'Next',
   'onboarding.back': 'Back',
