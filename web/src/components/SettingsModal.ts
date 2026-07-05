@@ -6,6 +6,7 @@ import { loadConfig, saveConfig, hasApiKey, resetLocalData } from '../core/memor
 import { testConnection } from '../core/llm_client.js';
 import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 import { escapeHtml } from '../utils/escape.js';
+import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 
 const PRESETS = {
   'openai': {
@@ -62,11 +63,18 @@ export class SettingsModal {
 
     const theme = getTheme();
     const initialPreset = this.findPreset(config.baseUrl, config.model);
+    const languageOptions = getAvailableLanguages()
+      .map(l => `<option value="${l.value}" ${config.language === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`)
+      .join('');
 
     this.modal.innerHTML = `
-      <h2>⚙️ Settings</h2>
+      <h2>⚙️ ${t('settings.title')}</h2>
       <div class="form-group">
-        <label for="cfg-theme">Theme</label>
+        <label for="cfg-language">${t('settings.language')}</label>
+        <select id="cfg-language">${languageOptions}</select>
+      </div>
+      <div class="form-group">
+        <label for="cfg-theme">${t('header.theme')}</label>
         <select id="cfg-theme">
           <option value="system" ${theme === 'system' ? 'selected' : ''}>System</option>
           <option value="light" ${theme === 'light' ? 'selected' : ''}>Light</option>
@@ -74,74 +82,72 @@ export class SettingsModal {
         </select>
       </div>
       <div class="form-group">
-        <label for="cfg-provider">Provider Preset</label>
+        <label for="cfg-provider">${t('settings.provider')}</label>
         <select id="cfg-provider">
-          <option value="custom" ${!initialPreset ? 'selected' : ''}>Benutzerdefiniert</option>
-          <option value="openai" ${initialPreset === 'openai' ? 'selected' : ''}>OpenAI</option>
-          <option value="openrouter" ${initialPreset === 'openrouter' ? 'selected' : ''}>OpenRouter</option>
-          <option value="ollama" ${initialPreset === 'ollama' ? 'selected' : ''}>Ollama (lokal)</option>
+          <option value="custom" ${!initialPreset ? 'selected' : ''}>${t('settings.custom')}</option>
+          <option value="openai" ${initialPreset === 'openai' ? 'selected' : ''}>${t('settings.openai')}</option>
+          <option value="openrouter" ${initialPreset === 'openrouter' ? 'selected' : ''}>${t('settings.openrouter')}</option>
+          <option value="ollama" ${initialPreset === 'ollama' ? 'selected' : ''}>${t('settings.ollama')}</option>
         </select>
-        <p class="field-hint">Preset trägt Modell + Base URL ein. API Key musst du selbst einfügen.</p>
+        <p class="field-hint">${t('settings.providerHint')}</p>
       </div>
       <div class="form-group">
-        <label for="cfg-model">Model</label>
-        <input id="cfg-model" type="text" value="${escapeHtml(config.model)}" placeholder="qwen/qwen3.6-35b-a3b" />
+        <label for="cfg-model">${t('settings.model')}</label>
+        <input id="cfg-model" type="text" value="${escapeHtml(config.model)}" placeholder="gpt-4o-mini" />
       </div>
       <div class="form-group">
-        <label for="cfg-baseurl">Base URL</label>
-        <input id="cfg-baseurl" type="text" value="${escapeHtml(config.baseUrl)}" placeholder="https://ki.vibeops.de/v1" />
+        <label for="cfg-baseurl">${t('settings.baseUrl')}</label>
+        <input id="cfg-baseurl" type="text" value="${escapeHtml(config.baseUrl)}" placeholder="https://api.openai.com/v1" />
       </div>
       <div class="form-group">
-        <label for="cfg-apikey">API Key ${config.apiKey ? '✓' : ''}</label>
-        <input id="cfg-apikey" type="password" value="${escapeHtml(config.apiKey)}" placeholder="lm-studio:..." />
+        <label for="cfg-apikey">${t('settings.apiKey')} ${config.apiKey ? '✓' : ''}</label>
+        <input id="cfg-apikey" type="password" value="${escapeHtml(config.apiKey)}" placeholder="sk-..." />
       </div>
       <div class="form-group">
-        <label for="cfg-maxturns">Max Turns</label>
+        <label for="cfg-maxturns">${t('settings.maxTurns')}</label>
         <input id="cfg-maxturns" type="number" value="${config.maxTurns}" min="1" max="100" />
       </div>
       <div class="form-group">
-        <label for="cfg-maxtokens">Max Response Tokens</label>
+        <label for="cfg-maxtokens">${t('settings.maxTokens')}</label>
         <input id="cfg-maxtokens" type="number" value="${config.maxTokens}" min="0" max="65536" step="256" />
-        <p class="field-hint">Limits how many tokens the model may generate per turn. Lower = faster, cheaper answers. 0 = unlimited.</p>
+        <p class="field-hint">${t('settings.maxTokensHint')}</p>
       </div>
-      <h3>🔍 Search Provider</h3>
+      <h3>🔍 ${t('settings.search')}</h3>
       <div class="form-group">
-        <label for="cfg-search-provider">Provider</label>
+        <label for="cfg-search-provider">${t('settings.provider')}</label>
         <select id="cfg-search-provider">
-          <option value="none" ${config.searchProvider === 'none' ? 'selected' : ''}>Deaktiviert</option>
-          <option value="tavily" ${config.searchProvider === 'tavily' ? 'selected' : ''}>Tavily</option>
+          <option value="none" ${config.searchProvider === 'none' ? 'selected' : ''}>${t('settings.searchNone')}</option>
+          <option value="tavily" ${config.searchProvider === 'tavily' ? 'selected' : ''}>${t('settings.searchTavily')}</option>
         </select>
       </div>
       <div class="form-group">
-        <label for="cfg-search-apikey">Search API Key ${config.searchApiKey ? '✓' : ''}</label>
+        <label for="cfg-search-apikey">${t('settings.searchApiKey')} ${config.searchApiKey ? '✓' : ''}</label>
         <input id="cfg-search-apikey" type="password" value="${escapeHtml(config.searchApiKey)}" placeholder="tvly-..." />
-        <p class="field-hint">Nur im Browser gespeichert. Für Tavily: <a href="https://app.tavily.com/" target="_blank" rel="noopener">app.tavily.com</a></p>
+        <p class="field-hint">Tavily: <a href="https://app.tavily.com/" target="_blank" rel="noopener">app.tavily.com</a></p>
       </div>
       <div class="form-actions">
-        <button id="cfg-cancel" class="btn btn-secondary">Abbrechen</button>
-        <button id="cfg-test" class="btn btn-secondary">Verbindung testen</button>
-        <button id="cfg-save" class="btn btn-primary">Speichern</button>
+        <button id="cfg-cancel" class="btn btn-secondary">${t('common.cancel')}</button>
+        <button id="cfg-test" class="btn btn-secondary">${t('settings.testConnection')}</button>
+        <button id="cfg-save" class="btn btn-primary">${t('common.save')}</button>
       </div>
       <div id="cfg-test-result" class="test-result"></div>
       <div class="form-actions">
-        <button id="cfg-reset" class="btn btn-danger">Alle lokalen Daten löschen</button>
+        <button id="cfg-reset" class="btn btn-danger">${t('settings.resetData')}</button>
       </div>
       <div id="cfg-reset-confirm" class="reset-confirm" style="display:none;">
-        <p><strong>⚠️ Achtung:</strong> Das löscht alle Sessions, Dateien, Memory-Einträge, Skills und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.</p>
+        <p><strong>⚠️ ${t('common.error')}:</strong> ${t('settings.resetConfirm')}</p>
         <div class="form-actions">
-          <button id="cfg-reset-cancel" class="btn btn-secondary">Abbrechen</button>
-          <button id="cfg-reset-confirm-btn" class="btn btn-danger">Ja, alles löschen</button>
+          <button id="cfg-reset-cancel" class="btn btn-secondary">${t('settings.resetCancel')}</button>
+          <button id="cfg-reset-confirm-btn" class="btn btn-danger">${t('settings.resetConfirmBtn')}</button>
         </div>
       </div>
       <div class="config-hint">
-        <p><strong>🔒 Datenhoheit:</strong> Alle Daten liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen gehen an den konfigurierten Server.</p>
-        <p><strong>⚠️ Sicherheit:</strong> Der API-Key wird unverschlüsselt im localStorage gespeichert. Nicht auf fremden Geräten oder im Inkognito-Modus verwenden.</p>
-        <p><strong>Provider:</strong> Jeder OpenAI-kompatible Endpoint mit CORS funktioniert.</p>
-        <p><strong>Beispiele:</strong></p>
+        <p><strong>Provider:</strong> ${t('settings.providerInfo')}</p>
+        <p><strong>${t('settings.examples')}</strong></p>
         <ul>
-          <li>OpenAI: <code>https://api.openai.com/v1</code></li>
-          <li>OpenRouter: <code>https://openrouter.ai/api/v1</code></li>
-          <li>Ollama (lokal): <code>http://localhost:11434/v1</code></li>
+          <li>${t('settings.openai')} <code>${t('settings.openaiUrl')}</code></li>
+          <li>${t('settings.openrouter')} <code>${t('settings.openrouterUrl')}</code></li>
+          <li>${t('settings.ollama')} <code>${t('settings.ollamaUrl')}</code></li>
         </ul>
       </div>
     `;
@@ -196,16 +202,16 @@ export class SettingsModal {
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value.trim();
     const resultEl = this.modal.querySelector('#cfg-test-result') as HTMLElement;
 
-    resultEl.textContent = 'Teste Verbindung...';
+    resultEl.textContent = t('common.loading');
     resultEl.className = 'test-result test-pending';
 
     testConnection({ baseUrl, apiKey }).then(res => {
       if (res.ok) {
-        const list = res.models.length ? `\n${res.models.slice(0, 10).join('\n')}` : 'Keine Models aufgelistet';
-        resultEl.textContent = `✅ Verbindung OK. ${res.models.length} Modelle gefunden.\n${list}`;
+        const list = res.models.length ? `\n${res.models.slice(0, 10).join('\n')}` : t('onboarding.modelList');
+        resultEl.textContent = `✅ ${t('settings.connectionSuccess')}. ${res.models.length} ${t('onboarding.modelList')}.\n${list}`;
         resultEl.className = 'test-result test-success';
       } else {
-        resultEl.textContent = `❌ Verbindung fehlgeschlagen: ${res.error}`;
+        resultEl.textContent = `❌ ${t('settings.connectionError')}: ${res.error}`;
         resultEl.className = 'test-result test-error';
       }
     });
@@ -218,12 +224,14 @@ export class SettingsModal {
     const maxTurns = parseInt((this.modal.querySelector('#cfg-maxturns') as HTMLInputElement).value);
     const maxTokensInput = (this.modal.querySelector('#cfg-maxtokens') as HTMLInputElement).value;
     const maxTokens = maxTokensInput.trim() === '' ? 0 : Math.max(0, parseInt(maxTokensInput) || 0);
+    const language = (this.modal.querySelector('#cfg-language') as HTMLSelectElement).value as 'de' | 'en';
     const searchProvider = (this.modal.querySelector('#cfg-search-provider') as HTMLSelectElement).value as 'none' | 'tavily';
     const searchApiKey = (this.modal.querySelector('#cfg-search-apikey') as HTMLInputElement).value;
     const theme = (this.modal.querySelector('#cfg-theme') as HTMLSelectElement).value as ThemeMode;
 
+    setLanguage(language);
     setTheme(theme);
-    saveConfig({ model, baseUrl, apiKey, maxTurns, maxTokens, searchProvider, searchApiKey });
+    saveConfig({ model, baseUrl, apiKey, maxTurns, maxTokens, language, searchProvider, searchApiKey });
     this.close();
   }
 }

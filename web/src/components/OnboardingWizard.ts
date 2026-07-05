@@ -1,10 +1,11 @@
 // ============================================================
-// vibeAgentGo — Onboarding Wizard (3 steps: welcome, LLM config, search config)
+// vibeAgentGo — Onboarding Wizard (4 steps: welcome, language, LLM config, search config)
 // ============================================================
 
 import { saveConfig, loadConfig, completeOnboarding } from '../core/memory.js';
 import { testConnection } from '../core/llm_client.js';
 import { escapeHtml } from '../utils/escape.js';
+import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 
 export interface OnboardingCompleteCallback {
   (): void;
@@ -19,13 +20,13 @@ interface Preset {
 
 const PRESETS: Preset[] = [
   {
-    name: 'OpenAI-kompatibel',
+    name: 'OpenAI',
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-4o',
     apiKeyPlaceholder: 'sk-...',
   },
   {
-    name: 'Ollama (lokal)',
+    name: 'Ollama (local)',
     baseUrl: 'http://localhost:11434/v1',
     model: 'llama3.2',
     apiKeyPlaceholder: 'ollama (optional)',
@@ -33,7 +34,7 @@ const PRESETS: Preset[] = [
   {
     name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'moonshotai/kimi-k2.7-code',
+    model: '',
     apiKeyPlaceholder: 'sk-or-...',
   },
 ];
@@ -41,55 +42,65 @@ const PRESETS: Preset[] = [
 export class OnboardingWizard {
   element: HTMLElement;
   onComplete: OnboardingCompleteCallback | null = null;
-  private step: 1 | 2 | 3 = 1;
+  private step: 1 | 2 | 3 | 4 = 1;
   private config = loadConfig();
 
   constructor() {
     this.element = document.createElement('div');
     this.element.className = 'onboarding-wizard';
+    setLanguage(this.config.language);
     this.render();
   }
 
   private render() {
     this.element.innerHTML = '';
     if (this.step === 1) this.renderWelcome();
-    else if (this.step === 2) this.renderLLMConfig();
+    else if (this.step === 2) this.renderLanguage();
+    else if (this.step === 3) this.renderLLMConfig();
     else this.renderSearchConfig();
+  }
+
+  private stepIndicator(active: number) {
+    return `
+      <div class="onboarding-steps">
+        ${[1, 2, 3, 4].map(n => `<span class="step ${n === active ? 'active' : ''}">${n}</span>`).join('')}
+      </div>
+    `;
   }
 
   private renderWelcome() {
     this.element.innerHTML = `
       <div class="onboarding-card">
-        <div class="onboarding-logo">vibeAgentGo</div>
-        <h1>Willkommen bei vibeAgentGo</h1>
-        <p class="onboarding-subtitle">Hermes Agent Go — dein KI-Agent, der komplett im Browser läuft.</p>
-        
+        <div class="onboarding-logo">${t('app.title')}</div>
+        <h1>${t('onboarding.welcome')}</h1>
+        <p class="onboarding-subtitle">${t('onboarding.subtitle')}</p>
+
         <div class="onboarding-info">
           <div class="info-item">
             <span class="info-icon">🔒</span>
             <div>
-              <strong>Datenhoheit</strong>
-              <p>Alle Sessions, Dateien, Memory und Skills liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen verlassen das Gerät.</p>
+              <strong>${t('onboarding.dataSovereigntyTitle')}</strong>
+              <p>${t('onboarding.dataSovereigntyText')}</p>
             </div>
           </div>
           <div class="info-item">
             <span class="info-icon">🛠️</span>
             <div>
-              <strong>Tools im Browser</strong>
-              <p>Dateien lesen/schreiben, Code ausführen, Websuchen, Erinnerungen speichern und interaktive HTML-Views rendern.</p>
+              <strong>${t('onboarding.toolsTitle')}</strong>
+              <p>${t('onboarding.toolsText')}</p>
             </div>
           </div>
           <div class="info-item">
             <span class="info-icon">🌐</span>
             <div>
-              <strong>OpenAI-kompatibel</strong>
-              <p>vibeAgentGo spricht mit jedem OpenAI-kompatiblen Endpunkt. OpenAI, Ollama, OpenRouter — du wählst.</p>
+              <strong>${t('onboarding.openaiTitle')}</strong>
+              <p>${t('onboarding.openaiText')}</p>
             </div>
           </div>
         </div>
-        
+
         <div class="onboarding-actions">
-          <button id="onboarding-next" class="btn btn-primary btn-large">Weiter zur Konfiguration</button>
+          <button id="onboarding-next" class="btn btn-primary btn-large">${t('onboarding.next')}</button>
         </div>
       </div>
     `;
@@ -99,65 +110,98 @@ export class OnboardingWizard {
     });
   }
 
+  private renderLanguage() {
+    const languageOptions = getAvailableLanguages()
+      .map(l => `<option value="${l.value}" ${this.config.language === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`)
+      .join('');
+
+    this.element.innerHTML = `
+      <div class="onboarding-card">
+        ${this.stepIndicator(2)}
+        <h1>${t('onboarding.languageTitle')}</h1>
+        <p class="onboarding-subtitle">${t('onboarding.languageHint')}</p>
+
+        <div class="form-group">
+          <label for="ob-language">${t('settings.language')}</label>
+          <select id="ob-language">${languageOptions}</select>
+        </div>
+
+        <div class="onboarding-actions">
+          <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
+          <button id="ob-next" class="btn btn-primary">${t('onboarding.next')}</button>
+        </div>
+      </div>
+    `;
+
+    this.element.querySelector('#ob-back')!.addEventListener('click', () => {
+      this.step = 1;
+      this.render();
+    });
+
+    this.element.querySelector('#ob-next')!.addEventListener('click', () => {
+      const language = (this.element.querySelector('#ob-language') as HTMLSelectElement).value as 'de' | 'en';
+      this.config = saveConfig({ ...this.config, language });
+      setLanguage(language);
+      this.step = 3;
+      this.render();
+    });
+  }
+
   private renderLLMConfig() {
     const currentPreset = this.findPreset(this.config.baseUrl, this.config.model);
 
     this.element.innerHTML = `
       <div class="onboarding-card">
-        <div class="onboarding-steps">
-          <span class="step">1</span>
-          <span class="step active">2</span>
-          <span class="step">3</span>
-        </div>
-        <h1>KI-Schnittstelle</h1>
-        <p class="onboarding-subtitle">Wähle einen Provider oder trage deine Endpunktdaten manuell ein.</p>
+        ${this.stepIndicator(3)}
+        <h1>${t('onboarding.llmTitle')}</h1>
+        <p class="onboarding-subtitle">${t('onboarding.llmHint')}</p>
 
         <div class="form-group">
-          <label for="ob-preset">Provider</label>
+          <label for="ob-preset">${t('settings.provider')}</label>
           <select id="ob-preset">
-            <option value="" ${!currentPreset ? 'selected' : ''}>Manuell</option>
-            ${PRESETS.map(p => `<option value="${p.name}" ${currentPreset?.name === p.name ? 'selected' : ''}>${p.name}</option>`).join('')}
+            <option value="" ${!currentPreset ? 'selected' : ''}>${t('onboarding.manual')}</option>
+            ${PRESETS.map(p => `<option value="${escapeHtml(p.name)}" ${currentPreset?.name === p.name ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
           </select>
         </div>
 
         <div class="form-group">
-          <label for="ob-baseurl">Base URL</label>
+          <label for="ob-baseurl">${t('settings.baseUrl')}</label>
           <input id="ob-baseurl" type="text" value="${escapeHtml(this.config.baseUrl)}" placeholder="https://api.example.com/v1" />
         </div>
 
         <div class="form-group">
-          <label for="ob-apikey">API Key</label>
+          <label for="ob-apikey">${t('settings.apiKey')}</label>
           <input id="ob-apikey" type="password" value="${escapeHtml(this.config.apiKey)}" placeholder="sk-..." />
         </div>
 
         <div class="form-group">
-          <button id="ob-verify" class="btn btn-secondary" disabled>Verifizieren</button>
+          <button id="ob-verify" class="btn btn-secondary" disabled>${t('onboarding.testConnection')}</button>
         </div>
 
         <div class="form-group">
-          <label for="ob-model">Model</label>
+          <label for="ob-model">${t('settings.model')}</label>
           <select id="ob-model" disabled>
-            <option value="">Bitte zuerst Verbindung verifizieren</option>
+            <option value="">${t('onboarding.verifyFirst')}</option>
           </select>
           <input id="ob-model-manual" type="text" style="display:none; margin-top:8px;" placeholder="model-id" />
         </div>
 
         <div class="form-group">
-          <label for="ob-maxturns">Max Turns</label>
+          <label for="ob-maxturns">${t('settings.maxTurns')}</label>
           <input id="ob-maxturns" type="number" value="${this.config.maxTurns}" min="1" max="100" />
         </div>
 
         <div class="form-group">
-          <label for="ob-maxtokens">Max Response Tokens</label>
+          <label for="ob-maxtokens">${t('settings.maxTokens')}</label>
           <input id="ob-maxtokens" type="number" value="${this.config.maxTokens}" min="0" max="65536" step="256" />
-          <p class="field-hint">Limits how many tokens the model may generate per turn. Lower = faster, cheaper answers. 0 = unlimited.</p>
+          <p class="field-hint">${t('settings.maxTokensHint')}</p>
         </div>
 
         <div id="ob-test-result" class="test-result"></div>
 
         <div class="onboarding-actions">
-          <button id="ob-back" class="btn btn-secondary">Zurück</button>
-          <button id="ob-next" class="btn btn-primary" disabled>Weiter</button>
+          <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
+          <button id="ob-next" class="btn btn-primary" disabled>${t('onboarding.next')}</button>
         </div>
       </div>
     `;
@@ -197,7 +241,7 @@ export class OnboardingWizard {
     });
 
     this.element.querySelector('#ob-back')!.addEventListener('click', () => {
-      this.step = 1;
+      this.step = 2;
       this.render();
     });
 
@@ -208,38 +252,34 @@ export class OnboardingWizard {
   private renderSearchConfig() {
     this.element.innerHTML = `
       <div class="onboarding-card">
-        <div class="onboarding-steps">
-          <span class="step">1</span>
-          <span class="step">2</span>
-          <span class="step active">3</span>
-        </div>
-        <h1>Websuche</h1>
-        <p class="onboarding-subtitle">Optional: Aktiviere Websuche über Tavily. Du kannst dies später in den Einstellungen ändern.</p>
-        
+        ${this.stepIndicator(4)}
+        <h1>${t('settings.search')}</h1>
+        <p class="onboarding-subtitle">${t('onboarding.searchHint')}</p>
+
         <div class="form-group">
-          <label for="ob-search-provider">Search Provider</label>
+          <label for="ob-search-provider">${t('settings.provider')}</label>
           <select id="ob-search-provider">
-            <option value="none" ${this.config.searchProvider === 'none' ? 'selected' : ''}>Deaktiviert</option>
-            <option value="tavily" ${this.config.searchProvider === 'tavily' ? 'selected' : ''}>Tavily</option>
+            <option value="none" ${this.config.searchProvider === 'none' ? 'selected' : ''}>${t('settings.searchNone')}</option>
+            <option value="tavily" ${this.config.searchProvider === 'tavily' ? 'selected' : ''}>${t('settings.searchTavily')}</option>
           </select>
         </div>
-        
+
         <div class="form-group" id="ob-search-key-group">
-          <label for="ob-search-apikey">Tavily API Key</label>
+          <label for="ob-search-apikey">${t('settings.searchApiKey')}</label>
           <input id="ob-search-apikey" type="password" value="${escapeHtml(this.config.searchApiKey)}" placeholder="tvly-..." />
-          <p class="field-hint">Nur im Browser gespeichert. Hole deinen Key unter <a href="https://app.tavily.com/" target="_blank" rel="noopener">app.tavily.com</a>.</p>
+          <p class="field-hint">Tavily: <a href="https://app.tavily.com/" target="_blank" rel="noopener">app.tavily.com</a></p>
         </div>
-        
+
         <div class="onboarding-actions">
-          <button id="ob-back" class="btn btn-secondary">Zurück</button>
-          <button id="ob-complete" class="btn btn-primary">vibeAgentGo starten</button>
+          <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
+          <button id="ob-complete" class="btn btn-primary">${t('onboarding.finish')}</button>
         </div>
       </div>
     `;
 
     const providerSelect = this.element.querySelector('#ob-search-provider') as HTMLSelectElement;
     const keyGroup = this.element.querySelector('#ob-search-key-group') as HTMLElement;
-    
+
     const updateKeyVisibility = () => {
       keyGroup.style.display = providerSelect.value === 'tavily' ? 'block' : 'none';
     };
@@ -247,7 +287,7 @@ export class OnboardingWizard {
     updateKeyVisibility();
 
     this.element.querySelector('#ob-back')!.addEventListener('click', () => {
-      this.step = 2;
+      this.step = 3;
       this.render();
     });
 
@@ -270,7 +310,7 @@ export class OnboardingWizard {
     const baseUrl = baseUrlInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
 
-    resultEl.textContent = 'Verifiziere Verbindung...';
+    resultEl.textContent = t('common.loading');
     resultEl.className = 'test-result test-pending';
     verifyBtn.disabled = true;
 
@@ -278,17 +318,17 @@ export class OnboardingWizard {
     verifyBtn.disabled = false;
 
     if (!res.ok) {
-      resultEl.textContent = `❌ Verbindung fehlgeschlagen: ${res.error}`;
+      resultEl.textContent = `❌ ${t('onboarding.connectionError')}: ${res.error}`;
       resultEl.className = 'test-result test-error';
       modelSelect.disabled = true;
-      modelSelect.innerHTML = '<option value="">Verifizierung fehlgeschlagen</option>';
+      modelSelect.innerHTML = `<option value="">${t('onboarding.verifyFailed')}</option>`;
       modelManual.style.display = 'none';
       nextBtn.disabled = true;
       return;
     }
 
     const models = res.models.length ? res.models : [];
-    resultEl.textContent = `✅ Verbindung OK. ${models.length} Modell(e) gefunden.`;
+    resultEl.textContent = `✅ ${t('onboarding.connectionSuccess')} (${models.length})`;
     resultEl.className = 'test-result test-success';
 
     if (models.length > 0) {
@@ -296,7 +336,7 @@ export class OnboardingWizard {
       const options = models
         .map(m => `<option value="${escapeHtml(m)}" ${m === currentModel ? 'selected' : ''}>${escapeHtml(m)}</option>`)
         .join('');
-      modelSelect.innerHTML = `<option value="">Modell wählen...</option>${options}`;
+      modelSelect.innerHTML = `<option value="">${t('onboarding.pickModel')}</option>${options}`;
       modelSelect.disabled = false;
       modelManual.style.display = 'none';
 
@@ -308,7 +348,7 @@ export class OnboardingWizard {
         nextBtn.disabled = true;
       }
     } else {
-      modelSelect.innerHTML = '<option value="">Keine Modelle gelistet — manuell eingeben</option>';
+      modelSelect.innerHTML = `<option value="">${t('onboarding.noModelsManual')}</option>`;
       modelSelect.disabled = true;
       modelManual.style.display = 'block';
       modelManual.value = this.config.model;
@@ -329,12 +369,12 @@ export class OnboardingWizard {
     const maxTokens = maxTokensInput.trim() === '' ? 0 : Math.max(0, parseInt(maxTokensInput) || 0);
 
     if (!baseUrl || !model) {
-      alert('Bitte Base URL und Model angeben.');
+      alert(t('error.noModel') + ' / ' + t('error.noBaseUrl'));
       return;
     }
 
     this.config = saveConfig({ ...this.config, baseUrl, model, apiKey, maxTurns, maxTokens });
-    this.step = 3;
+    this.step = 4;
     this.render();
   }
 
@@ -343,7 +383,7 @@ export class OnboardingWizard {
     const searchApiKey = (this.element.querySelector('#ob-search-apikey') as HTMLInputElement).value.trim();
 
     if (searchProvider === 'tavily' && !searchApiKey) {
-      alert('Bitte Tavily API Key eingeben oder Websuche deaktivieren.');
+      alert(t('error.noApiKey'));
       return;
     }
 
@@ -351,5 +391,4 @@ export class OnboardingWizard {
     completeOnboarding();
     if (this.onComplete) this.onComplete();
   }
-
 }

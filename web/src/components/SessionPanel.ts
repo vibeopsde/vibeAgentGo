@@ -4,6 +4,7 @@
 
 import { MemoryStore } from '../core/memory.js';
 import { escapeHtml } from '../utils/escape.js';
+import { t } from '../i18n/index.js';
 
 export class SessionPanel {
   element: HTMLElement;
@@ -49,10 +50,10 @@ export class SessionPanel {
 
       if (sessions.length === 0) {
         this.modal.innerHTML = `
-          <h2>💬 Sessions <span class="mem-location-hint">(IndexedDB — lokal im Browser)</span></h2>
-          <p class="empty">Keine gespeicherten Sessions. Starte eine Konversation!</p>
+          <h2>💬 ${t('sessions.title')} <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
+          <p class="empty">${t('sessions.empty')}</p>
           <div class="form-actions">
-            <button id="sess-close" class="btn btn-primary">Schließen</button>
+            <button id="sess-close" class="btn btn-primary">${t('common.close')}</button>
           </div>
         `;
         this.modal.querySelector('#sess-close')!.addEventListener('click', () => this.close());
@@ -60,7 +61,8 @@ export class SessionPanel {
       }
 
       const sessionsHtml = sessions.map((s: any) => {
-        const date = new Date(s.updated_at).toLocaleString('de-DE', {
+        const lang = document.documentElement.lang || 'de';
+        const date = new Date(s.updated_at).toLocaleString(lang === 'en' ? 'en-US' : 'de-DE', {
           day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
         });
         return `
@@ -78,10 +80,10 @@ export class SessionPanel {
       }).join('');
 
       this.modal.innerHTML = `
-        <h2>💬 Sessions (${sessions.length}) <span class="mem-location-hint">(IndexedDB — lokal im Browser)</span></h2>
+        <h2>💬 ${t('sessions.title')} (${sessions.length}) <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
         <div class="session-list">${sessionsHtml}</div>
         <div class="form-actions">
-          <button id="sess-close" class="btn btn-primary">Schließen</button>
+          <button id="sess-close" class="btn btn-primary">${t('common.close')}</button>
         </div>
       `;
 
@@ -114,7 +116,7 @@ export class SessionPanel {
       });
 
     } catch (e) {
-      this.modal.innerHTML = `<p>Fehler beim Laden: ${e}</p>`;
+      this.modal.innerHTML = `<p>${t('common.error')}: ${e}</p>`;
     }
   }
 }

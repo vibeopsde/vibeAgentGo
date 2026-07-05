@@ -3,6 +3,8 @@
 // Switches between Chat and Render on small screens.
 // ============================================================
 
+import { t } from '../i18n/index.js';
+
 export type MobileTab = 'chat' | 'render';
 
 export class MobileNav {
@@ -37,16 +39,16 @@ export class MobileNav {
 
   private render() {
     this.element.innerHTML = `
-      <button class="mobile-nav-btn ${this.activeTab === 'chat' ? 'active' : ''}" data-action="chat" aria-label="Chat" role="tab" aria-selected="${this.activeTab === 'chat'}">
+      <button class="mobile-nav-btn ${this.activeTab === 'chat' ? 'active' : ''}" data-action="chat" aria-label="${t('common.chat')}" role="tab" aria-selected="${this.activeTab === 'chat'}">
         <span class="mobile-nav-icon">💬</span>
-        <span class="mobile-nav-label">Chat</span>
+        <span class="mobile-nav-label">${t('common.chat')}</span>
       </button>
-      <button class="mobile-nav-btn mobile-nav-primary" data-action="new" aria-label="New Chat">
+      <button class="mobile-nav-btn mobile-nav-primary" data-action="new" aria-label="${t('common.newChat')}">
         <span class="mobile-nav-icon">✨</span>
       </button>
-      <button class="mobile-nav-btn ${this.activeTab === 'render' ? 'active' : ''}" data-action="render" aria-label="Render" role="tab" aria-selected="${this.activeTab === 'render'}">
+      <button class="mobile-nav-btn ${this.activeTab === 'render' ? 'active' : ''}" data-action="render" aria-label="${t('common.render')}" role="tab" aria-selected="${this.activeTab === 'render'}">
         <span class="mobile-nav-icon">🎨</span>
-        <span class="mobile-nav-label">Render</span>
+        <span class="mobile-nav-label">${t('common.render')}</span>
       </button>
     `;
   }

@@ -1,0 +1,329 @@
+export type Language = 'de' | 'en';
+
+interface Translations {
+  [key: string]: string;
+}
+
+const de: Translations = {
+  // Common
+  'app.title': 'vibeAgentGo',
+  'app.tagline': 'Hermes Agent Go',
+  'common.save': 'Speichern',
+  'common.cancel': 'Abbrechen',
+  'common.close': 'Schließen',
+  'common.delete': 'Löschen',
+  'common.add': 'Hinzufügen',
+  'common.loading': 'Lädt...',
+  'common.error': 'Fehler',
+  'common.success': 'Erfolg',
+  'common.retry': 'Wiederholen',
+  'common.settings': 'Einstellungen',
+  'common.newChat': 'Neuer Chat',
+  'common.memory': 'Memory',
+  'common.sessions': 'Sessions',
+  'common.render': 'Render',
+  'common.chat': 'Chat',
+  'common.menu': 'Menü',
+  'common.send': 'Senden',
+  'common.thinking': 'Denkt nach...',
+  'common.idle': 'Bereit',
+  'common.disconnected': 'Getrennt',
+  'common.connected': 'Verbunden',
+
+  // Header
+  'header.settings': 'Einstellungen',
+  'header.newChat': 'Neuer Chat',
+  'header.memory': 'Memory',
+  'header.sessions': 'Sessions',
+  'header.theme': 'Design',
+
+  // Chat
+  'chat.placeholder': 'Nachricht an vibeAgentGo...',
+  'chat.empty': 'Starte eine Unterhaltung',
+  'chat.toolCall': 'Tool-Aufruf',
+  'chat.toolResult': 'Ergebnis',
+  'chat.unknownTool': 'Unbekanntes Tool',
+  'chat.maxTurns': 'Maximale Rundenanzahl erreicht.',
+  'chat.aborted': 'Abgebrochen.',
+
+  // Settings
+  'settings.title': 'Einstellungen',
+  'settings.llm': 'LLM-Konfiguration',
+  'settings.provider': 'Provider Preset',
+  'settings.providerHint': 'Preset trägt Modell + Base URL ein. API Key musst du selbst einfügen.',
+  'settings.custom': 'Benutzerdefiniert',
+  'settings.openai': 'OpenAI',
+  'settings.openrouter': 'OpenRouter',
+  'settings.ollama': 'Ollama (lokal)',
+  'settings.openaiUrl': 'https://api.openai.com/v1',
+  'settings.openrouterUrl': 'https://openrouter.ai/api/v1',
+  'settings.ollamaUrl': 'http://localhost:11434/v1',
+  'settings.model': 'Modell',
+  'settings.baseUrl': 'Base URL',
+  'settings.apiKey': 'API Key',
+  'settings.maxTokens': 'Max Response Tokens',
+  'settings.maxTokensHint': 'Limitiert die Tokens, die das Modell pro Zug generieren darf. Niedriger = schneller, günstiger. 0 = unbegrenzt.',
+  'settings.maxTurns': 'Max Turns',
+  'settings.maxTurnsHint': 'Maximale Anzahl aufeinanderfolgender LLM-Aufrufe pro Anfrage.',
+  'settings.language': 'Sprache',
+  'settings.german': 'Deutsch',
+  'settings.english': 'English',
+  'settings.search': 'Search Provider',
+  'settings.searchNone': 'Deaktiviert',
+  'settings.searchTavily': 'Tavily',
+  'settings.searchApiKey': 'Search API Key',
+  'settings.testConnection': 'Verbindung testen',
+  'settings.connectionSuccess': 'Verbindung OK',
+  'settings.connectionError': 'Verbindung fehlgeschlagen',
+  'settings.providerInfo': 'Jeder OpenAI-kompatible Endpoint mit CORS funktioniert.',
+  'settings.examples': 'Beispiele:',
+  'settings.openaiExample': 'OpenAI: https://api.openai.com/v1',
+  'settings.openrouterExample': 'OpenRouter: https://openrouter.ai/api/v1',
+  'settings.ollamaExample': 'Ollama (lokal): http://localhost:11434/v1',
+  'settings.resetData': 'Alle lokalen Daten löschen',
+  'settings.resetConfirm': 'Das löscht alle Sessions, Dateien, Memory-Einträge, Skills und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.',
+  'settings.resetCancel': 'Abbrechen',
+  'settings.resetConfirmBtn': 'Ja, alles löschen',
+
+  // Onboarding
+  'onboarding.welcome': 'Willkommen bei vibeAgentGo',
+  'onboarding.subtitle': 'Hermes Agent Go — dein KI-Agent, der komplett im Browser läuft.',
+  'onboarding.next': 'Weiter',
+  'onboarding.back': 'Zurück',
+  'onboarding.finish': 'vibeAgentGo starten',
+  'onboarding.stepWelcome': 'Willkommen',
+  'onboarding.stepLanguage': 'Sprache',
+  'onboarding.stepLLM': 'LLM',
+  'onboarding.stepSearch': 'Suche',
+  'onboarding.languageTitle': 'Sprache wählen',
+  'onboarding.languageHint': 'Die Sprache wird für die Benutzeroberfläche und die System-Prompts verwendet.',
+  'onboarding.llmTitle': 'KI-Schnittstelle',
+  'onboarding.llmHint': 'Wähle einen Provider oder trage deine Endpunktdaten manuell ein.',
+  'onboarding.verifyTitle': 'Verbindung testen',
+  'onboarding.verifyHint': 'Wähle ein Modell aus der Liste oder gib es manuell ein.',
+  'onboarding.searchHint': 'Optional: Aktiviere Websuche über Tavily. Du kannst dies später in den Einstellungen ändern.',
+  'onboarding.manual': 'Manuell',
+  'onboarding.verifyFirst': 'Bitte zuerst Verbindung testen',
+  'onboarding.verifyFailed': 'Verifizierung fehlgeschlagen',
+  'onboarding.pickModel': 'Modell wählen...',
+  'onboarding.noModelsManual': 'Keine Modelle gelistet — manuell eingeben',
+  'onboarding.dataSovereigntyTitle': 'Datenhoheit',
+  'onboarding.dataSovereigntyText': 'Alle Sessions, Dateien, Memory und Skills liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen verlassen das Gerät.',
+  'onboarding.toolsTitle': 'Tools im Browser',
+  'onboarding.toolsText': 'Dateien lesen/schreiben, Code ausführen, Websuchen, Erinnerungen speichern und interaktive HTML-Views rendern.',
+  'onboarding.openaiTitle': 'OpenAI-kompatibel',
+  'onboarding.openaiText': 'vibeAgentGo spricht mit jedem OpenAI-kompatiblen Endpunkt. OpenAI, Ollama, OpenRouter — du wählst.',
+  'onboarding.modelList': 'Modelle',
+  'onboarding.modelManual': 'Manuelles Modell',
+  'onboarding.modelPlaceholder': 'model-id',
+  'onboarding.testConnection': 'Verbindung testen',
+  'onboarding.connectionSuccess': 'Verbindung OK',
+  'onboarding.connectionError': 'Verbindung fehlgeschlagen',
+
+  // Memory
+  'memory.title': 'Memory',
+  'memory.local': 'lokal im Browser',
+  'memory.userProfile': 'Nutzerprofil',
+  'memory.memories': 'Erinnerungen',
+  'memory.empty': 'Noch keine Erinnerungen.',
+  'memory.addProfile': 'Profil-Eintrag hinzufügen',
+  'memory.addMemory': 'Erinnerung hinzufügen',
+  'memory.placeholder': 'Neuer Eintrag...',
+
+  // Sessions
+  'sessions.title': 'Sessions',
+  'sessions.empty': 'Noch keine Sessions.',
+  'sessions.resume': 'Fortsetzen',
+  'sessions.delete': 'Löschen',
+
+  // Render
+  'render.title': 'Render View',
+  'render.empty': 'Noch keine View gerendert.',
+  'render.emptyHint': 'Der Agent kann hier HTML-Mini-Apps anzeigen.',
+
+  // Errors
+  'error.noModel': 'Bitte Modell angeben.',
+  'error.noApiKey': 'Bitte API Key eingeben.',
+  'error.noBaseUrl': 'Bitte Base URL eingeben.',
+  'error.loadConfig': 'Konfiguration konnte nicht geladen werden.',
+  'error.loadSession': 'Fehler beim Laden der Session:',
+  'error.agentRunning': 'Agent läuft bereits. Bitte warten oder abbrechen.',
+  'error.searchNoApiKey': 'Bitte Search API Key eingeben oder Suche deaktivieren.',
+};
+
+const en: Translations = {
+  // Common
+  'app.title': 'vibeAgentGo',
+  'app.tagline': 'Hermes Agent Go',
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.close': 'Close',
+  'common.delete': 'Delete',
+  'common.add': 'Add',
+  'common.loading': 'Loading...',
+  'common.error': 'Error',
+  'common.success': 'Success',
+  'common.retry': 'Retry',
+  'common.settings': 'Settings',
+  'common.newChat': 'New Chat',
+  'common.memory': 'Memory',
+  'common.sessions': 'Sessions',
+  'common.render': 'Render',
+  'common.chat': 'Chat',
+  'common.menu': 'Menu',
+  'common.send': 'Send',
+  'common.thinking': 'Thinking...',
+  'common.idle': 'Ready',
+  'common.disconnected': 'Disconnected',
+  'common.connected': 'Connected',
+
+  // Header
+  'header.settings': 'Settings',
+  'header.newChat': 'New Chat',
+  'header.memory': 'Memory',
+  'header.sessions': 'Sessions',
+  'header.theme': 'Theme',
+
+  // Chat
+  'chat.placeholder': 'Message vibeAgentGo...',
+  'chat.empty': 'Start a conversation',
+  'chat.toolCall': 'Tool call',
+  'chat.toolResult': 'Result',
+  'chat.unknownTool': 'Unknown tool',
+  'chat.maxTurns': 'Maximum turns reached.',
+  'chat.aborted': 'Aborted.',
+
+  // Settings
+  'settings.title': 'Settings',
+  'settings.llm': 'LLM Configuration',
+  'settings.provider': 'Provider Preset',
+  'settings.providerHint': 'Preset fills in model + base URL. You must add your own API key.',
+  'settings.custom': 'Custom',
+  'settings.openai': 'OpenAI',
+  'settings.openrouter': 'OpenRouter',
+  'settings.ollama': 'Ollama (local)',
+  'settings.openaiUrl': 'https://api.openai.com/v1',
+  'settings.openrouterUrl': 'https://openrouter.ai/api/v1',
+  'settings.ollamaUrl': 'http://localhost:11434/v1',
+  'settings.model': 'Model',
+  'settings.baseUrl': 'Base URL',
+  'settings.apiKey': 'API Key',
+  'settings.maxTokens': 'Max Response Tokens',
+  'settings.maxTokensHint': 'Limits how many tokens the model may generate per turn. Lower = faster, cheaper. 0 = unlimited.',
+  'settings.maxTurns': 'Max Turns',
+  'settings.maxTurnsHint': 'Maximum number of consecutive LLM calls per request.',
+  'settings.language': 'Language',
+  'settings.german': 'Deutsch',
+  'settings.english': 'English',
+  'settings.search': 'Search Provider',
+  'settings.searchNone': 'Disabled',
+  'settings.searchTavily': 'Tavily',
+  'settings.searchApiKey': 'Search API Key',
+  'settings.testConnection': 'Test Connection',
+  'settings.connectionSuccess': 'Connection OK',
+  'settings.connectionError': 'Connection failed',
+  'settings.providerInfo': 'Any OpenAI-compatible endpoint with CORS will work.',
+  'settings.examples': 'Examples:',
+  'settings.openaiExample': 'OpenAI: https://api.openai.com/v1',
+  'settings.openrouterExample': 'OpenRouter: https://openrouter.ai/api/v1',
+  'settings.ollamaExample': 'Ollama (local): http://localhost:11434/v1',
+  'settings.resetData': 'Delete all local data',
+  'settings.resetConfirm': 'This deletes all sessions, files, memories, skills and settings from this browser. Cannot be undone.',
+  'settings.resetCancel': 'Cancel',
+  'settings.resetConfirmBtn': 'Yes, delete everything',
+
+  // Onboarding
+  'onboarding.welcome': 'Welcome to vibeAgentGo',
+  'onboarding.subtitle': 'Hermes Agent Go — your AI agent that runs entirely in the browser.',
+  'onboarding.next': 'Next',
+  'onboarding.back': 'Back',
+  'onboarding.finish': 'Start vibeAgentGo',
+  'onboarding.stepWelcome': 'Welcome',
+  'onboarding.stepLanguage': 'Language',
+  'onboarding.stepLLM': 'LLM',
+  'onboarding.stepSearch': 'Search',
+  'onboarding.languageTitle': 'Choose language',
+  'onboarding.languageHint': 'This language will be used for the UI and system prompts.',
+  'onboarding.llmTitle': 'Connect LLM',
+  'onboarding.llmHint': 'Choose a provider or enter your endpoint data manually.',
+  'onboarding.verifyTitle': 'Test connection',
+  'onboarding.verifyHint': 'Pick a model from the list or enter it manually.',
+  'onboarding.searchHint': 'Optional: Enable web search via Tavily. You can change this later in Settings.',
+  'onboarding.manual': 'Manual',
+  'onboarding.verifyFirst': 'Please test connection first',
+  'onboarding.verifyFailed': 'Verification failed',
+  'onboarding.pickModel': 'Pick model...',
+  'onboarding.noModelsManual': 'No models listed — enter manually',
+  'onboarding.dataSovereigntyTitle': 'Data sovereignty',
+  'onboarding.dataSovereigntyText': 'All sessions, files, memories and skills stay in your browser (IndexedDB). Only LLM requests leave the device.',
+  'onboarding.toolsTitle': 'Browser tools',
+  'onboarding.toolsText': 'Read/write files, run code, web search, save memories, and render interactive HTML views.',
+  'onboarding.openaiTitle': 'OpenAI-compatible',
+  'onboarding.openaiText': 'vibeAgentGo talks to any OpenAI-compatible endpoint. OpenAI, Ollama, OpenRouter — your choice.',
+  'onboarding.modelList': 'Models',
+  'onboarding.modelManual': 'Manual model',
+  'onboarding.modelPlaceholder': 'model-id',
+  'onboarding.testConnection': 'Test connection',
+  'onboarding.connectionSuccess': 'Connection OK',
+  'onboarding.connectionError': 'Connection failed',
+
+  // Memory
+  'memory.title': 'Memory',
+  'memory.local': 'local in browser',
+  'memory.userProfile': 'User Profile',
+  'memory.memories': 'Memories',
+  'memory.empty': 'No memories yet.',
+  'memory.addProfile': 'Add profile entry',
+  'memory.addMemory': 'Add memory',
+  'memory.placeholder': 'New entry...',
+
+  // Sessions
+  'sessions.title': 'Sessions',
+  'sessions.empty': 'No sessions yet.',
+  'sessions.resume': 'Resume',
+  'sessions.delete': 'Delete',
+
+  // Render
+  'render.title': 'Render View',
+  'render.empty': 'No view rendered yet.',
+  'render.emptyHint': 'The agent can render HTML mini-apps here.',
+
+  // Errors
+  'error.noModel': 'Please provide a model.',
+  'error.noApiKey': 'Please provide an API key.',
+  'error.noBaseUrl': 'Please provide a base URL.',
+  'error.loadConfig': 'Configuration could not be loaded.',
+  'error.loadSession': 'Failed to load session:',
+  'error.agentRunning': 'Agent is already running. Please wait or abort.',
+  'error.searchNoApiKey': 'Please provide a search API key or disable search.',
+};
+
+const translations: Record<Language, Translations> = { de, en };
+let currentLanguage: Language = 'de';
+
+export function setLanguage(lang: Language): void {
+  currentLanguage = lang;
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = lang;
+  }
+}
+
+export function getLanguage(): Language {
+  return currentLanguage;
+}
+
+export function getAvailableLanguages(): { value: Language; label: string }[] {
+  return [
+    { value: 'de', label: 'Deutsch' },
+    { value: 'en', label: 'English' },
+  ];
+}
+
+export function t(key: string, fallback?: string): string {
+  const value = translations[currentLanguage][key] ?? translations['de'][key] ?? fallback;
+  return value ?? key;
+}
+
+export function translate(key: string, fallback?: string): string {
+  return t(key, fallback);
+}

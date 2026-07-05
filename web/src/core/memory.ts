@@ -217,6 +217,7 @@ export interface ClientConfig {
   apiKey: string;
   maxTurns: number;
   maxTokens: number;
+  language: 'de' | 'en';
   searchProvider: 'none' | 'tavily';
   searchApiKey: string;
 }
@@ -226,15 +227,18 @@ export function loadConfig(): ClientConfig {
   if (stored) {
     try { return JSON.parse(stored); } catch { }
   }
-  return {
-    model: 'qwen/qwen3.6-35b-a3b',
-    baseUrl: 'https://ki.vibeops.de/v1',
+  const defaultLanguage: 'de' | 'en' = navigator.language?.startsWith('de') ? 'de' : 'en';
+  const DEFAULT_CONFIG: ClientConfig = {
+    model: '',
+    baseUrl: '',
     apiKey: '',
     maxTurns: 30,
-    maxTokens: 0,
+    maxTokens: 4096,
+    language: defaultLanguage,
     searchProvider: 'none',
     searchApiKey: '',
   };
+  return DEFAULT_CONFIG;
 }
 
 export function saveConfig(config: Partial<ClientConfig>): ClientConfig {

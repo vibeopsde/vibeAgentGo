@@ -16,9 +16,11 @@ import { Agent } from './core/agent.js';
 import { MemoryStore, loadConfig, saveConfig, hasApiKey, hasCompletedOnboarding, resetLocalData } from './core/memory.js';
 import { createDefaultTools } from './core/tools.js';
 import { VERSION } from './version.js';
+import { setLanguage, t } from './i18n/index.js';
 
-// Initialize theme before first render to avoid flash
+// Initialize theme and language before first render to avoid flash
 initTheme();
+setLanguage(loadConfig().language);
 
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -151,7 +153,7 @@ async function resumeSession(sessionId: string) {
       }
     }
   } catch (e: any) {
-    chatPanel.appendError('Failed to load session: ' + e.message);
+    chatPanel.appendError(`${t('error.loadSession')} ${e.message}`);
   }
 }
 
@@ -173,12 +175,12 @@ function buildLayout() {
       <span class="version-tag">${VERSION}</span>
     </div>
     <div class="header-right">
-      <button id="btn-theme" class="icon-btn desktop-only" title="Toggle theme">🌓</button>
-      <button id="btn-sessions" class="icon-btn desktop-only" title="Sessions">💬</button>
-      <button id="btn-new" class="icon-btn desktop-only" title="New Chat">✨</button>
-      <button id="btn-memory" class="icon-btn desktop-only" title="Memory">🧠</button>
-      <button id="btn-settings" class="icon-btn desktop-only" title="Settings">⚙️</button>
-      <button id="btn-mobile-menu" class="icon-btn mobile-only" title="Menu" aria-label="Menu">☰</button>
+      <button id="btn-theme" class="icon-btn desktop-only" title="${t('header.theme')}">🌓</button>
+      <button id="btn-sessions" class="icon-btn desktop-only" title="${t('header.sessions')}">💬</button>
+      <button id="btn-new" class="icon-btn desktop-only" title="${t('header.newChat')}">✨</button>
+      <button id="btn-memory" class="icon-btn desktop-only" title="${t('header.memory')}">🧠</button>
+      <button id="btn-settings" class="icon-btn desktop-only" title="${t('header.settings')}">⚙️</button>
+      <button id="btn-mobile-menu" class="icon-btn mobile-only" title="${t('common.menu')}" aria-label="${t('common.menu')}">☰</button>
     </div>
   `;
 
@@ -224,13 +226,13 @@ function buildLayout() {
   chatPanel.onSubmit = async (text: string) => {
     const config = loadConfig();
     if (!config.apiKey) {
-      chatPanel.appendError('No API key configured. Open Settings (⚙️).');
+      chatPanel.appendError(t('error.noApiKey'));
       settingsModal.open();
       return;
     }
 
     if (isRunning && agent) {
-      chatPanel.appendError('Agent is already running. Please wait or abort.');
+      chatPanel.appendError(t('common.thinking'));
       return;
     }
 
@@ -275,13 +277,13 @@ function openMobileMenu() {
   overlay.innerHTML = `
     <div class="mobile-menu-sheet">
       <div class="mobile-menu-header">
-        <span>Menu</span>
+        <span>${t('common.menu')}</span>
         <button class="mobile-menu-close">✕</button>
       </div>
-      <button class="mobile-menu-item" data-action="theme">🌓 Theme</button>
-      <button class="mobile-menu-item" data-action="settings">⚙️ Settings</button>
-      <button class="mobile-menu-item" data-action="memory">🧠 Memory</button>
-      <button class="mobile-menu-item" data-action="sessions">💬 Sessions</button>
+      <button class="mobile-menu-item" data-action="theme">🌓 ${t('header.theme')}</button>
+      <button class="mobile-menu-item" data-action="settings">⚙️ ${t('header.settings')}</button>
+      <button class="mobile-menu-item" data-action="memory">🧠 ${t('header.memory')}</button>
+      <button class="mobile-menu-item" data-action="sessions">💬 ${t('header.sessions')}</button>
     </div>
   `;
 
@@ -306,12 +308,16 @@ function openMobileMenu() {
 // --- Init ---
 
 function startApp() {
+  const config = loadConfig();
+  setLanguage(config.language);
   const app = document.getElementById('app')!;
   app.innerHTML = '';
   buildLayout();
 }
 
 function startOnboarding() {
+  const config = loadConfig();
+  setLanguage(config.language);
   const app = document.getElementById('app')!;
   app.innerHTML = '';
   const wizard = new OnboardingWizard();

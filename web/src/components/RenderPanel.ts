@@ -2,6 +2,8 @@
 // vibeAgentGo — RenderPanel Component (iframe + tabs)
 // ============================================================
 
+import { t } from '../i18n/index.js';
+
 interface ViewTab {
   title: string;
   html: string;
@@ -43,8 +45,8 @@ export class RenderPanel {
     this.emptyEl.className = 'view-empty';
     this.emptyEl.innerHTML = `
       <div class="empty-icon">📊</div>
-      <p>Render View</p>
-      <p class="empty-hint">Der Agent kann hier Mini-Apps, Visualisierungen und Dashboards anzeigen</p>
+      <p>${t('render.title')}</p>
+      <p class="empty-hint">${t('render.emptyHint')}</p>
     `;
 
     this.viewEl.appendChild(this.emptyEl);

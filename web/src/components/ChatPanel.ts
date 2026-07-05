@@ -4,6 +4,7 @@
 
 import { renderMarkdown } from '../utils/markdown.js';
 import { escapeHtml } from '../utils/escape.js';
+import { t } from '../i18n/index.js';
 
 export class ChatPanel {
   element: HTMLElement;
@@ -25,7 +26,7 @@ export class ChatPanel {
     inputArea.className = 'input-area';
 
     this.inputEl = document.createElement('textarea');
-    this.inputEl.placeholder = 'Nachricht an vibeAgentGo...';
+    this.inputEl.placeholder = t('chat.placeholder');
     this.inputEl.rows = 1;
     this.inputEl.addEventListener('input', () => this.autoResize());
     this.inputEl.addEventListener('keydown', (e) => {
@@ -42,7 +43,7 @@ export class ChatPanel {
 
     this.statusEl = document.createElement('div');
     this.statusEl.className = 'status-bar';
-    this.statusEl.textContent = 'Bereit';
+    this.statusEl.textContent = t('common.idle');
 
     inputArea.appendChild(this.inputEl);
     inputArea.appendChild(this.sendBtn);
@@ -87,7 +88,7 @@ export class ChatPanel {
     el.innerHTML = `
       <summary>
         <span class="tool-icon">🔧</span>
-        <span class="tool-name">tool</span>
+        <span class="tool-name">${t('chat.toolCall')}</span>
         <span class="tool-args">${escapeHtml(toolCallId)}</span>
       </summary>
       <div class="tool-result-body">${escapeHtml(content)}</div>
@@ -197,10 +198,10 @@ export class ChatPanel {
 
   setStatus(status: string) {
     const labels: Record<string, string> = {
-      idle: 'Bereit',
-      thinking: 'Denke nach...',
-      connected: 'Verbunden',
-      disconnected: 'Getrennt — verbinde...',
+      idle: t('common.idle'),
+      thinking: t('common.thinking'),
+      connected: t('common.connected'),
+      disconnected: t('common.disconnected'),
     };
     this.statusEl.textContent = labels[status] || status;
     this.statusEl.className = `status-bar status-${status}`;

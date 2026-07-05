@@ -4,6 +4,7 @@
 
 import { MemoryStore } from '../core/memory.js';
 import { escapeHtml } from '../utils/escape.js';
+import { t } from '../i18n/index.js';
 
 export class MemoryPanel {
   element: HTMLElement;
@@ -63,17 +64,17 @@ export class MemoryPanel {
       `).join('');
 
       this.modal.innerHTML = `
-        <h2>🧠 Memory <span class="mem-location-hint">(IndexedDB — lokal im Browser)</span></h2>
+        <h2>🧠 ${t('memory.title')} <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
         <div class="memory-section">
-          <h3>User Profile (${data.profile.length})</h3>
-          <div class="memory-list">${profileHtml || '<p class="empty">Keine Profileinträge</p>'}</div>
+          <h3>${t('memory.userProfile')} (${data.profile.length})</h3>
+          <div class="memory-list">${profileHtml || `<p class="empty">${t('memory.empty')}</p>`}</div>
         </div>
         <div class="memory-section">
-          <h3>Memories (${data.memories.length})</h3>
-          <div class="memory-list">${memoriesHtml || '<p class="empty">Keine Memories</p>'}</div>
+          <h3>${t('memory.memories')} (${data.memories.length})</h3>
+          <div class="memory-list">${memoriesHtml || `<p class="empty">${t('memory.empty')}</p>`}</div>
         </div>
         <div class="form-actions">
-          <button id="mem-close" class="btn btn-primary">Schließen</button>
+          <button id="mem-close" class="btn btn-primary">${t('common.close')}</button>
         </div>
       `;
 
@@ -87,7 +88,7 @@ export class MemoryPanel {
         });
       });
     } catch (e) {
-      this.modal.innerHTML = `<p>Fehler: ${e}</p>`;
+      this.modal.innerHTML = `<p>${t('common.error')}: ${e}</p>`;
     }
   }
 }
