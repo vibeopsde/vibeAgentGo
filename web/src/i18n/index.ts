@@ -222,7 +222,6 @@ const en: Translations = {
   'chat.toolCall': 'Tool call',
   'chat.toolResult': 'Result',
   'chat.unknownTool': 'Unknown tool',
-  'chat.user': 'You',
   'chat.maxTurns': 'Maximum turns reached.',
   'chat.aborted': 'Aborted.',
 

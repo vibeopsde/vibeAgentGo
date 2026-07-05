@@ -195,6 +195,7 @@ export class SettingsModal {
   private testConnection() {
     const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value.trim();
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value.trim();
+    const modelInput = (this.modal.querySelector('#cfg-model') as HTMLInputElement);
     const resultEl = this.modal.querySelector('#cfg-test-result') as HTMLElement;
 
     resultEl.textContent = t('common.loading');
@@ -205,6 +206,10 @@ export class SettingsModal {
         const list = res.models.length ? `\n${res.models.slice(0, 10).join('\n')}` : t('onboarding.modelList');
         resultEl.textContent = `✅ ${t('settings.connectionSuccess')}. ${res.models.length} ${t('onboarding.modelList')}.\n${list}`;
         resultEl.className = 'test-result test-success';
+        // If endpoint reports models and no model is set yet, suggest the first one
+        if (res.models.length > 0 && !modelInput.value.trim()) {
+          modelInput.value = res.models[0];
+        }
       } else {
         resultEl.textContent = `❌ ${t('settings.connectionError')}: ${res.error}`;
         resultEl.className = 'test-result test-error';
