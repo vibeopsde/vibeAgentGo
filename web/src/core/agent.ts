@@ -98,6 +98,7 @@ export class Agent {
       profile,
       skills,
       tools: this.tools,
+      language: config.language,
     };
     const systemPrompt = buildSystemPrompt(promptCtx);
 

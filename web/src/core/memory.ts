@@ -164,7 +164,7 @@ export class MemoryStore {
   }
 }
 
-const CONFIG_KEY = 'vibeAgentGo-config';
+export const CONFIG_KEY = 'vibeAgentGo-config';
 const ONBOARDING_KEY = 'vibeAgentGo-onboarding';
 
 // --- Skills (IndexedDB) ---
@@ -224,8 +224,9 @@ export interface ClientConfig {
 
 export function loadConfig(): ClientConfig {
   const stored = localStorage.getItem(CONFIG_KEY);
+  let parsed: Partial<ClientConfig> | undefined;
   if (stored) {
-    try { return JSON.parse(stored); } catch { }
+    try { parsed = JSON.parse(stored); } catch { }
   }
   const defaultLanguage: 'de' | 'en' = navigator.language?.startsWith('de') ? 'de' : 'en';
   const DEFAULT_CONFIG: ClientConfig = {
@@ -238,7 +239,10 @@ export function loadConfig(): ClientConfig {
     searchProvider: 'none',
     searchApiKey: '',
   };
-  return DEFAULT_CONFIG;
+  const config: ClientConfig = { ...DEFAULT_CONFIG, ...parsed };
+  // Normalize language to a valid value for old/invalid configs
+  config.language = config.language === 'en' ? 'en' : 'de';
+  return config;
 }
 
 export function saveConfig(config: Partial<ClientConfig>): ClientConfig {
@@ -246,6 +250,7 @@ export function saveConfig(config: Partial<ClientConfig>): ClientConfig {
   const updated = { ...current, ...config };
   if (updated.apiKey) updated.apiKey = updated.apiKey.trim();
   if (updated.searchApiKey) updated.searchApiKey = updated.searchApiKey.trim();
+  updated.language = updated.language === 'en' ? 'en' : 'de';
   localStorage.setItem(CONFIG_KEY, JSON.stringify(updated));
   return updated;
 }

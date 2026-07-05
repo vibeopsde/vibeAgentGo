@@ -4,6 +4,7 @@
 
 import type { MemoryEntry, Skill, Tool, ToolSchema } from '../types/index.js';
 import { SkillStore } from './memory.js';
+import { normalizeLanguage } from '../i18n/index.js';
 
 const IDENTITY_BLOCKS: Record<string, string> = {
   de: `Du bist vibeAgentGo (Hermes Agent Go), ein hilfreicher KI-Assistent, der komplett im Browser des Nutzers läuft. Du kannst Code schreiben und ausführen, Dateien im Browser-IndexedDB verwalten, das Web durchsuchen und interaktive Mini-Apps bauen.
@@ -73,7 +74,7 @@ export interface PromptContext {
 }
 
 export function buildSystemPrompt(ctx: PromptContext): string {
-  const lang = ctx.language === 'en' ? 'en' : 'de';
+  const lang = normalizeLanguage(ctx.language);
   const parts: string[] = [IDENTITY_BLOCKS[lang], LANGUAGE_DIRECTIVE[lang]];
 
   parts.push(`## Environment

@@ -301,10 +301,15 @@ const en: Translations = {
 const translations: Record<Language, Translations> = { de, en };
 let currentLanguage: Language = 'de';
 
-export function setLanguage(lang: Language): void {
-  currentLanguage = lang;
+export function normalizeLanguage(lang: unknown): Language {
+  if (lang === 'en') return 'en';
+  return 'de';
+}
+
+export function setLanguage(lang: Language | string | undefined | null): void {
+  currentLanguage = normalizeLanguage(lang);
   if (typeof document !== 'undefined') {
-    document.documentElement.lang = lang;
+    document.documentElement.lang = currentLanguage;
   }
 }
 
