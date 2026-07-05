@@ -325,7 +325,8 @@ export class OnboardingWizard {
       : modelSelect.value.trim();
     const apiKey = (this.element.querySelector('#ob-apikey') as HTMLInputElement).value.trim();
     const maxTurns = parseInt((this.element.querySelector('#ob-maxturns') as HTMLInputElement).value) || 30;
-    const maxTokens = parseInt((this.element.querySelector('#ob-maxtokens') as HTMLInputElement).value) || 4096;
+    const maxTokensInput = (this.element.querySelector('#ob-maxtokens') as HTMLInputElement).value;
+    const maxTokens = maxTokensInput.trim() === '' ? 0 : Math.max(0, parseInt(maxTokensInput) || 0);
 
     if (!baseUrl || !model) {
       alert('Bitte Base URL und Model angeben.');

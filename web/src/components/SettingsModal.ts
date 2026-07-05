@@ -216,7 +216,8 @@ export class SettingsModal {
     const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value;
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value;
     const maxTurns = parseInt((this.modal.querySelector('#cfg-maxturns') as HTMLInputElement).value);
-    const maxTokens = parseInt((this.modal.querySelector('#cfg-maxtokens') as HTMLInputElement).value);
+    const maxTokensInput = (this.modal.querySelector('#cfg-maxtokens') as HTMLInputElement).value;
+    const maxTokens = maxTokensInput.trim() === '' ? 0 : Math.max(0, parseInt(maxTokensInput) || 0);
     const searchProvider = (this.modal.querySelector('#cfg-search-provider') as HTMLSelectElement).value as 'none' | 'tavily';
     const searchApiKey = (this.modal.querySelector('#cfg-search-apikey') as HTMLInputElement).value;
     const theme = (this.modal.querySelector('#cfg-theme') as HTMLSelectElement).value as ThemeMode;

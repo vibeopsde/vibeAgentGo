@@ -231,7 +231,7 @@ export function loadConfig(): ClientConfig {
     baseUrl: 'https://ki.vibeops.de/v1',
     apiKey: '',
     maxTurns: 30,
-    maxTokens: 4096,
+    maxTokens: 0,
     searchProvider: 'none',
     searchApiKey: '',
   };
