@@ -11,7 +11,7 @@ A TypeScript reimplementation of the Hermes Agent core concepts, designed for mo
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
-- **7 Tools**: `read_file`, `write_file`, `search_files`, `run_code`, `web_search`, `memory_save`, `render_view`
+- **9 Tools**: `read_file`, `write_file`, `search_files`, `run_code`, `web_search`, `memory_save`, `state_view`, `state_update`, `render_view`
 - **render_view**: Agent builds HTML/CSS/JS mini-apps rendered in a sandboxed iframe panel
 - **Sessions**: Resume, browse, and delete past conversations
 
@@ -70,6 +70,8 @@ web/
 | `run_code` | Execute JS in a sandboxed iframe (`srcdoc` + `sandbox="allow-scripts"`) |
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
 | `memory_save` | Save a durable fact to IndexedDB memory |
+| `state_view` | Read the project state from `agent_state.json` |
+| `state_update` | Update project state: goal, phase, tasks, issues, lessons, files |
 | `render_view` | Render HTML as a live view in the iframe panel |
 
 ## Memory
@@ -84,6 +86,18 @@ On each run, memory is loaded into the system prompt automatically.
 ## Skills
 
 Skills are stored in IndexedDB. They are loaded into the system prompt on every run. A UI to create and edit skills is planned.
+
+## Agentic Project State
+
+For long-running projects the agent uses `agent_state.json` as a shared scratchpad:
+
+- `goal` and `current_phase`
+- `tasks[]` with status, dependencies, notes
+- `open_issues[]` with severity
+- `lessons_learned[]`
+- `files[]` relevant to the project
+
+Call `state_view` to load context and `state_update` to keep progress in sync. Use `render: true` to show an interactive dashboard in the render panel.
 
 ## render_view
 
