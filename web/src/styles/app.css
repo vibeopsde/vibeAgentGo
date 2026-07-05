@@ -1247,11 +1247,12 @@ select {
 }
 
 .onboarding-logo {
+  display: block;
   height: 80px;
   width: 80px;
   border-radius: 16px;
   object-fit: cover;
-  margin-bottom: 24px;
+  margin: 0 auto 24px;
 }
 
 .onboarding-card h1 {
