@@ -230,6 +230,10 @@ export class ChatPanel {
     this.scrollToBottom();
   }
 
+  isStreaming(): boolean {
+    return this.streamEl !== null;
+  }
+
   finalizeStream() {
     if (this.streamEl) {
       delete this.streamEl.dataset.streaming;

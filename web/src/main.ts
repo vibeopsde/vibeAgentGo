@@ -70,8 +70,13 @@ function createAgent(): Agent {
 function setupAgent(a: Agent) {
   a.on('message', ({ role, content }) => {
     if (role === 'assistant' && content) {
-      chatPanel.finalizeStream();
-      chatPanel.appendAssistant(content);
+      // When streaming, the final message is already shown via stream_delta.
+      // Only append non-streaming messages; otherwise finalize the stream.
+      if (chatPanel.isStreaming()) {
+        chatPanel.finalizeStream();
+      } else {
+        chatPanel.appendAssistant(content);
+      }
     }
   });
   a.on('stream_delta', ({ delta }) => {
