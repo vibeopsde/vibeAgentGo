@@ -60,6 +60,9 @@ const read_pdf: Tool = {
     try {
       const pdfjs = await import('pdfjs-dist');
       const pdfjsLib = pdfjs.default || pdfjs;
+      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
+      }
       const base64 = content.startsWith('data:') ? content.split(',')[1] : content;
       const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
       const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
