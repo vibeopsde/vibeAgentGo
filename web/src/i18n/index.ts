@@ -85,6 +85,15 @@ const de: Translations = {
   'settings.resetConfirm': 'Das löscht alle Sessions, Dateien, Memory-Einträge, Skills und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.',
   'settings.resetCancel': 'Abbrechen',
   'settings.resetConfirmBtn': 'Ja, alles löschen',
+  'settings.backup': 'Backup & Wiederherstellen',
+  'settings.backupIncludeKeys': 'API-Keys im Backup einschließen',
+  'settings.export': 'Backup exportieren',
+  'settings.import': 'Backup importieren',
+  'settings.exportSuccess': 'Backup erfolgreich heruntergeladen',
+  'settings.exportError': 'Backup konnte nicht erstellt werden',
+  'settings.importConfirm': 'Dies überschreibt alle aktuellen Daten (Sessions, Memory, Skills, Dateien, Einstellungen). Fortfahren?',
+  'settings.importSuccess': 'Backup erfolgreich wiederhergestellt. Seite wird neu geladen.',
+  'settings.importError': 'Backup konnte nicht wiederhergestellt werden',
 
   // Onboarding
   'onboarding.welcome': 'Willkommen bei vibeAgentGo',
@@ -247,6 +256,15 @@ const en: Translations = {
   'settings.resetConfirm': 'This deletes all sessions, files, memories, skills and settings from this browser. Cannot be undone.',
   'settings.resetCancel': 'Cancel',
   'settings.resetConfirmBtn': 'Yes, delete everything',
+  'settings.backup': 'Backup & Restore',
+  'settings.backupIncludeKeys': 'Include API keys in backup',
+  'settings.export': 'Export backup',
+  'settings.import': 'Import backup',
+  'settings.exportSuccess': 'Backup downloaded successfully',
+  'settings.exportError': 'Could not create backup',
+  'settings.importConfirm': 'This will overwrite all current data (sessions, memory, skills, files, settings). Continue?',
+  'settings.importSuccess': 'Backup restored successfully. Reloading page.',
+  'settings.importError': 'Could not restore backup',
 
   // Onboarding
   'onboarding.welcome': 'Welcome to vibeAgentGo',

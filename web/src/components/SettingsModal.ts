@@ -3,9 +3,11 @@
 // ============================================================
 
 import { loadConfig, saveConfig, hasApiKey, resetLocalData } from '../core/memory.js';
+import { BackupManager } from '../core/backup.js';
 import { testConnection } from '../core/llm_client.js';
 import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 import { escapeHtml } from '../utils/escape.js';
+import { VERSION } from '../version.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 
 const PRESETS = {
@@ -107,6 +109,18 @@ export class SettingsModal {
         <label for="cfg-maxturns">${t('settings.maxTurns')}</label>
         <input id="cfg-maxturns" type="number" value="${config.maxTurns}" min="1" max="100" />
       </div>
+      <h3>🗄️ ${t('settings.backup')}</h3>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input id="cfg-backup-include-keys" type="checkbox" />
+          ${t('settings.backupIncludeKeys')}
+        </label>
+      </div>
+      <div class="form-actions">
+        <button id="cfg-export" class="btn btn-secondary">${t('settings.export')}</button>
+        <button id="cfg-import" class="btn btn-secondary">${t('settings.import')}</button>
+      </div>
+      <input id="cfg-import-file" type="file" accept=".zip" style="display:none;" />
       <h3>🔍 ${t('settings.search')}</h3>
       <div class="form-group">
         <label for="cfg-search-provider">${t('settings.provider')}</label>
@@ -150,6 +164,15 @@ export class SettingsModal {
     this.modal.querySelector('#cfg-cancel')!.addEventListener('click', () => this.close());
     this.modal.querySelector('#cfg-save')!.addEventListener('click', () => this.save());
     this.modal.querySelector('#cfg-test')!.addEventListener('click', () => this.testConnection());
+
+    const exportBtn = this.modal.querySelector('#cfg-export') as HTMLButtonElement;
+    const importBtn = this.modal.querySelector('#cfg-import') as HTMLButtonElement;
+    const importFile = this.modal.querySelector('#cfg-import-file') as HTMLInputElement;
+    const includeKeys = this.modal.querySelector('#cfg-backup-include-keys') as HTMLInputElement;
+
+    exportBtn?.addEventListener('click', () => this.exportBackup(includeKeys?.checked ?? false));
+    importBtn?.addEventListener('click', () => importFile?.click());
+    importFile?.addEventListener('change', (e) => this.importBackup(e));
 
     const providerSelect = this.modal.querySelector('#cfg-provider') as HTMLSelectElement;
     const modelInput = this.modal.querySelector('#cfg-model') as HTMLInputElement;
@@ -231,5 +254,51 @@ export class SettingsModal {
     setTheme(theme);
     saveConfig({ model, baseUrl, apiKey, maxTurns, language, searchProvider, searchApiKey });
     this.close();
+  }
+
+  private async exportBackup(includeApiKeys: boolean) {
+    const manager = new BackupManager(VERSION);
+    try {
+      const blob = await manager.exportZip(includeApiKeys);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vibeAgentGo-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      this.showBackupMessage(t('settings.exportSuccess'), 'success');
+    } catch (err) {
+      this.showBackupMessage(t('settings.exportError') + ': ' + (err as Error).message, 'error');
+    }
+  }
+
+  private async importBackup(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+    if (!confirm(t('settings.importConfirm'))) return;
+
+    const manager = new BackupManager(VERSION);
+    try {
+      await manager.importZip(file);
+      this.showBackupMessage(t('settings.importSuccess'), 'success');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      this.showBackupMessage(t('settings.importError') + ': ' + (err as Error).message, 'error');
+    }
+  }
+
+  private showBackupMessage(message: string, kind: 'success' | 'error') {
+    let resultEl = this.modal.querySelector('#cfg-backup-result') as HTMLElement | null;
+    if (!resultEl) {
+      resultEl = document.createElement('div');
+      resultEl.id = 'cfg-backup-result';
+      this.modal.insertBefore(resultEl, this.modal.querySelector('#cfg-reset')?.parentElement || null);
+    }
+    resultEl.textContent = message;
+    resultEl.className = `test-result test-${kind}`;
   }
 }
