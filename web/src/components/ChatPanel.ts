@@ -196,22 +196,11 @@ export class ChatPanel {
 
   appendAssistant(text: string) {
     if (text === undefined || text === null) return;
-    // Non-streaming path: append to last assistant msg or create new
-    const last = this.messagesEl.lastElementChild as HTMLElement;
-    if (last && last.classList.contains('msg-assistant') && !last.dataset.streaming) {
-      const contentEl = last.querySelector('.msg-content') as HTMLElement;
-      if (contentEl) {
-        const raw = (contentEl.dataset.raw || '') + text;
-        contentEl.dataset.raw = raw;
-        contentEl.innerHTML = renderMarkdown(raw);
-      }
-    } else {
-      const el = document.createElement('div');
-      el.className = 'msg msg-assistant';
-      el.innerHTML = `<div class="msg-content" data-raw="${escapeHtml(text)}">${renderMarkdown(text)}</div>`;
-      this.messagesEl.appendChild(el);
-    }
-    this.streamEl = null;
+    this.finalizeStream();
+    const el = document.createElement('div');
+    el.className = 'msg msg-assistant';
+    el.innerHTML = `<div class="msg-content" data-raw="${escapeHtml(text)}">${renderMarkdown(text)}</div>`;
+    this.messagesEl.appendChild(el);
     this.scrollToBottom();
   }
 
@@ -228,7 +217,7 @@ export class ChatPanel {
   }
 
   appendStreamDelta(delta: string) {
-    if (!delta || delta === 'undefined') return;
+    if (!delta) return;
     if (!this.streamEl) {
       this.startStream();
     }

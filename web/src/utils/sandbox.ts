@@ -70,32 +70,23 @@ export function runInSandbox(code: string, timeoutMs = 5000): Promise<SandboxRes
             const safeClearTimeout = (id) => { clearTimeout(id); timers.delete(id); };
             const safeClearInterval = (id) => { clearInterval(id); timers.delete(id); };
 
-            const sandbox = {
+            const log = capture('log');
+            const console = {
               log: capture('log'),
-              console: {
-                log: capture('log'),
-                error: capture('error'),
-                warn: capture('warn'),
-                info: capture('info'),
-                debug: capture('log'),
-                trace: capture('log'),
-              },
-              setTimeout: safeSetTimeout,
-              setInterval: safeSetInterval,
-              clearTimeout: safeClearTimeout,
-              clearInterval: safeClearInterval,
-              Math, JSON, Date, Array, Object, String, Number, Boolean, Map, Set, Promise,
-              parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent,
-              RegExp, Error, Symbol, Intl, ArrayBuffer, DataView, Uint8Array, Int8Array,
-              Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array,
-              URL, URLSearchParams, TextEncoder, TextDecoder, Blob, FileReader, WeakMap, WeakSet
+              error: capture('error'),
+              warn: capture('warn'),
+              info: capture('info'),
+              debug: capture('log'),
+              trace: capture('log'),
             };
 
-            let result;
+            let result = undefined;
             let error = null;
             try {
-              const fn = new Function(...Object.keys(sandbox), '"use strict";\n' + ${JSON.stringify(code)});
-              result = fn(...Object.values(sandbox));
+              result = (function(setTimeout, setInterval, clearTimeout, clearInterval, log, console, Math, JSON, Date, Array, Object, String, Number, Boolean, Map, Set, Promise, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent, RegExp, Error, Symbol, Intl, ArrayBuffer, DataView, Uint8Array, Int8Array, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, URL, URLSearchParams, TextEncoder, TextDecoder, Blob, FileReader, WeakMap, WeakSet) {
+                "use strict";
+                ${code}
+              })(safeSetTimeout, safeSetInterval, safeClearTimeout, safeClearInterval, log, console, Math, JSON, Date, Array, Object, String, Number, Boolean, Map, Set, Promise, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent, RegExp, Error, Symbol, Intl, ArrayBuffer, DataView, Uint8Array, Int8Array, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, URL, URLSearchParams, TextEncoder, TextDecoder, Blob, FileReader, WeakMap, WeakSet);
             } catch (e) {
               error = {
                 message: e.message || String(e),
@@ -104,7 +95,9 @@ export function runInSandbox(code: string, timeoutMs = 5000): Promise<SandboxRes
               };
             }
 
-            const resultStr = result === undefined ? 'undefined' : typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result);
+            const resultStr = result === undefined
+              ? 'undefined'
+              : typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result);
 
             timers.forEach(id => { try { clearTimeout(id); clearInterval(id); } catch {} });
 
@@ -153,10 +146,6 @@ export function runInSandbox(code: string, timeoutMs = 5000): Promise<SandboxRes
     };
 
     window.addEventListener('message', handler);
-
-    iframe.addEventListener('load', () => {
-      // If iframe fails to produce a result within timeout, the timer will catch it
-    });
 
     document.body.appendChild(iframe);
     iframe.src = blobUrl;

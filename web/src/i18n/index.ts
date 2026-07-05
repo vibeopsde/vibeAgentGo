@@ -353,7 +353,7 @@ const en: Translations = {
 };
 
 const translations: Record<Language, Translations> = { de, en };
-let currentLanguage: Language = 'de';
+let currentLanguage: Language = normalizeLanguage(navigator.language);
 
 export function normalizeLanguage(lang: unknown): Language {
   if (lang === 'en') return 'en';

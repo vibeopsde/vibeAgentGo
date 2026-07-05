@@ -113,11 +113,15 @@ export class BackupManager {
     const files: { path: string; content: string }[] = [];
     if (filesFolder) {
       filesFolder.forEach((relativePath, file) => {
-        if (!file.dir) files.push({ path: relativePath, content: '' });
+        // Skip directories and macOS resource forks
+        if (file.dir || relativePath.startsWith('__MACOSX') || relativePath.includes('/.DS_Store')) return;
+        files.push({ path: relativePath, content: '' });
       });
     }
     for (const f of files) {
-      f.content = await zip.file(`files/${f.path}`)!.async('text');
+      const zipFile = zip.file(`files/${f.path}`);
+      if (!zipFile) continue;
+      f.content = await zipFile.async('text');
     }
 
     // Restore localStorage. API keys are kept only when they are not redacted in the backup.

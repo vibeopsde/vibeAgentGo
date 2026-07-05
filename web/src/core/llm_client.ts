@@ -40,7 +40,8 @@ export async function llmChatStream(opts: {
     model: opts.model,
     messages: opts.messages.map(m => ({
       ...m,
-      content: typeof m.content === 'string' && !m.content ? null : m.content,
+      // Some providers accept null, but OpenAI-compatible servers generally prefer empty string
+      content: typeof m.content === 'string' && !m.content ? '' : m.content,
     })),
     stream: true,
   };
@@ -101,9 +102,11 @@ export async function llmChatStream(opts: {
 
           const delta = choice.delta;
 
-          if (delta?.content) {
-            fullContent += delta.content;
-            opts.onDelta?.(delta.content);
+          if (typeof delta?.content === 'string') {
+            // Guard against literal 'undefined' or malformed deltas from the provider.
+            const text = delta.content === 'undefined' ? '' : delta.content;
+            fullContent += text;
+            if (text) opts.onDelta?.(text);
           }
 
           if (delta?.tool_calls) {

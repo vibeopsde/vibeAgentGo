@@ -32,12 +32,14 @@ Stored in `localStorage` (never sent to any server):
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| Model | `gpt-4o` | OpenAI-compatible model id |
-| Base URL | `https://api.openai.com/v1` | OpenAI-compatible endpoint (must allow CORS) |
+| Model | (empty) | OpenAI-compatible model id (auto-filled by provider preset) |
+| Base URL | (empty) | OpenAI-compatible endpoint (must allow CORS) |
 | API Key | — | Your endpoint key |
 | Max Turns | 30 | Loop safety limit |
+| Language | system default | `de` or `en`; detected from `navigator.language` |
+| Search Provider | `none` | Optional Tavily web search |
 
-On first launch the onboarding wizard lets you pick a preset or enter your own endpoint. Presets include OpenAI, OpenRouter, and Ollama (local).
+On first launch the onboarding wizard lets you pick a preset or enter your own endpoint. Presets include OpenRouter, OpenCode (go/zen), and Ollama Cloud.
 
 ## Architecture
 

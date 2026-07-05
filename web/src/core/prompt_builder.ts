@@ -40,8 +40,6 @@ const LANGUAGE_DIRECTIVE: Record<string, string> = {
   en: 'Respond in English. If the user explicitly uses another language, you may respond in that language.',
 };
 
-import { filterSkillsByTrigger } from './skill_parser.js';
-
 function buildMemoryBlock(memories: MemoryEntry[]): string {
   if (memories.length === 0) return '';
   const lines = memories.map(m => `§ ${m.content}`);

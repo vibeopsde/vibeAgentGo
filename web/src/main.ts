@@ -278,7 +278,7 @@ function newChat() {
 }
 
 function openMobileMenu() {
-  // Simple bottom sheet with Settings and Memory for mobile
+  // Simple bottom sheet with Settings, Memory, Skills, Sessions for mobile
   const overlay = document.createElement('div');
   overlay.className = 'mobile-menu-overlay';
   overlay.innerHTML = `
@@ -290,6 +290,7 @@ function openMobileMenu() {
       <button class="mobile-menu-item" data-action="theme">🌓 ${t('header.theme')}</button>
       <button class="mobile-menu-item" data-action="settings">⚙️ ${t('header.settings')}</button>
       <button class="mobile-menu-item" data-action="memory">🧠 ${t('header.memory')}</button>
+      <button class="mobile-menu-item" data-action="skills">🛠️ ${t('header.skills')}</button>
       <button class="mobile-menu-item" data-action="sessions">💬 ${t('header.sessions')}</button>
     </div>
   `;
@@ -304,6 +305,7 @@ function openMobileMenu() {
       if (action === 'theme') toggleTheme();
       if (action === 'settings') settingsModal.open();
       if (action === 'memory') memoryPanel.open();
+      if (action === 'skills') skillsPanel.open();
       if (action === 'sessions') sessionPanel.open();
     });
   });

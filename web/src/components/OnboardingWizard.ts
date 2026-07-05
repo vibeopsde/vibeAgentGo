@@ -8,38 +8,11 @@ import { BackupManager } from '../core/backup.js';
 import { VERSION } from '../version.js';
 import { escapeHtml } from '../utils/escape.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
+import { PROVIDER_PRESETS, findPresetByUrlAndModel, findPresetByKey, type ProviderPreset } from '../core/presets.js';
 
 export interface OnboardingCompleteCallback {
   (): void;
 }
-
-interface Preset {
-  name: string;
-  baseUrl: string;
-  model: string;
-  apiKeyPlaceholder: string;
-}
-
-const PRESETS: Preset[] = [
-  {
-    name: 'OpenRouter',
-    baseUrl: 'https://openrouter.ai/api/v1',
-    model: '',
-    apiKeyPlaceholder: 'sk-or-...',
-  },
-  {
-    name: 'OpenCode (go/zen)',
-    baseUrl: 'https://opencode.go/zen',
-    model: '',
-    apiKeyPlaceholder: 'oc-...',
-  },
-  {
-    name: 'Ollama Cloud',
-    baseUrl: 'https://ollama.cloud/v1',
-    model: 'llama3.2',
-    apiKeyPlaceholder: 'ollama cloud key',
-  },
-];
 
 export class OnboardingWizard {
   element: HTMLElement;
@@ -180,7 +153,7 @@ export class OnboardingWizard {
   }
 
   private renderLLMConfig() {
-    const currentPreset = this.findPreset(this.config.baseUrl, this.config.model);
+    const currentPreset = findPresetByUrlAndModel(this.config.baseUrl, this.config.model);
 
     this.element.innerHTML = `
       <div class="onboarding-card">
@@ -192,7 +165,7 @@ export class OnboardingWizard {
           <label for="ob-preset">${t('settings.provider')}</label>
           <select id="ob-preset">
             <option value="" ${!currentPreset ? 'selected' : ''}>${t('onboarding.manual')}</option>
-            ${PRESETS.map(p => `<option value="${escapeHtml(p.name)}" ${currentPreset?.name === p.name ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
+            ${PROVIDER_PRESETS.map(p => `<option value="${escapeHtml(p.key)}" ${currentPreset?.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
           </select>
         </div>
 
@@ -252,21 +225,35 @@ export class OnboardingWizard {
     updateVerifyButton();
 
     presetSelect.addEventListener('change', () => {
-      const preset = PRESETS.find(p => p.name === presetSelect.value);
+      const preset = findPresetByKey(presetSelect.value);
       if (preset) {
         baseUrlInput.value = preset.baseUrl;
         apiKeyInput.value = '';
         apiKeyInput.placeholder = preset.apiKeyPlaceholder;
         if (preset.model) {
           // When no model field is present yet, auto-fill from preset to streamline setup
-          const modelSelect = this.element.querySelector('#ob-model') as HTMLSelectElement;
-          const modelManual = this.element.querySelector('#ob-model-manual') as HTMLInputElement;
-          if (modelSelect && !modelSelect.value && modelSelect.disabled) {
+          if (!modelSelect.value && modelSelect.disabled) {
             modelManual.style.display = 'block';
             modelManual.value = preset.model;
             modelSelect.style.display = 'none';
           }
+        } else {
+          // Generic preset: reset to manual input, since verification is still required
+          modelManual.style.display = 'block';
+          modelManual.value = '';
+          modelSelect.style.display = 'none';
+          modelSelect.disabled = true;
+          modelSelect.innerHTML = `<option value="">${t('onboarding.verifyFirst')}</option>`;
+          nextBtn.disabled = true;
         }
+      } else {
+        // Manual: reset model fields to default state
+        modelManual.style.display = 'none';
+        modelManual.value = '';
+        modelSelect.style.display = 'block';
+        modelSelect.disabled = true;
+        modelSelect.innerHTML = `<option value="">${t('onboarding.verifyFirst')}</option>`;
+        nextBtn.disabled = true;
       }
       updateVerifyButton();
     });
@@ -331,10 +318,6 @@ export class OnboardingWizard {
     });
 
     this.element.querySelector('#ob-complete')!.addEventListener('click', () => this.complete());
-  }
-
-  private findPreset(baseUrl: string, model: string): Preset | undefined {
-    return PRESETS.find(p => p.baseUrl === baseUrl && p.model === model);
   }
 
   private async verifyLLM(

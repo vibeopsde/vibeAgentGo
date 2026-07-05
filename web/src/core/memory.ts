@@ -47,6 +47,52 @@ function txAll<T>(storeName: string, mode: IDBTransactionMode, fn: (store: IDBOb
   return tx(storeName, mode, fn);
 }
 
+async function cursorAll<T>(storeName: string, direction: IDBCursorDirection = 'prev'): Promise<T[]> {
+  return _cursorAll<T>(storeName, direction);
+}
+
+async function _cursorAll<T>(storeName: string, direction: IDBCursorDirection = 'prev'): Promise<T[]> {
+  const db = await openDB();
+  return new Promise<T[]>((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const request = store.openCursor(null, direction);
+    const results: T[] = [];
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        results.push(cursor.value as T);
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function cursorByIndex<T>(storeName: string, indexName: string, value: string, limit: number, direction: IDBCursorDirection = 'prev'): Promise<T[]> {
+  const db = await openDB();
+  return new Promise<T[]>((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const index = store.index(indexName);
+    const range = IDBKeyRange.only(value);
+    const request = index.openCursor(range, direction);
+    const results: T[] = [];
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor && results.length < limit) {
+        results.push(cursor.value as T);
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // --- Memory ---
 
 export class MemoryStore {
@@ -61,13 +107,21 @@ export class MemoryStore {
   }
 
   async getMemories(limit = 100): Promise<MemoryEntry[]> {
-    const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
-    return all.filter(m => m.category === 'memory').sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
+    try {
+      return await cursorByIndex<MemoryEntry>('memory', 'category', 'memory', limit, 'prev');
+    } catch {
+      const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
+      return all.filter(m => m.category === 'memory').sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
+    }
   }
 
   async getUserProfile(): Promise<MemoryEntry[]> {
-    const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
-    return all.filter(m => m.category === 'user').sort((a, b) => b.created_at.localeCompare(a.created_at));
+    try {
+      return await cursorByIndex<MemoryEntry>('memory', 'category', 'user', 1000, 'prev');
+    } catch {
+      const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
+      return all.filter(m => m.category === 'user').sort((a, b) => b.created_at.localeCompare(a.created_at));
+    }
   }
 
   async getAllMemory(limit = 100): Promise<{ memories: MemoryEntry[]; profile: MemoryEntry[] }> {
@@ -76,8 +130,12 @@ export class MemoryStore {
   }
 
   async searchAllMemory(limit = 1000): Promise<MemoryEntry[]> {
-    const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
-    return all.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
+    try {
+      return (await cursorAll<MemoryEntry>('memory', 'prev')).slice(0, limit);
+    } catch {
+      const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
+      return all.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
+    }
   }
 
   async deleteMemory(id: number): Promise<boolean> {

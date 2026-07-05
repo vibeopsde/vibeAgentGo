@@ -5,25 +5,11 @@
 import { loadConfig, saveConfig, hasApiKey, resetLocalData } from '../core/memory.js';
 import { BackupManager } from '../core/backup.js';
 import { testConnection } from '../core/llm_client.js';
+import { PROVIDER_PRESETS, findPresetByUrlAndModel, findPresetByKey } from '../core/presets.js';
 import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 import { escapeHtml } from '../utils/escape.js';
 import { VERSION } from '../version.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
-
-const PRESETS = {
-  'openrouter': {
-    model: '',
-    baseUrl: 'https://openrouter.ai/api/v1',
-  },
-  'opencode': {
-    model: '',
-    baseUrl: 'https://opencode.go/zen',
-  },
-  'ollama-cloud': {
-    model: 'llama3.2',
-    baseUrl: 'https://ollama.cloud/v1',
-  },
-};
 
 export class SettingsModal {
   element: HTMLElement;
@@ -64,7 +50,7 @@ export class SettingsModal {
     const config = loadConfig();
 
     const theme = getTheme();
-    const initialPreset = this.findPreset(config.baseUrl, config.model);
+    const initialPreset = findPresetByUrlAndModel(config.baseUrl, config.model);
     const languageOptions = getAvailableLanguages()
       .map(l => `<option value="${l.value}" ${config.language === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`)
       .join('');
@@ -87,9 +73,7 @@ export class SettingsModal {
         <label for="cfg-provider">${t('settings.provider')}</label>
         <select id="cfg-provider">
           <option value="custom" ${!initialPreset ? 'selected' : ''}>${t('settings.custom')}</option>
-          <option value="openrouter" ${initialPreset === 'openrouter' ? 'selected' : ''}>${t('settings.openrouter')}</option>
-          <option value="opencode" ${initialPreset === 'opencode' ? 'selected' : ''}>${t('settings.opencode')}</option>
-          <option value="ollama-cloud" ${initialPreset === 'ollama-cloud' ? 'selected' : ''}>${t('settings.ollamaCloud')}</option>
+          ${PROVIDER_PRESETS.map(p => `<option value="${p.key}" ${initialPreset?.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
         </select>
         <p class="field-hint">${t('settings.providerHint')}</p>
       </div>
@@ -179,7 +163,7 @@ export class SettingsModal {
     const baseUrlInput = this.modal.querySelector('#cfg-baseurl') as HTMLInputElement;
 
     providerSelect.addEventListener('change', () => {
-      const preset = PRESETS[providerSelect.value as keyof typeof PRESETS];
+      const preset = findPresetByKey(providerSelect.value);
       if (preset) {
         modelInput.value = preset.model;
         baseUrlInput.value = preset.baseUrl;
@@ -206,18 +190,6 @@ export class SettingsModal {
       this.close();
       window.location.reload();
     });
-  }
-
-  private findPreset(baseUrl: string, model: string): string | null {
-    for (const [key, preset] of Object.entries(PRESETS)) {
-      if (preset.baseUrl !== baseUrl) continue;
-      if (preset.model === '') {
-        // Generic endpoint: accept any model that matches the base URL
-        return key;
-      }
-      if (preset.model === model) return key;
-    }
-    return null;
   }
 
   private testConnection() {
