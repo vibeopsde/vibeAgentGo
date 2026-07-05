@@ -3,22 +3,24 @@
 // ============================================================
 
 import type { Message, Tool, ToolContext, LLMResponse, AgentConfig, ChatAttachment } from '../types/index.js';
+import { isTextContentPart } from '../types/index.js';
 import { llmChatStream } from './llm_client.js';
 import { buildSystemPrompt, toolsToSchemas, loadSkills, type PromptContext } from './prompt_builder.js';
 import { MemoryStore } from './memory.js';
 import { randomUUID } from './uuid.js';
 import { filterSkillsByTrigger } from './skill_parser.js';
+import { validateArgs } from '../utils/schema_validate.js';
 
 export interface AgentEventMap {
-  'message': { role: string; content: string };
-  'stream_delta': { delta: string };
-  'tool_call': { name: string; args: any };
-  'tool_result': { name: string; result: string };
-  'render_view': { title: string; html: string };
-  'error': { message: string };
-  'turn': { turn: number; total: number };
-  'done': { sessionId: string };
-  'abort': {};
+  message: { role: string; content: string };
+  stream_delta: { delta: string };
+  tool_call: { name: string; args: Record<string, unknown> };
+  tool_result: { name: string; result: string };
+  render_view: { title: string; html: string };
+  error: { message: string };
+  turn: { turn: number; total: number };
+  done: { sessionId: string };
+  abort: Record<string, never>;
 }
 
 type EventHandler<K extends keyof AgentEventMap> = (data: AgentEventMap[K]) => void;
@@ -28,30 +30,30 @@ export class Agent {
   private memory: MemoryStore;
   private extraEnv: Record<string, any>;
   private sessionId: string | null = null;
-  private listeners: { [K in keyof AgentEventMap]?: EventHandler<K>[] } = {};
+  private listeners: Partial<Record<keyof AgentEventMap, ((data: unknown) => void)[]>> = {};
   private abortController: AbortController | null = null;
 
-  constructor(tools: Tool[], memory: MemoryStore, extraEnv: Record<string, any> = {}) {
+  constructor(tools: Tool[], memory: MemoryStore, extraEnv: Record<string, unknown> = {}) {
     this.tools = tools;
     this.memory = memory;
     this.extraEnv = extraEnv;
   }
 
   on<K extends keyof AgentEventMap>(event: K, handler: EventHandler<K>): void {
-    if (!this.listeners[event]) this.listeners[event] = [] as any;
-    (this.listeners[event] as any[]).push(handler);
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event]!.push(handler as (data: unknown) => void);
   }
 
   off<K extends keyof AgentEventMap>(event: K, handler: EventHandler<K>): void {
     const handlers = this.listeners[event];
     if (handlers) {
-      this.listeners[event] = handlers.filter(h => h !== handler) as any;
+      this.listeners[event] = handlers.filter((h) => h !== (handler as (data: unknown) => void));
     }
   }
 
   private emit<K extends keyof AgentEventMap>(event: K, data: AgentEventMap[K]): void {
     const handlers = this.listeners[event];
-    if (handlers) handlers.forEach(h => h(data));
+    if (handlers) handlers.forEach((h) => (h as EventHandler<K>)(data));
   }
 
   abort() {
@@ -61,10 +63,14 @@ export class Agent {
     }
   }
 
+  getLastSessionId(): string | null {
+    return this.sessionId;
+  }
+
   private buildToolContext(): ToolContext {
     return {
       workspace: 'indexeddb://workspace',
-      emit: (event, data) => this.emit(event as any, data as any),
+      emit: (event, data) => this.emit(event as keyof AgentEventMap, data as AgentEventMap[keyof AgentEventMap]),
       env: {
         memoryStore: this.memory,
         ...this.extraEnv,
@@ -109,19 +115,20 @@ export class Agent {
     }
     if (attachments.length > 0) {
       const fileParts = attachments
-        .filter(a => a.type === 'text' || a.type === 'pdf')
-        .map(a => `File attached: ${a.name} (saved to workspace). Use read_file or read_pdf to read it.`);
+        .filter((a) => a.type === 'text' || a.type === 'pdf')
+        .map((a) => `File attached: ${a.name} (saved to workspace). Use read_file or read_pdf to read it.`);
       if (fileParts.length) {
         userContentParts.push({ type: 'text', text: fileParts.join('\n') });
       }
       const imageParts = attachments
-        .filter(a => a.type === 'image')
-        .map(a => ({ type: 'image_url' as const, image_url: { url: a.content } }));
+        .filter((a) => a.type === 'image')
+        .map((a) => ({ type: 'image_url' as const, image_url: { url: a.content } }));
       userContentParts.push(...imageParts);
     }
-    const finalUserContent = userContentParts.length === 1 && userContentParts[0].type === 'text'
-      ? userContentParts[0].text
-      : userContentParts;
+    const finalUserContent =
+      userContentParts.length === 1 && userContentParts[0].type === 'text'
+        ? userContentParts[0].text
+        : userContentParts;
 
     // Build system prompt
     const promptCtx: PromptContext = {
@@ -159,12 +166,12 @@ export class Agent {
           onDelta: (delta) => this.emit('stream_delta', { delta }),
           signal: this.abortController.signal,
         });
-      } catch (e: any) {
-        if (e.name === 'AbortError') {
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') {
           this.emit('error', { message: 'Request aborted' });
           return 'Aborted';
         }
-        this.emit('error', { message: e.message });
+        this.emit('error', { message: e instanceof Error ? e.message : String(e) });
         throw e;
       }
 
@@ -179,16 +186,20 @@ export class Agent {
 
         for (const tc of response.tool_calls) {
           const toolName = tc.function.name;
-          let args: any;
-          try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
+          let args: Record<string, unknown>;
+          try {
+            args = JSON.parse(tc.function.arguments) as Record<string, unknown>;
+          } catch {
+            args = {};
+          }
 
           this.emit('tool_call', { name: toolName, args });
 
           let result: string;
           try {
             result = await this.dispatchToolByName(toolName, args, ctx);
-          } catch (e: any) {
-            result = `Tool error: ${e.message}`;
+          } catch (e) {
+            result = `Tool error: ${e instanceof Error ? e.message : String(e)}`;
           }
 
           this.emit('tool_result', { name: toolName, result });
@@ -213,8 +224,14 @@ export class Agent {
       this.sessionId = id;
       const existing = await this.memory.getSession(id);
       const existingTitle = existing?.title;
-      const firstUser = history.find(m => m.role === 'user')?.content;
-      const firstUserText = typeof firstUser === 'string' ? firstUser : firstUser?.filter(c => c.type === 'text').map(c => (c as any).text).join(' ');
+      const firstUser = history.find((m) => m.role === 'user')?.content;
+      const firstUserText =
+        typeof firstUser === 'string'
+          ? firstUser
+          : firstUser
+              ?.filter((c) => c.type === 'text')
+              .map((c) => (isTextContentPart(c) ? c.text : ''))
+              .join(' ');
       await this.memory.saveSession({
         id,
         title: existingTitle || firstUserText?.slice(0, 50) || 'Untitled',
@@ -236,14 +253,14 @@ export class Agent {
     return msg;
   }
 
-  private async dispatchToolByName(name: string, args: any, ctx: ToolContext): Promise<string> {
-    const tool = this.tools.find(t => t.name === name);
+  private async dispatchToolByName(name: string, args: unknown, ctx: ToolContext): Promise<string> {
+    const tool = this.tools.find((t) => t.name === name);
     if (!tool) return `Unknown tool: ${name}`;
-    return tool.handler(args, ctx);
-  }
-
-  getLastSessionId(): string | null {
-    return this.sessionId;
+    const errors = validateArgs(tool.parameters, args);
+    if (errors.length > 0) {
+      return `Invalid arguments for tool "${name}":\n${errors.map((e) => `- ${e.path}: ${e.message}`).join('\n')}`;
+    }
+    return tool.handler(args as Record<string, unknown>, ctx);
   }
 
   private async extractMemoryFromConversation(history: Message[], config: AgentConfig): Promise<void> {
@@ -252,12 +269,15 @@ export class Agent {
     const existing = await this.memory.getAllMemory(200);
     const existingEntries = [...existing.memories, ...existing.profile];
 
-    const memoryContext = existingEntries.length > 0
-      ? `Existing memory (do NOT duplicate these):\n${existingEntries.map(m => `- ${m.content}`).join('\n')}\n\n`
-      : '';
+    const memoryContext =
+      existingEntries.length > 0
+        ? `Existing memory (do NOT duplicate these):\n${existingEntries.map((m) => `- ${m.content}`).join('\n')}\n\n`
+        : '';
 
     const extractionMessages: Message[] = [
-      { role: 'system', content: `You are a memory extraction assistant. Your only job is to identify NEW durable facts about the user, their preferences, their environment, or their ongoing work from the conversation below.
+      {
+        role: 'system',
+        content: `You are a memory extraction assistant. Your only job is to identify NEW durable facts about the user, their preferences, their environment, or their ongoing work from the conversation below.
 
 ${memoryContext}Output JSON only. No markdown, no explanation, no code fences. Use this exact shape:
 
@@ -270,11 +290,25 @@ Rules:
 - Do NOT save temporary task state, single-session context, or completed work logs.
 - Do NOT save generic filler like greetings or the user asking for help.
 - If there are no new durable facts, return {"memories": []}.
-- Each memory entry should be 1 concise sentence, not longer than 200 characters.` },
-      { role: 'user', content: 'Conversation:\n\n' + history.map(m => {
-        const text = typeof m.content === 'string' ? m.content : m.content.filter(c => c.type === 'text').map(c => (c as any).text).join(' ');
-        return `${m.role}: ${text}`;
-      }).join('\n\n') },
+- Each memory entry should be 1 concise sentence, not longer than 200 characters.`,
+      },
+      {
+        role: 'user',
+        content:
+          'Conversation:\n\n' +
+          history
+            .map((m) => {
+              const text =
+                typeof m.content === 'string'
+                  ? m.content
+                  : m.content
+                      .filter((c) => c.type === 'text')
+                      .map((c) => (isTextContentPart(c) ? c.text : ''))
+                      .join(' ');
+              return `${m.role}: ${text}`;
+            })
+            .join('\n\n'),
+      },
     ];
 
     try {
@@ -304,12 +338,18 @@ Rules:
         const content = m.content.trim();
         if (content.length < 8 || content.length > 200) continue;
 
-        const lower = content.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        const lower = content
+          .toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .trim();
         if (!lower) continue;
 
         // Reject exact or near-exact duplicates only; avoid substring false positives
-        const isDuplicate = existingEntries.some(e => {
-          const existingLower = e.content.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        const isDuplicate = existingEntries.some((e) => {
+          const existingLower = e.content
+            .toLowerCase()
+            .replace(/[^\w\s]/g, '')
+            .trim();
           if (!existingLower) return false;
           // Exact match after normalization
           if (existingLower === lower) return true;

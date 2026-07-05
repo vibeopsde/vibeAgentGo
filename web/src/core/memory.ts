@@ -33,17 +33,28 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-export function tx<T>(storeName: string, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest): Promise<T> {
-  return openDB().then(db => new Promise<T>((resolve, reject) => {
-    const transaction = db.transaction(storeName, mode);
-    const store = transaction.objectStore(storeName);
-    const req = fn(store);
-    req.onsuccess = () => resolve(req.result as T);
-    req.onerror = () => reject(req.error);
-  }));
+export function tx<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => IDBRequest
+): Promise<T> {
+  return openDB().then(
+    (db) =>
+      new Promise<T>((resolve, reject) => {
+        const transaction = db.transaction(storeName, mode);
+        const store = transaction.objectStore(storeName);
+        const req = fn(store);
+        req.onsuccess = () => resolve(req.result as T);
+        req.onerror = () => reject(req.error);
+      })
+  );
 }
 
-function txAll<T>(storeName: string, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T[]>): Promise<T[]> {
+function txAll<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => IDBRequest<T[]>
+): Promise<T[]> {
   return tx(storeName, mode, fn);
 }
 
@@ -71,7 +82,13 @@ async function _cursorAll<T>(storeName: string, direction: IDBCursorDirection = 
   });
 }
 
-async function cursorByIndex<T>(storeName: string, indexName: string, value: string, limit: number, direction: IDBCursorDirection = 'prev'): Promise<T[]> {
+async function cursorByIndex<T>(
+  storeName: string,
+  indexName: string,
+  value: string,
+  limit: number,
+  direction: IDBCursorDirection = 'prev'
+): Promise<T[]> {
   const db = await openDB();
   return new Promise<T[]>((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readonly');
@@ -96,13 +113,14 @@ async function cursorByIndex<T>(storeName: string, indexName: string, value: str
 // --- Memory ---
 
 export class MemoryStore {
-  async saveMemory(content: string, category: 'memory' | 'user' = 'memory'): Promise<number> {
+  async saveMemory(content: string, category: string = 'memory'): Promise<number> {
+    const safeCategory = category === 'user' ? 'user' : 'memory';
     const entry = {
       content,
-      category,
+      category: safeCategory,
       created_at: new Date().toISOString(),
     };
-    const id = await tx<IDBValidKey>('memory', 'readwrite', store => store.add(entry));
+    const id = await tx<IDBValidKey>('memory', 'readwrite', (store) => store.add(entry));
     return Number(id);
   }
 
@@ -110,8 +128,11 @@ export class MemoryStore {
     try {
       return await cursorByIndex<MemoryEntry>('memory', 'category', 'memory', limit, 'prev');
     } catch {
-      const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
-      return all.filter(m => m.category === 'memory').sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
+      const all = await txAll<MemoryEntry>('memory', 'readonly', (store) => store.getAll());
+      return all
+        .filter((m) => m.category === 'memory')
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+        .slice(0, limit);
     }
   }
 
@@ -119,8 +140,8 @@ export class MemoryStore {
     try {
       return await cursorByIndex<MemoryEntry>('memory', 'category', 'user', 1000, 'prev');
     } catch {
-      const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
-      return all.filter(m => m.category === 'user').sort((a, b) => b.created_at.localeCompare(a.created_at));
+      const all = await txAll<MemoryEntry>('memory', 'readonly', (store) => store.getAll());
+      return all.filter((m) => m.category === 'user').sort((a, b) => b.created_at.localeCompare(a.created_at));
     }
   }
 
@@ -133,16 +154,18 @@ export class MemoryStore {
     try {
       return (await cursorAll<MemoryEntry>('memory', 'prev')).slice(0, limit);
     } catch {
-      const all = await txAll<MemoryEntry>('memory', 'readonly', store => store.getAll());
+      const all = await txAll<MemoryEntry>('memory', 'readonly', (store) => store.getAll());
       return all.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
     }
   }
 
   async deleteMemory(id: number): Promise<boolean> {
     try {
-      await tx('memory', 'readwrite', store => store.delete(id));
+      await tx('memory', 'readwrite', (store) => store.delete(id));
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   // --- Sessions ---
@@ -154,53 +177,61 @@ export class MemoryStore {
       created_at: existing?.created_at || session.created_at,
       updated_at: new Date().toISOString(),
     };
-    await tx('sessions', 'readwrite', store => store.put(toSave));
+    await tx('sessions', 'readwrite', (store) => store.put(toSave));
   }
 
   async getSession(id: string): Promise<Session | null> {
     try {
-      const result = await tx<Session>('sessions', 'readonly', store => store.get(id));
+      const result = await tx<Session>('sessions', 'readonly', (store) => store.get(id));
       return result || null;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   async listSessions(): Promise<{ id: string; title: string; created_at: string; updated_at: string }[]> {
-    const all = await txAll<Session>('sessions', 'readonly', store => store.getAll());
+    const all = await txAll<Session>('sessions', 'readonly', (store) => store.getAll());
     return all
-      .map(s => ({ id: s.id, title: s.title, created_at: s.created_at, updated_at: s.updated_at }))
+      .map((s) => ({ id: s.id, title: s.title, created_at: s.created_at, updated_at: s.updated_at }))
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
   }
 
   async deleteSession(id: string): Promise<boolean> {
     try {
-      await tx('sessions', 'readwrite', store => store.delete(id));
+      await tx('sessions', 'readwrite', (store) => store.delete(id));
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   // --- Files (workspace in IndexedDB) ---
 
   async writeFile(path: string, content: string): Promise<void> {
-    await tx('files', 'readwrite', store => store.put({ path, content, updated_at: new Date().toISOString() }));
+    await tx('files', 'readwrite', (store) => store.put({ path, content, updated_at: new Date().toISOString() }));
   }
 
   async readFile(path: string): Promise<string | null> {
     try {
-      const result = await tx<{ path: string; content: string }>('files', 'readonly', store => store.get(path));
+      const result = await tx<{ path: string; content: string }>('files', 'readonly', (store) => store.get(path));
       return result?.content || null;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   async listFiles(): Promise<{ path: string; content: string }[]> {
-    const all = await txAll<{ path: string; content: string }>('files', 'readonly', store => store.getAll());
+    const all = await txAll<{ path: string; content: string }>('files', 'readonly', (store) => store.getAll());
     return all.sort((a, b) => a.path.localeCompare(b.path));
   }
 
   async deleteFile(path: string): Promise<boolean> {
     try {
-      await tx('files', 'readwrite', store => store.delete(path));
+      await tx('files', 'readwrite', (store) => store.delete(path));
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   async searchFiles(pattern: string, target: 'files' | 'content' = 'files'): Promise<string[]> {
@@ -246,26 +277,30 @@ export class SkillStore {
       created_at: existing?.created_at || now,
       updated_at: now,
     };
-    await tx('skills', 'readwrite', store => store.put(record));
+    await tx('skills', 'readwrite', (store) => store.put(record));
   }
 
   async getSkill(id: string): Promise<SkillRecord | null> {
     try {
-      return await tx<SkillRecord>('skills', 'readonly', store => store.get(id));
-    } catch { return null; }
+      return await tx<SkillRecord>('skills', 'readonly', (store) => store.get(id));
+    } catch {
+      return null;
+    }
   }
 
   async listSkills(): Promise<SkillRecord[]> {
-    return txAll<SkillRecord>('skills', 'readonly', store => store.getAll()).then(all =>
+    return txAll<SkillRecord>('skills', 'readonly', (store) => store.getAll()).then((all) =>
       all.sort((a, b) => b.updated_at.localeCompare(a.updated_at))
     );
   }
 
   async deleteSkill(id: string): Promise<boolean> {
     try {
-      await tx('skills', 'readwrite', store => store.delete(id));
+      await tx('skills', 'readwrite', (store) => store.delete(id));
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -283,7 +318,11 @@ export function loadConfig(): ClientConfig {
   const stored = localStorage.getItem(CONFIG_KEY);
   let parsed: Partial<ClientConfig> | undefined;
   if (stored) {
-    try { parsed = JSON.parse(stored); } catch { }
+    try {
+      parsed = JSON.parse(stored);
+    } catch {
+      // Ignore malformed stored config
+    }
   }
   const defaultLanguage: 'de' | 'en' = navigator.language?.startsWith('de') ? 'de' : 'en';
   const DEFAULT_CONFIG: ClientConfig = {
@@ -296,8 +335,8 @@ export function loadConfig(): ClientConfig {
     searchApiKey: '',
   };
   // Strip legacy keys from old stored configs (e.g. maxTokens was removed in V2607.1.9)
-  const stripped: Partial<ClientConfig> = parsed || {};
-  delete (stripped as any).maxTokens;
+  const stripped = (parsed || {}) as Partial<ClientConfig> & { maxTokens?: number };
+  delete stripped.maxTokens;
 
   const config: ClientConfig = { ...DEFAULT_CONFIG, ...stripped };
   // Normalize language to a valid value for old/invalid configs
@@ -330,7 +369,9 @@ export function hasCompletedOnboarding(): boolean {
   try {
     const parsed = JSON.parse(stored) as OnboardingState;
     return parsed.completed === true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 export function completeOnboarding(): void {

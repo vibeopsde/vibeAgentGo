@@ -44,17 +44,24 @@ export function parseSkill(text: string): ParsedSkill {
       while (i < lines.length) {
         const line = lines[i];
         const colonIdx = line.indexOf(':');
-        if (colonIdx === -1) { i++; continue; }
+        if (colonIdx === -1) {
+          i++;
+          continue;
+        }
 
         const key = line.slice(0, colonIdx).trim().toLowerCase();
-        let rawValue = line.slice(colonIdx + 1).trim();
+        const rawValue = line.slice(colonIdx + 1).trim();
 
         if (key === 'name') name = cleanValue(rawValue) || name;
         else if (key === 'description') description = cleanValue(rawValue);
         else if (key === 'triggers' || key === 'trigger') {
           const blockLines: string[] = [rawValue];
           i++;
-          while (i < lines.length && !lines[i].includes(':') && (lines[i].trim().startsWith('-') || lines[i].trim() === '')) {
+          while (
+            i < lines.length &&
+            !lines[i].includes(':') &&
+            (lines[i].trim().startsWith('-') || lines[i].trim() === '')
+          ) {
             blockLines.push(lines[i].trim());
             i++;
           }
@@ -82,22 +89,25 @@ function parseTriggerList(value: string): string[] {
     return value
       .slice(1, -1)
       .split(',')
-      .map(s => s.trim())
+      .map((s) => s.trim())
       .filter(Boolean)
-      .map(s => s.replace(/^["']|["']$/g, ''));
+      .map((s) => s.replace(/^["']|["']$/g, ''));
   }
 
   // Multiline dash list: - trigger
   if (value.includes('- ')) {
     return value
       .split('\n')
-      .map(line => line.replace(/^-\s*/, '').trim())
+      .map((line) => line.replace(/^-\s*/, '').trim())
       .filter(Boolean)
-      .map(s => s.replace(/^["']|["']$/g, ''));
+      .map((s) => s.replace(/^["']|["']$/g, ''));
   }
 
   // Comma-separated string
-  return value.split(',').map(s => s.trim()).filter(Boolean);
+  return value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /**
@@ -108,7 +118,7 @@ function parseTriggerList(value: string): string[] {
 export function skillTriggers(skill: Skill, text: string): boolean {
   if (!skill.trigger || skill.trigger.length === 0) return false;
   const lowerText = text.toLowerCase();
-  return skill.trigger.some(t => t.length > 0 && lowerText.includes(t.toLowerCase()));
+  return skill.trigger.some((t) => t.length > 0 && lowerText.includes(t.toLowerCase()));
 }
 
 /**
@@ -116,12 +126,12 @@ export function skillTriggers(skill: Skill, text: string): boolean {
  * (no triggers) if `includeAlwaysOn` is true.
  */
 export function filterSkillsByTrigger(skills: Skill[], text: string, includeAlwaysOn = false): Skill[] {
-  return skills.filter(s => skillTriggers(s, text) || (includeAlwaysOn && (!s.trigger || s.trigger.length === 0)));
+  return skills.filter((s) => skillTriggers(s, text) || (includeAlwaysOn && (!s.trigger || s.trigger.length === 0)));
 }
 
 export function skillToMarkdown(skill: ParsedSkill): string {
   const triggers = skill.trigger.length
-    ? `triggers: [${skill.trigger.map(t => `"${t.replace(/"/g, '\\"')}"`).join(', ')}]`
+    ? `triggers: [${skill.trigger.map((t) => `"${t.replace(/"/g, '\\"')}"`).join(', ')}]`
     : 'triggers: []';
   return `---
 name: ${skill.name}

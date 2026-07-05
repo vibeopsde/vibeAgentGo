@@ -15,7 +15,15 @@ import { SkillsPanel } from './components/SkillsPanel.js';
 import { MobileNav, type MobileTab } from './components/MobileNav.js';
 import { OnboardingWizard } from './components/OnboardingWizard.js';
 import { Agent } from './core/agent.js';
-import { MemoryStore, loadConfig, saveConfig, hasApiKey, hasCompletedOnboarding, resetLocalData } from './core/memory.js';
+import {
+  loadConfig,
+  saveConfig,
+  resetLocalData,
+  hasCompletedOnboarding,
+  MemoryStore,
+  type ClientConfig,
+} from './core/memory.js';
+import { isTextContentPart } from './types/index.js';
 import { createDefaultTools } from './core/tools.js';
 import { VERSION } from './version.js';
 import { setLanguage, t } from './i18n/index.js';
@@ -71,7 +79,11 @@ function setMobileTab(tab: MobileTab) {
 
 function createAgent(): Agent {
   if (agent) {
-    try { agent.abort(); } catch { /* ignore */ }
+    try {
+      agent.abort();
+    } catch {
+      /* ignore */
+    }
   }
   const a = new Agent(tools, memory, { renderPanel });
   setupAgent(a);
@@ -124,7 +136,7 @@ function setupAgent(a: Agent) {
 }
 
 function addView(title: string, html: string) {
-  const existing = views.find(v => v.title === title);
+  const existing = views.find((v) => v.title === title);
   if (existing) {
     existing.html = html;
   } else {
@@ -159,17 +171,33 @@ async function resumeSession(sessionId: string) {
     if (session) {
       for (const msg of session.messages) {
         if (msg.role === 'user') {
-          const userText = typeof msg.content === 'string' ? msg.content : msg.content.filter(c => c.type === 'text').map(c => (c as any).text).join('\n');
+          const userText =
+            typeof msg.content === 'string'
+              ? msg.content
+              : msg.content
+                  .filter((c) => c.type === 'text')
+                  .map((c) => (isTextContentPart(c) ? c.text : ''))
+                  .join('\n');
           chatPanel.appendUser(userText as string);
         } else if (msg.role === 'assistant') {
           if (msg.tool_calls && msg.tool_calls.length > 0) {
             for (const tc of msg.tool_calls) {
-              let args: any = {};
-              try { args = JSON.parse(tc.function.arguments); } catch { }
+              let args: Record<string, unknown> = {};
+              try {
+                args = JSON.parse(tc.function.arguments) as Record<string, unknown>;
+              } catch {
+                // ignore invalid tool-call args
+              }
               chatPanel.appendToolCall(tc.function.name, args);
             }
           } else if (msg.content) {
-            const assistantText = typeof msg.content === 'string' ? msg.content : msg.content.filter(c => c.type === 'text').map(c => (c as any).text).join('');
+            const assistantText =
+              typeof msg.content === 'string'
+                ? msg.content
+                : msg.content
+                    .filter((c) => c.type === 'text')
+                    .map((c) => (isTextContentPart(c) ? c.text : ''))
+                    .join('');
             chatPanel.appendAssistant(assistantText as string);
           }
         } else if (msg.role === 'tool') {
@@ -177,8 +205,8 @@ async function resumeSession(sessionId: string) {
         }
       }
     }
-  } catch (e: any) {
-    chatPanel.appendError(`${t('error.loadSession')} ${e.message}`);
+  } catch (e) {
+    chatPanel.appendError(`${t('error.loadSession')} ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -247,10 +275,31 @@ function buildLayout() {
   header.querySelector('#btn-theme')!.addEventListener('click', () => toggleTheme());
   header.querySelector('#btn-mobile-menu')!.addEventListener('click', () => openMobileMenu());
 
+function isLocalEndpoint(baseUrl: string): boolean {
+  try {
+    const u = new URL(baseUrl.trim());
+    const host = u.hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') {
+      return true;
+    }
+    if (host.endsWith('.local')) return true;
+    const parts = host.split('.').map((n) => Number(n));
+    if (parts.length === 4 && parts.every((n) => !Number.isNaN(n))) {
+      if (parts[0] === 10) return true;
+      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+      if (parts[0] === 192 && parts[1] === 168) return true;
+      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
   // Chat submit — runs agent directly in browser
   chatPanel.onSubmit = async (text: string, attachments: ChatAttachment[]) => {
     const config = loadConfig();
-    if (!config.apiKey) {
+    if (!config.apiKey && !isLocalEndpoint(config.baseUrl)) {
       chatPanel.appendError(t('error.noApiKey'));
       settingsModal.open();
       return;
@@ -273,8 +322,8 @@ function buildLayout() {
 
     try {
       await agent.run(text, config, currentSessionId || undefined, attachments);
-    } catch (e: any) {
-      chatPanel.appendError(e.message);
+    } catch (e) {
+      chatPanel.appendError(e instanceof Error ? e.message : String(e));
       chatPanel.setStatus('idle');
       isRunning = false;
     }
@@ -315,8 +364,10 @@ function openMobileMenu() {
 
   const close = () => overlay.remove();
   overlay.querySelector('.mobile-menu-close')!.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  overlay.querySelectorAll('.mobile-menu-item').forEach(item => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+  overlay.querySelectorAll('.mobile-menu-item').forEach((item) => {
     item.addEventListener('click', () => {
       const action = (item as HTMLElement).dataset.action!;
       close();

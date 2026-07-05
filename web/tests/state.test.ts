@@ -25,10 +25,10 @@ describe('state utilities', () => {
     expect(state.files).toEqual([]);
   });
 
-  it('generates a short id', () => {
+  it('generates a uuid id', () => {
     const id = generateId();
-    expect(id.length).toBeGreaterThanOrEqual(4);
-    expect(id.length).toBeLessThanOrEqual(12);
+    expect(id.length).toBeGreaterThanOrEqual(12);
+    expect(id).toMatch(/[a-f0-9-]+/i);
   });
 
   it('adds a new task', () => {

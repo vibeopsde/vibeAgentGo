@@ -23,12 +23,12 @@
 }
 
 /* Light theme: manual override or system preference */
-:root[data-theme="light"],
+:root[data-theme='light'],
 :root:not([data-theme]) {
   color-scheme: light dark;
 }
 
-:root[data-theme="light"] {
+:root[data-theme='light'] {
   --bg: #ffffff;
   --bg-elev: #f6f8fa;
   --bg-hover: #eef1f4;
@@ -46,7 +46,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
+  :root:not([data-theme='dark']) {
     --bg: #ffffff;
     --bg-elev: #f6f8fa;
     --bg-hover: #eef1f4;
@@ -64,7 +64,7 @@
   }
 }
 
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   color-scheme: dark;
 }
 
@@ -75,7 +75,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
   font-family: -apple-system, system-ui, sans-serif;
@@ -114,9 +115,10 @@ html, body {
 }
 
 .logo {
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--accent);
+  height: 32px;
+  width: 32px;
+  border-radius: 8px;
+  object-fit: cover;
 }
 
 .version-tag {
@@ -299,7 +301,8 @@ html, body {
   line-height: 1.5;
 }
 
-.msg-content ul, .msg-content ol {
+.msg-content ul,
+.msg-content ol {
   margin: 8px 0 8px 20px;
 }
 
@@ -330,7 +333,8 @@ html, body {
   font-size: 13px;
 }
 
-.msg-content th, .msg-content td {
+.msg-content th,
+.msg-content td {
   border: 1px solid var(--border);
   padding: 6px 8px;
   text-align: left;
@@ -366,9 +370,16 @@ html, body {
   margin-bottom: 6px;
 }
 
-.tool-icon { font-size: 14px; }
-.tool-name { color: var(--accent); font-weight: 600; }
-.tool-args { color: var(--text-muted); }
+.tool-icon {
+  font-size: 14px;
+}
+.tool-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+.tool-args {
+  color: var(--text-muted);
+}
 
 .tool-result-body {
   padding: 8px 12px;
@@ -680,7 +691,9 @@ html, body {
   gap: 2px;
   border-radius: 12px;
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .mobile-nav-btn.active {
@@ -1118,7 +1131,8 @@ select {
   gap: 8px;
 }
 
-.session-resume, .session-delete {
+.session-resume,
+.session-delete {
   background: none;
   border: none;
   font-size: 16px;
@@ -1169,7 +1183,7 @@ select {
 
 /* --- Streaming cursor --- */
 
-.msg-assistant[data-streaming="true"]::after {
+.msg-assistant[data-streaming='true']::after {
   content: '▊';
   animation: blink 1s infinite;
   color: var(--accent);
@@ -1177,8 +1191,14 @@ select {
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 /* --- New chat button --- */
@@ -1227,11 +1247,11 @@ select {
 }
 
 .onboarding-logo {
-  font-size: 48px;
-  font-weight: 800;
-  color: var(--accent);
-  text-align: center;
-  margin-bottom: 8px;
+  height: 80px;
+  width: 80px;
+  border-radius: 16px;
+  object-fit: cover;
+  margin-bottom: 24px;
 }
 
 .onboarding-card h1 {

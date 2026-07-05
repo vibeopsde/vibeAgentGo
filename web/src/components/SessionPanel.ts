@@ -60,12 +60,16 @@ export class SessionPanel {
         return;
       }
 
-      const sessionsHtml = sessions.map((s: any) => {
-        const lang = document.documentElement.lang || 'de';
-        const date = new Date(s.updated_at).toLocaleString(lang === 'en' ? 'en-US' : 'de-DE', {
-          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-        });
-        return `
+      const sessionsHtml = sessions
+        .map((s: any) => {
+          const lang = document.documentElement.lang || 'de';
+          const date = new Date(s.updated_at).toLocaleString(lang === 'en' ? 'en-US' : 'de-DE', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          return `
           <div class="session-item" data-id="${s.id}">
             <div class="session-info">
               <div class="session-title">${escapeHtml(s.title)}</div>
@@ -77,7 +81,8 @@ export class SessionPanel {
             </div>
           </div>
         `;
-      }).join('');
+        })
+        .join('');
 
       this.modal.innerHTML = `
         <h2>💬 ${t('sessions.title')} (${sessions.length}) <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
@@ -89,7 +94,7 @@ export class SessionPanel {
 
       this.modal.querySelector('#sess-close')!.addEventListener('click', () => this.close());
 
-      this.modal.querySelectorAll('.session-resume').forEach(btn => {
+      this.modal.querySelectorAll('.session-resume').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const id = (e.target as HTMLElement).dataset.id!;
@@ -98,7 +103,7 @@ export class SessionPanel {
         });
       });
 
-      this.modal.querySelectorAll('.session-delete').forEach(btn => {
+      this.modal.querySelectorAll('.session-delete').forEach((btn) => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
           const id = (e.target as HTMLElement).dataset.id!;
@@ -107,14 +112,13 @@ export class SessionPanel {
         });
       });
 
-      this.modal.querySelectorAll('.session-item').forEach(item => {
+      this.modal.querySelectorAll('.session-item').forEach((item) => {
         item.addEventListener('click', () => {
           const id = (item as HTMLElement).dataset.id!;
           this.close();
           if (this.onResume) this.onResume(id);
         });
       });
-
     } catch (e) {
       this.modal.innerHTML = `<p>${t('common.error')}: ${e}</p>`;
     }

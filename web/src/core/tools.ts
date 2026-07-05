@@ -2,7 +2,7 @@
 // vibeAgentGo — Browser Tools (client-side, IndexedDB + iframe sandbox)
 // ============================================================
 
-import type { Tool, ToolContext } from '../types/index.js';
+import type { Tool, ToolContext, ProjectState } from '../types/index.js';
 import { MemoryStore, loadConfig } from './memory.js';
 import { runInSandbox } from '../utils/sandbox.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -19,15 +19,40 @@ import {
   generateId,
 } from './state.js';
 
+import { validateArgs } from '../utils/schema_validate.js';
+
 // --- Helpers ---
 
 const getMemoryStore = (ctx: ToolContext): MemoryStore => ctx.env.memoryStore as MemoryStore;
+
+function asString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === 'number' ? value : fallback;
+}
+
+function asBoolean(value: unknown): boolean {
+  return value === true;
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((v) => asString(v)) : [];
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null)
+    : [];
+}
 
 // --- File Tools (IndexedDB workspace) ---
 
 const read_file: Tool = {
   name: 'read_file',
-  description: 'Read the contents of a text file from the browser workspace (IndexedDB). Returns the file content as a string.',
+  description:
+    'Read the contents of a text file from the browser workspace (IndexedDB). Returns the file content as a string.',
   parameters: {
     type: 'object',
     properties: {
@@ -35,17 +60,19 @@ const read_file: Tool = {
     },
     required: ['path'],
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
-    const content = await mem.readFile(args.path);
-    if (content === null) return `File not found: ${args.path}`;
+    const path = asString(args.path);
+    const content = await mem.readFile(path);
+    if (content === null) return `File not found: ${path}`;
     return content;
   },
 };
 
 const read_pdf: Tool = {
   name: 'read_pdf',
-  description: 'Extract text content from a PDF file in the browser workspace (IndexedDB). Returns the extracted text. If the PDF is a scanned image, text extraction may be limited.',
+  description:
+    'Extract text content from a PDF file in the browser workspace (IndexedDB). Returns the extracted text. If the PDF is a scanned image, text extraction may be limited.',
   parameters: {
     type: 'object',
     properties: {
@@ -53,10 +80,11 @@ const read_pdf: Tool = {
     },
     required: ['path'],
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
-    const content = await mem.readFile(args.path);
-    if (content === null) return `File not found: ${args.path}`;
+    const path = asString(args.path);
+    const content = await mem.readFile(path);
+    if (content === null) return `File not found: ${path}`;
     try {
       const pdfjs = await import('pdfjs-dist');
       const pdfjsLib = pdfjs.default || pdfjs;
@@ -64,18 +92,18 @@ const read_pdf: Tool = {
         pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
       }
       const base64 = content.startsWith('data:') ? content.split(',')[1] : content;
-      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
       const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
       let text = '';
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const contentItems = await page.getTextContent();
-        const pageText = contentItems.items.map((item: any) => item.str).join(' ');
+        const pageText = contentItems.items.map((item) => (item as { str: string }).str).join(' ');
         text += `\n\n--- Page ${i} ---\n\n${pageText}`;
       }
       return text.trim() || 'No text found in PDF.';
-    } catch (e: any) {
-      return `PDF extraction error: ${e.message || String(e)}`;
+    } catch (e) {
+      return `PDF extraction error: ${e instanceof Error ? e.message : String(e)}`;
     }
   },
 };
@@ -91,28 +119,33 @@ const write_file: Tool = {
     },
     required: ['path', 'content'],
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
-    await mem.writeFile(args.path, args.content);
-    return `Wrote ${args.content.length} bytes to ${args.path}`;
+    await mem.writeFile(asString(args.path), asString(args.content));
+    return `Wrote ${asString(args.content).length} bytes to ${asString(args.path)}`;
   },
 };
 
 const search_files: Tool = {
   name: 'search_files',
-  description: 'Search for files by name or content within the browser workspace. Returns matching file paths or lines containing the pattern.',
+  description:
+    'Search for files by name or content within the browser workspace. Returns matching file paths or lines containing the pattern.',
   parameters: {
     type: 'object',
     properties: {
       pattern: { type: 'string', description: 'Search pattern (filename or text to search for)' },
-      target: { type: 'string', enum: ['files', 'content'], description: 'Search filenames (files) or file contents (content). Default: files' },
+      target: {
+        type: 'string',
+        enum: ['files', 'content'],
+        description: 'Search filenames (files) or file contents (content). Default: files',
+      },
     },
     required: ['pattern'],
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
-    const target = args.target || 'files';
-    const results = await mem.searchFiles(args.pattern, target);
+    const target = asString(args.target, 'files');
+    const results = await mem.searchFiles(asString(args.pattern), target as 'files' | 'content');
     return results.length > 0 ? results.join('\n') : 'No matches found';
   },
 };
@@ -121,7 +154,8 @@ const search_files: Tool = {
 
 const run_code: Tool = {
   name: 'run_code',
-  description: 'Execute JavaScript code in a sandboxed iframe environment. Captures console.log/error/warn/info and uncaught exceptions. Use log() or console.log() for output. Returns the result value, logs, and error details including stack traces. No access to IndexedDB or the parent page.',
+  description:
+    'Execute JavaScript code in a sandboxed iframe environment. Captures console.log/error/warn/info and uncaught exceptions. Use log() or console.log() for output. Returns the result value, logs, and error details including stack traces. No access to IndexedDB or the parent page.',
   parameters: {
     type: 'object',
     properties: {
@@ -130,20 +164,20 @@ const run_code: Tool = {
     },
     required: ['code'],
   },
-  handler: async (args) => {
+  handler: async (args: Record<string, unknown>) => {
     try {
-      const requested = typeof args.timeout === 'number' ? args.timeout : 5000;
-      const timeoutMs = Math.max(100, Math.min(requested, 30000));
-      const { logs, result, error } = await runInSandbox(args.code, timeoutMs);
-      const logsText = logs.length > 0
-        ? logs.map(l => `[${l.level.toUpperCase()}] ${l.message}${l.stack ? '\n' + l.stack : ''}`).join('\n')
-        : 'No logs';
+      const timeoutMs = Math.max(100, Math.min(asNumber(args.timeout, 5000), 30000));
+      const { logs, result, error } = await runInSandbox(asString(args.code), timeoutMs);
+      const logsText =
+        logs.length > 0
+          ? logs.map((l) => `[${l.level.toUpperCase()}] ${l.message}${l.stack ? '\n' + l.stack : ''}`).join('\n')
+          : 'No logs';
       if (error) {
         return `Sandbox error: ${error.name}: ${error.message}\n${error.stack || ''}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
       }
       return logs.length > 0 ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
-    } catch (e: any) {
-      return `Sandbox error: ${e.message || String(e)}`;
+    } catch (e) {
+      return `Sandbox error: ${e instanceof Error ? e.message : String(e)}`;
     }
   },
 };
@@ -152,7 +186,8 @@ const run_code: Tool = {
 
 const web_search: Tool = {
   name: 'web_search',
-  description: 'Search the web for current information using a configured search provider. Returns titles, URLs, and short descriptions of search results.',
+  description:
+    'Search the web for current information using a configured search provider. Returns titles, URLs, and short descriptions of search results.',
   parameters: {
     type: 'object',
     properties: {
@@ -160,21 +195,21 @@ const web_search: Tool = {
     },
     required: ['query'],
   },
-  handler: async (args) => {
+  handler: async (args: Record<string, unknown>) => {
     const config = loadConfig();
     if (config.searchProvider !== 'tavily' || !config.searchApiKey) {
       return `Web search is not configured. Open Settings → Search Provider and add a Tavily API key.`;
     }
-
+    const query = asString(args.query);
     try {
       const res = await fetch('https://api.tavily.com/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.searchApiKey}`,
+          Authorization: `Bearer ${config.searchApiKey}`,
         },
         body: JSON.stringify({
-          query: args.query,
+          query,
           search_depth: 'basic',
           max_results: 8,
           include_answer: true,
@@ -186,22 +221,28 @@ const web_search: Tool = {
         return `Tavily search error: HTTP ${res.status} ${text}`;
       }
 
-      const data = await res.json() as any;
+      const data = (await res.json()) as Record<string, unknown>;
       const results: string[] = [];
 
-      if (data.answer) {
+      if (typeof data.answer === 'string') {
         results.push(`Answer: ${data.answer}`);
       }
 
-      if (data.results?.length) {
-        for (const r of data.results.slice(0, 8)) {
-          results.push(`- ${r.title}\n  ${r.url}\n  ${r.content?.slice(0, 250) || ''}`);
+      const rawResults = data.results;
+      if (Array.isArray(rawResults)) {
+        for (const r of rawResults.slice(0, 8)) {
+          if (typeof r === 'object' && r !== null) {
+            const title = asString(r.title);
+            const url = asString(r.url);
+            const content = asString(r.content).slice(0, 250);
+            results.push(`- ${title}\n  ${url}\n  ${content}`);
+          }
         }
       }
 
-      return results.length > 0 ? results.join('\n\n') : `No results for "${args.query}"`;
-    } catch (e: any) {
-      return `Search error: ${e.message}`;
+      return results.length > 0 ? results.join('\n\n') : `No results for "${query}"`;
+    } catch (e: unknown) {
+      return `Search error: ${e instanceof Error ? e.message : String(e)}`;
     }
   },
 };
@@ -210,25 +251,33 @@ const web_search: Tool = {
 
 const memory_save: Tool = {
   name: 'memory_save',
-  description: 'Save a durable fact to persistent memory in the browser (IndexedDB). Survives across sessions. Use for user preferences, environment details, or important facts. Category "user" for facts about the user, "memory" for general notes.',
+  description:
+    'Save a durable fact to persistent memory in the browser (IndexedDB). Survives across sessions. Use for user preferences, environment details, or important facts. Category "user" for facts about the user, "memory" for general notes.',
   parameters: {
     type: 'object',
     properties: {
       content: { type: 'string', description: 'The fact to remember (declarative)' },
-      category: { type: 'string', enum: ['memory', 'user'], description: 'Type: "user" = about the user, "memory" = general. Default: memory' },
+      category: {
+        type: 'string',
+        enum: ['memory', 'user'],
+        description: 'Type: "user" = about the user, "memory" = general. Default: memory',
+      },
     },
     required: ['content'],
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
-    const id = await mem.saveMemory(args.content, args.category || 'memory');
-    return `Saved to ${args.category || 'memory'} memory (id: ${id})`;
+    const content = asString(args.content);
+    const category = asString(args.category, 'memory');
+    const id = await mem.saveMemory(content, category);
+    return `Saved to ${category} memory (id: ${id})`;
   },
 };
 
 const memory_search: Tool = {
   name: 'memory_search',
-  description: 'Search persistent memory entries in the browser (IndexedDB). Returns matching memory entries by content or category. Use this to recall relevant facts before answering or when the user refers to something from the past.',
+  description:
+    'Search persistent memory entries in the browser (IndexedDB). Returns matching memory entries by content or category. Use this to recall relevant facts before answering or when the user refers to something from the past.',
   parameters: {
     type: 'object',
     properties: {
@@ -238,18 +287,17 @@ const memory_search: Tool = {
     },
     required: ['query'],
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
-    const limit = args.limit || 10;
+    const limit = asNumber(args.limit, 10);
+    const category = asString(args.category);
     // Load enough entries to filter by category (if requested) then search by query.
-    const all = await mem.searchAllMemory(args.category ? 1000 : limit * 4);
-    const filtered = args.category ? all.filter(m => m.category === args.category) : all;
-    const query = args.query.toLowerCase();
-    const matches = filtered
-      .filter(m => m.content.toLowerCase().includes(query))
-      .slice(0, limit);
-    if (matches.length === 0) return `No memory entries found for "${args.query}".`;
-    return matches.map(m => `§ ${m.category}: ${m.content}`).join('\n\n');
+    const all = await mem.searchAllMemory(category ? 1000 : limit * 4);
+    const filtered = category ? all.filter((m) => m.category === category) : all;
+    const query = asString(args.query).toLowerCase();
+    const matches = filtered.filter((m) => m.content.toLowerCase().includes(query)).slice(0, limit);
+    if (matches.length === 0) return `No memory entries found for "${query}".`;
+    return matches.map((m) => `§ ${m.category}: ${m.content}`).join('\n\n');
   },
 };
 
@@ -257,17 +305,21 @@ const memory_search: Tool = {
 
 const state_view: Tool = {
   name: 'state_view',
-  description: 'Read and summarize the current project state from agent_state.json in the workspace. Use this at the start of a complex task or when the user refers to project status, roadmap, open issues, or lessons learned.',
+  description:
+    'Read and summarize the current project state from agent_state.json in the workspace. Use this at the start of a complex task or when the user refers to project status, roadmap, open issues, or lessons learned.',
   parameters: {
     type: 'object',
     properties: {
-      render: { type: 'boolean', description: 'If true, also render an interactive dashboard view of the project state. Default: false' },
+      render: {
+        type: 'boolean',
+        description: 'If true, also render an interactive dashboard view of the project state. Default: false',
+      },
     },
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
     const state = await loadState(mem);
-    if (args.render) {
+    if (asBoolean(args.render)) {
       const html = renderStateDashboard(state);
       ctx.emit('render_view', { title: 'Project State', html });
     }
@@ -321,20 +373,23 @@ Use state_view first to see existing ids. Set delete_task or delete_issue to rem
       files: { type: 'array', items: { type: 'string' }, description: 'File paths to track in the project state' },
       delete_task: { type: 'string', description: 'ID of a task to delete' },
       delete_issue: { type: 'string', description: 'ID of an issue to delete' },
-      render: { type: 'boolean', description: 'If true, render the Project State dashboard after updating. Default: false' },
+      render: {
+        type: 'boolean',
+        description: 'If true, render the Project State dashboard after updating. Default: false',
+      },
     },
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
     let state = await loadState(mem);
 
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     if (typeof args.goal === 'string') updates.goal = args.goal;
     if (typeof args.current_phase === 'string') updates.current_phase = args.current_phase;
-    if (Array.isArray(args.tasks)) updates.tasks = args.tasks;
-    if (Array.isArray(args.open_issues)) updates.open_issues = args.open_issues;
-    if (Array.isArray(args.lessons_learned)) updates.lessons_learned = args.lessons_learned;
-    if (Array.isArray(args.files)) updates.files = args.files;
+    if (Array.isArray(args.tasks)) updates.tasks = asRecordArray(args.tasks);
+    if (Array.isArray(args.open_issues)) updates.open_issues = asRecordArray(args.open_issues);
+    if (Array.isArray(args.lessons_learned)) updates.lessons_learned = asStringArray(args.lessons_learned);
+    if (Array.isArray(args.files)) updates.files = asStringArray(args.files);
 
     state = updateState(state, updates);
 
@@ -347,7 +402,7 @@ Use state_view first to see existing ids. Set delete_task or delete_issue to rem
 
     await saveState(mem, state);
 
-    if (args.render) {
+    if (asBoolean(args.render)) {
       const html = renderStateDashboard(state);
       ctx.emit('render_view', { title: 'Project State', html });
     }
@@ -356,7 +411,7 @@ Use state_view first to see existing ids. Set delete_task or delete_issue to rem
   },
 };
 
-function renderStateDashboard(state: any): string {
+function renderStateDashboard(state: ProjectState): string {
   const tasks = Array.isArray(state.tasks) ? state.tasks : [];
   const issues = Array.isArray(state.open_issues) ? state.open_issues : [];
   const lessons = Array.isArray(state.lessons_learned) ? state.lessons_learned : [];
@@ -377,35 +432,35 @@ function renderStateDashboard(state: any): string {
   };
 
   const taskRows = tasks
-    .map((t: any) => `
+    .map(
+      (t) => `
       <tr>
-        <td><span class="badge" style="background:${statusColor[t.status] || '#7d8590'};color:#fff">${t.status}</span></td>
+        <td><span class="badge" style="background:${statusColor[t.status] || '#7d8590'};color:#fff">${escapeHtml(t.status)}</span></td>
         <td><strong>${escapeHtml(t.title)}</strong></td>
-        <td>${t.id}</td>
+        <td>${escapeHtml(t.id)}</td>
         <td>${t.depends_on?.length ? escapeHtml(t.depends_on.join(', ')) : '—'}</td>
         <td>${escapeHtml(t.notes || '')}</td>
       </tr>
-    `)
+    `
+    )
     .join('');
 
   const issueRows = issues
-    .map((i: any) => `
+    .map(
+      (i) => `
       <tr>
-        <td><span class="badge" style="background:${severityColor[i.severity] || '#7d8590'};color:#fff">${i.severity}</span></td>
+        <td><span class="badge" style="background:${severityColor[i.severity] || '#7d8590'};color:#fff">${escapeHtml(i.severity)}</span></td>
         <td><strong>${escapeHtml(i.title)}</strong></td>
-        <td>${i.id}</td>
+        <td>${escapeHtml(i.id)}</td>
         <td>${escapeHtml(i.notes || '')}</td>
       </tr>
-    `)
+    `
+    )
     .join('');
 
-  const lessonItems = lessons
-    .map((l: any) => `<li>${escapeHtml(typeof l === 'string' ? l : l.note)}</li>`)
-    .join('');
+  const lessonItems = lessons.map((l) => `<li>${escapeHtml(l.note)}</li>`).join('');
 
-  const fileItems = files
-    .map((f: string) => `<li>${escapeHtml(f)}</li>`)
-    .join('');
+  const fileItems = files.map((f) => `<li>${escapeHtml(f)}</li>`).join('');
 
   return `<!DOCTYPE html>
 <html>
@@ -471,7 +526,8 @@ interface RenderPanelLike {
 
 const render_view: Tool = {
   name: 'render_view',
-  description: 'Render HTML/CSS/JS as a live interactive view alongside the chat. The view runs in a sandboxed iframe. Pass HTML directly or reference a file path in the workspace. To debug a rendered view, use the inspect_view tool to retrieve its console logs and uncaught errors.',
+  description:
+    'Render HTML/CSS/JS as a live interactive view alongside the chat. The view runs in a sandboxed iframe. Pass HTML directly or reference a file path in the workspace. To debug a rendered view, use the inspect_view tool to retrieve its console logs and uncaught errors.',
   parameters: {
     type: 'object',
     properties: {
@@ -481,11 +537,12 @@ const render_view: Tool = {
     },
     required: ['title'],
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     let html: string;
-    if (args.html) {
+    const title = asString(args.title);
+    if (typeof args.html === 'string') {
       html = args.html;
-    } else if (args.path) {
+    } else if (typeof args.path === 'string') {
       const mem = getMemoryStore(ctx);
       const content = await mem.readFile(args.path);
       if (content === null) return `File not found: ${args.path}`;
@@ -493,8 +550,8 @@ const render_view: Tool = {
     } else {
       return 'Either html or path is required';
     }
-    ctx.emit('render_view', { title: args.title, html });
-    return `Rendered "${args.title}" in the view panel (${html.length} bytes)`;
+    ctx.emit('render_view', { title, html });
+    return `Rendered "${title}" in the view panel (${html.length} bytes)`;
   },
 };
 
@@ -502,7 +559,8 @@ const render_view: Tool = {
 
 const inspect_view: Tool = {
   name: 'inspect_view',
-  description: 'Retrieve captured console logs, errors, warnings, and unhandled exceptions from a rendered view (render_view). Use this to debug HTML/JS mini-apps after rendering them. Set clear=true to reset the captured log buffer after reading.',
+  description:
+    'Retrieve captured console logs, errors, warnings, and unhandled exceptions from a rendered view (render_view). Use this to debug HTML/JS mini-apps after rendering them. Set clear=true to reset the captured log buffer after reading.',
   parameters: {
     type: 'object',
     properties: {
@@ -511,21 +569,35 @@ const inspect_view: Tool = {
     },
     required: ['title'],
   },
-  handler: async (args, ctx) => {
+  handler: async (args: Record<string, unknown>, ctx) => {
     const panel = ctx.env.renderPanel as RenderPanelLike | undefined;
     if (!panel) return 'No render panel is available';
-    const logs = panel.getLogs(args.title);
-    if (!logs.length) return `No logs captured for view "${args.title}".`;
-    const text = logs.map(l =>
-      `[${l.timestamp}] [${l.level.toUpperCase()}] ${l.message}${l.stack ? '\n' + l.stack : ''}`
-    ).join('\n');
-    if (args.clear) panel.clearLogs(args.title);
-    return `Logs for "${args.title}":\n\n${text}`;
+    const title = asString(args.title);
+    const logs = panel.getLogs(title);
+    if (!logs.length) return `No logs captured for view "${title}".`;
+    const text = logs
+      .map((l) => `[${l.timestamp}] [${l.level.toUpperCase()}] ${l.message}${l.stack ? '\n' + l.stack : ''}`)
+      .join('\n');
+    if (asBoolean(args.clear)) panel.clearLogs(title);
+    return `Logs for "${title}":\n\n${text}`;
   },
 };
 
 // --- Registry ---
 
 export function createDefaultTools(): Tool[] {
-  return [read_file, read_pdf, write_file, search_files, run_code, web_search, memory_save, memory_search, state_view, state_update, render_view, inspect_view];
+  return [
+    read_file,
+    read_pdf,
+    write_file,
+    search_files,
+    run_code,
+    web_search,
+    memory_save,
+    memory_search,
+    state_view,
+    state_update,
+    render_view,
+    inspect_view,
+  ];
 }

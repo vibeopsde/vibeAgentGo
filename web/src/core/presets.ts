@@ -36,10 +36,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
   },
 ];
 
-export function findPresetByUrlAndModel(
-  baseUrl: string,
-  model: string
-): ProviderPreset | undefined {
+export function findPresetByUrlAndModel(baseUrl: string, model: string): ProviderPreset | undefined {
   return PROVIDER_PRESETS.find((p) => {
     if (p.baseUrl !== baseUrl) return false;
     if (p.model === '') return true; // generic endpoint: any model matches

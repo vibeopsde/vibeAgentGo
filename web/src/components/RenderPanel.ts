@@ -38,7 +38,7 @@ export class RenderPanel {
 
     this.iframe = document.createElement('iframe');
     this.iframe.className = 'view-iframe';
-    this.iframe.sandbox = 'allow-scripts allow-modals allow-forms';
+    this.iframe.sandbox = 'allow-scripts';
     this.iframe.style.display = 'none';
 
     this.emptyEl = document.createElement('div');
@@ -81,16 +81,16 @@ export class RenderPanel {
   }
 
   getLogs(title: string): LogEntry[] {
-    return this.views.find(v => v.title === title)?.logs || [];
+    return this.views.find((v) => v.title === title)?.logs || [];
   }
 
   clearLogs(title: string) {
-    const view = this.views.find(v => v.title === title);
+    const view = this.views.find((v) => v.title === title);
     if (view) view.logs = [];
   }
 
   private appendLog(title: string, entry: LogEntry) {
-    const view = this.views.find(v => v.title === title);
+    const view = this.views.find((v) => v.title === title);
     if (!view) return;
     if (!view.logs) view.logs = [];
     view.logs.push(entry);
@@ -159,7 +159,7 @@ export class RenderPanel {
       closeBtn.textContent = '×';
       closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.views = this.views.filter(v => v.title !== view.title);
+        this.views = this.views.filter((v) => v.title !== view.title);
         if (this.activeTitle === view.title) {
           this.activeTitle = this.views[0]?.title || null;
         }
@@ -178,7 +178,7 @@ export class RenderPanel {
       return;
     }
 
-    const view = this.views.find(v => v.title === this.activeTitle);
+    const view = this.views.find((v) => v.title === this.activeTitle);
     if (!view) {
       this.iframe.style.display = 'none';
       this.emptyEl.style.display = 'flex';

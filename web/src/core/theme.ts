@@ -32,11 +32,8 @@ export function applyTheme(mode: ThemeMode): void {
 
 export function toggleTheme(): ThemeMode {
   const current = getTheme();
-  const next: ThemeMode = current === 'system'
-    ? (isDarkPreferred() ? 'light' : 'dark')
-    : current === 'dark'
-      ? 'light'
-      : 'dark';
+  const next: ThemeMode =
+    current === 'system' ? (isDarkPreferred() ? 'light' : 'dark') : current === 'dark' ? 'light' : 'dark';
   setTheme(next);
   return next;
 }
@@ -51,8 +48,8 @@ export function initTheme(): ThemeMode {
   };
   if (media.addEventListener) {
     media.addEventListener('change', listener);
-  } else if ((media as any).addListener) {
-    (media as any).addListener(listener);
+  } else if ('addListener' in media && typeof media.addListener === 'function') {
+    media.addListener(listener);
   }
   return mode;
 }

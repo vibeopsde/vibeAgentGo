@@ -5,23 +5,84 @@
 
 import type { Message, ToolSchema, LLMResponse, ToolCall } from '../types/index.js';
 
-export async function testConnection(config: { baseUrl: string; apiKey: string }): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> {
-  const url = `${config.baseUrl.replace(/\/$/, '')}/models`;
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${config.apiKey}`,
-      },
-    });
-    if (!res.ok) {
+const DEFAULT_RETRIES = 3;
+const INITIAL_BACKOFF_MS = 500;
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return (
+      msg.includes('network') || msg.includes('fetch') || msg.includes('timeout') || msg.includes('abort') === false
+    );
+  }
+  return false;
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  retries = DEFAULT_RETRIES,
+  backoffMs = INITIAL_BACKOFF_MS
+): Promise<Response> {
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok) {
+        return res;
+      }
       const text = await res.text().catch(() => `HTTP ${res.status}`);
-      return { ok: false, error: `HTTP ${res.status}: ${text}` };
+      lastError = new Error(`HTTP ${res.status}: ${text}`);
+      if (!isRetryableStatus(res.status) || attempt === retries) {
+        throw lastError;
+      }
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        throw e;
+      }
+      const err = e instanceof Error ? e : new Error(String(e));
+      if (lastError === undefined) {
+        lastError = err;
+      }
+      if (!isRetryableError(err) || attempt === retries) {
+        throw lastError;
+      }
     }
+    const jitter = Math.floor(Math.random() * 100);
+    await sleep(backoffMs * 2 ** attempt + jitter);
+  }
+  throw lastError || new Error('LLM request failed after retries');
+}
+
+export async function testConnection(config: {
+  baseUrl: string;
+  apiKey: string;
+}): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> {
+  const url = `${config.baseUrl.trim().replace(/\/$/, '')}/models`;
+  const headers: Record<string, string> = {};
+  if (config.apiKey) {
+    headers.Authorization = `Bearer ${config.apiKey}`;
+  }
+  try {
+    const res = await fetchWithRetry(url, { headers });
     const data = await res.json();
-    const models = data.data?.map((m: any) => m.id).slice(0, 20) || [];
+    const models =
+      data.data
+        ?.map((m: { id?: string }) => m.id)
+        .filter((id: string | undefined): id is string => typeof id === 'string')
+        .slice(0, 20) || [];
     return { ok: true, models };
-  } catch (e: any) {
-    return { ok: false, error: e.message || String(e) };
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    return { ok: false, error: err.message || String(e) };
   }
 }
 
@@ -34,11 +95,11 @@ export async function llmChatStream(opts: {
   onDelta?: (delta: string) => void;
   signal?: AbortSignal;
 }): Promise<LLMResponse> {
-  const url = `${opts.baseUrl.replace(/\/$/, '')}/chat/completions`;
+  const url = `${opts.baseUrl.trim().replace(/\/$/, '')}/chat/completions`;
 
-  const body: any = {
+  const body: Record<string, unknown> = {
     model: opts.model,
-    messages: opts.messages.map(m => ({
+    messages: opts.messages.map((m) => ({
       ...m,
       // Some providers accept null, but OpenAI-compatible servers generally prefer empty string
       content: typeof m.content === 'string' && !m.content ? '' : m.content,
@@ -51,20 +112,20 @@ export async function llmChatStream(opts: {
     body.tool_choice = 'auto';
   }
 
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${opts.apiKey}`,
+      ...(opts.apiKey ? { Authorization: `Bearer ${opts.apiKey}` } : {}),
     },
     body: JSON.stringify(body),
     signal: opts.signal,
+  }).catch((e) => {
+    const err = e instanceof Error ? e : new Error(String(e));
+    const statusMatch = /HTTP (\d+)/.exec(err.message);
+    const status = statusMatch ? statusMatch[1] : 'unknown';
+    throw new Error(`LLM API error ${status}: ${err.message}`);
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`LLM API error ${res.status}: ${text}`);
-  }
 
   if (!res.body) {
     throw new Error('No response body for streaming');
@@ -132,22 +193,25 @@ export async function llmChatStream(opts: {
           if (choice.finish_reason) {
             finishReason = choice.finish_reason;
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
     }
   } finally {
     reader.releaseLock();
   }
 
-  const toolCalls: ToolCall[] | undefined = toolCallMap.size > 0
-    ? Array.from(toolCallMap.entries())
-        .sort(([a], [b]) => a - b)
-        .map(([_, tc]) => ({
-          id: tc.id,
-          type: 'function' as const,
-          function: tc.function,
-        }))
-    : undefined;
+  const toolCalls: ToolCall[] | undefined =
+    toolCallMap.size > 0
+      ? Array.from(toolCallMap.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([_, tc]) => ({
+            id: tc.id,
+            type: 'function' as const,
+            function: tc.function,
+          }))
+      : undefined;
 
   return {
     content: fullContent,

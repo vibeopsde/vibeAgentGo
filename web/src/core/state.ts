@@ -12,7 +12,9 @@ export function normalizeState(state: Partial<ProjectState>): ProjectState {
     current_phase: state.current_phase ?? DEFAULT_PROJECT_STATE.current_phase,
     tasks: Array.isArray(state.tasks) ? state.tasks : DEFAULT_PROJECT_STATE.tasks,
     open_issues: Array.isArray(state.open_issues) ? state.open_issues : DEFAULT_PROJECT_STATE.open_issues,
-    lessons_learned: Array.isArray(state.lessons_learned) ? state.lessons_learned : DEFAULT_PROJECT_STATE.lessons_learned,
+    lessons_learned: Array.isArray(state.lessons_learned)
+      ? state.lessons_learned
+      : DEFAULT_PROJECT_STATE.lessons_learned,
     files: Array.isArray(state.files) ? state.files : DEFAULT_PROJECT_STATE.files,
     updated_at: state.updated_at ?? new Date().toISOString(),
   };
@@ -35,7 +37,11 @@ export async function saveState(mem: MemoryStore, state: ProjectState): Promise<
 }
 
 export function generateId(): string {
-  return Math.random().toString(36).slice(2, 10);
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID (e.g. some test runners).
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
 export function formatStateSummary(state: ProjectState): string {
@@ -46,22 +52,26 @@ export function formatStateSummary(state: ProjectState): string {
   lines.push('');
   if (state.tasks.length) {
     lines.push('Tasks:');
-    state.tasks.forEach(t => lines.push(`- [${t.status}] ${t.id}: ${t.title}${t.depends_on?.length ? ` (depends: ${t.depends_on.join(', ')})` : ''}`));
+    state.tasks.forEach((t) =>
+      lines.push(
+        `- [${t.status}] ${t.id}: ${t.title}${t.depends_on?.length ? ` (depends: ${t.depends_on.join(', ')})` : ''}`
+      )
+    );
     lines.push('');
   }
   if (state.open_issues.length) {
     lines.push('Open Issues:');
-    state.open_issues.forEach(i => lines.push(`- [${i.severity}] ${i.id}: ${i.title}`));
+    state.open_issues.forEach((i) => lines.push(`- [${i.severity}] ${i.id}: ${i.title}`));
     lines.push('');
   }
   if (state.lessons_learned.length) {
     lines.push('Lessons Learned:');
-    state.lessons_learned.forEach(l => lines.push(`- ${l.note}`));
+    state.lessons_learned.forEach((l) => lines.push(`- ${l.note}`));
     lines.push('');
   }
   if (state.files.length) {
     lines.push('Tracked Files:');
-    state.files.forEach(f => lines.push(`- ${f}`));
+    state.files.forEach((f) => lines.push(`- ${f}`));
   }
   return lines.join('\n');
 }
@@ -101,13 +111,13 @@ export function updateState(
   if (updates.tasks) {
     for (const t of updates.tasks) {
       const normalizedStatus: TaskStatus = isValidTaskStatus(t.status || '') ? (t.status as TaskStatus) : 'open';
-      if (t.id && next.tasks.some(existing => existing.id === t.id)) {
-        const update: ProjectTask = { ...next.tasks.find(existing => existing.id === t.id)! };
+      if (t.id && next.tasks.some((existing) => existing.id === t.id)) {
+        const update: ProjectTask = { ...next.tasks.find((existing) => existing.id === t.id)! };
         if (t.title !== undefined) update.title = t.title;
         update.status = normalizedStatus;
         if (t.depends_on !== undefined) update.depends_on = t.depends_on;
         if (t.notes !== undefined) update.notes = t.notes;
-        next.tasks = next.tasks.map(existing => (existing.id === t.id ? update : existing));
+        next.tasks = next.tasks.map((existing) => (existing.id === t.id ? update : existing));
       } else if (t.title) {
         next.tasks.push({
           id: t.id || generateId(),
@@ -122,15 +132,17 @@ export function updateState(
 
   if (updates.open_issues) {
     for (const i of updates.open_issues) {
-      const normalizedSeverity = isValidIssueSeverity(i.severity || '') ? (i.severity as 'low' | 'medium' | 'high') : 'medium';
+      const normalizedSeverity = isValidIssueSeverity(i.severity || '')
+        ? (i.severity as 'low' | 'medium' | 'high')
+        : 'medium';
       const normalizedIssueStatus = isValidIssueStatus(i.status || '') ? (i.status as 'open' | 'closed') : 'open';
-      if (i.id && next.open_issues.some(existing => existing.id === i.id)) {
-        const update: ProjectIssue = { ...next.open_issues.find(existing => existing.id === i.id)! };
+      if (i.id && next.open_issues.some((existing) => existing.id === i.id)) {
+        const update: ProjectIssue = { ...next.open_issues.find((existing) => existing.id === i.id)! };
         if (i.title !== undefined) update.title = i.title;
         update.severity = normalizedSeverity;
         update.status = normalizedIssueStatus;
         if (i.notes !== undefined) update.notes = i.notes;
-        next.open_issues = next.open_issues.map(existing => (existing.id === i.id ? update : existing));
+        next.open_issues = next.open_issues.map((existing) => (existing.id === i.id ? update : existing));
       } else if (i.title) {
         next.open_issues.push({
           id: i.id || generateId(),
@@ -145,7 +157,7 @@ export function updateState(
 
   if (updates.lessons_learned) {
     for (const note of updates.lessons_learned) {
-      if (!next.lessons_learned.some(l => l.note === note)) {
+      if (!next.lessons_learned.some((l) => l.note === note)) {
         next.lessons_learned.push({ id: generateId(), note, created_at: new Date().toISOString() });
       }
     }
@@ -159,11 +171,11 @@ export function updateState(
 }
 
 export function deleteTask(state: ProjectState, id: string): ProjectState {
-  return { ...state, tasks: state.tasks.filter(t => t.id !== id), updated_at: new Date().toISOString() };
+  return { ...state, tasks: state.tasks.filter((t) => t.id !== id), updated_at: new Date().toISOString() };
 }
 
 export function deleteIssue(state: ProjectState, id: string): ProjectState {
-  return { ...state, open_issues: state.open_issues.filter(i => i.id !== id), updated_at: new Date().toISOString() };
+  return { ...state, open_issues: state.open_issues.filter((i) => i.id !== id), updated_at: new Date().toISOString() };
 }
 
 export function isValidTaskStatus(status: string): status is TaskStatus {

@@ -47,21 +47,29 @@ export class MemoryPanel {
     try {
       const data = await this.memory.getAllMemory();
 
-      const profileHtml = data.profile.map((m: any) => `
+      const profileHtml = data.profile
+        .map(
+          (m: any) => `
         <div class="memory-item memory-user">
           <span class="memory-id">#${m.id}</span>
           <span class="memory-content">${escapeHtml(m.content)}</span>
           <button class="memory-delete" data-id="${m.id}">🗑</button>
         </div>
-      `).join('');
+      `
+        )
+        .join('');
 
-      const memoriesHtml = data.memories.map((m: any) => `
+      const memoriesHtml = data.memories
+        .map(
+          (m: any) => `
         <div class="memory-item memory-general">
           <span class="memory-id">#${m.id}</span>
           <span class="memory-content">${escapeHtml(m.content)}</span>
           <button class="memory-delete" data-id="${m.id}">🗑</button>
         </div>
-      `).join('');
+      `
+        )
+        .join('');
 
       this.modal.innerHTML = `
         <h2>🧠 ${t('memory.title')} <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
@@ -80,7 +88,7 @@ export class MemoryPanel {
 
       this.modal.querySelector('#mem-close')!.addEventListener('click', () => this.close());
 
-      this.modal.querySelectorAll('.memory-delete').forEach(btn => {
+      this.modal.querySelectorAll('.memory-delete').forEach((btn) => {
         btn.addEventListener('click', async (e) => {
           const id = parseInt((e.target as HTMLElement).dataset.id!);
           await this.memory.deleteMemory(id);

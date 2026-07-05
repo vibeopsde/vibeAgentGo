@@ -59,7 +59,9 @@ export class SkillsPanel {
     this.editingId = null;
     const skills = await this.skillStore.listSkills();
 
-    const rows = skills.map((s) => `
+    const rows = skills
+      .map(
+        (s) => `
       <div class="skill-row" data-id="${escapeHtml(s.id)}">
         <div class="skill-info">
           <div class="skill-name">${escapeHtml(s.name)}</div>
@@ -71,7 +73,9 @@ export class SkillsPanel {
           <button class="btn btn-danger skill-delete" data-id="${escapeHtml(s.id)}">${t('common.delete')}</button>
         </div>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
     this.modal.innerHTML = `
       <h2>🛠️ ${t('skills.title')}</h2>
@@ -144,7 +148,10 @@ export class SkillsPanel {
 
     const name = nameInput.value.trim() || 'Unnamed Skill';
     const description = descInput.value.trim();
-    const trigger = triggersInput.value.split(',').map((s) => s.trim()).filter(Boolean);
+    const trigger = triggersInput.value
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     const body = bodyInput.value.trim();
 
     const id = this.editingId || randomUUID().slice(0, 8);

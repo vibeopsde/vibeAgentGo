@@ -3,6 +3,7 @@
 // Bundle all IndexedDB + localStorage data into a single ZIP.
 // ============================================================
 
+import type { Session } from '../types/index.js';
 import JSZip from 'jszip';
 import { MemoryStore, SkillStore, CONFIG_KEY, loadConfig, tx } from './memory.js';
 
@@ -40,15 +41,13 @@ export class BackupManager {
 
     const [memory, sessions, skills, files] = await Promise.all([
       this.memory.searchAllMemory(10000),
-      this.memory.listSessions().then(list => list.map(s => ({ ...s, messages: [] as any[] }))),
+      this.memory.listSessions().then((list) => list.map((s) => ({ ...s, messages: [] }))),
       this.skillStore.listSkills(),
       this.memory.listFiles(),
     ]);
 
     // Re-fetch full session messages
-    const fullSessions = await Promise.all(
-      sessions.map(async s => this.memory.getSession(s.id))
-    );
+    const fullSessions = await Promise.all(sessions.map(async (s) => this.memory.getSession(s.id)));
 
     const config = loadConfig();
     const configClone = JSON.parse(JSON.stringify(config));
@@ -65,7 +64,7 @@ export class BackupManager {
         includes_api_keys: includeApiKeys,
       },
       memory,
-      sessions: fullSessions.filter(Boolean) as any[],
+      sessions: fullSessions.filter((s): s is Session => Boolean(s)),
       skills,
       files,
       config: configClone,
@@ -102,12 +101,12 @@ export class BackupManager {
       return f ? JSON.parse(await f.async('text')) : undefined;
     };
 
-    const memory: any[] = await loadJson('memory.json') || [];
-    const sessions: any[] = await loadJson('sessions.json') || [];
-    const skills: any[] = await loadJson('skills.json') || [];
-    const config: Record<string, any> = await loadJson('config.json') || {};
-    const theme: string | null = await loadJson('theme.json') ?? null;
-    const onboarding: string | null = await loadJson('onboarding.json') ?? null;
+    const memory: any[] = (await loadJson('memory.json')) || [];
+    const sessions: any[] = (await loadJson('sessions.json')) || [];
+    const skills: any[] = (await loadJson('skills.json')) || [];
+    const config: Record<string, any> = (await loadJson('config.json')) || {};
+    const theme: string | null = (await loadJson('theme.json')) ?? null;
+    const onboarding: string | null = (await loadJson('onboarding.json')) ?? null;
 
     const filesFolder = zip.folder('files');
     const files: { path: string; content: string }[] = [];

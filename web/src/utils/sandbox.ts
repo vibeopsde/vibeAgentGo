@@ -1,7 +1,7 @@
 // ============================================================
 // vibeAgentGo — Lightweight Browser Code Sandbox (iframe srcdoc)
 // Runs untrusted JS in a separate browsing context with no
-// access to the parent window, document, or IndexedDB.
+// access to the parent window, document, IndexedDB, or network.
 // ============================================================
 
 export interface LogEntry {
@@ -32,11 +32,30 @@ export function runInSandbox(code: string, timeoutMs = 5000): Promise<SandboxRes
       <html>
       <head>
         <meta charset="UTF-8" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; form-action 'none'; worker-src 'none';" />
       </head>
       <body>
         <script>
           (function() {
             'use strict';
+
+            // Lock down the global environment before executing any user code.
+            // CSP above blocks network requests, but we also mask dangerous globals
+            // as defense in depth and to provide clear runtime errors.
+            const dangerousGlobals = [
+              'fetch', 'WebSocket', 'XMLHttpRequest', 'Request', 'Response', 'Headers',
+              'indexedDB', 'localStorage', 'sessionStorage', 'caches', 'navigator',
+              'open', 'document', 'window', 'self', 'top', 'parent', 'globalThis',
+              'importScripts', 'module', 'exports', 'require', 'location', 'history',
+              'eval', 'Function', 'Worker', 'SharedWorker', 'BroadcastChannel',
+              'MessageChannel', 'Image', 'Audio', 'Video', 'HTMLElement', 'Element',
+              'Node', 'Document', 'XMLDocument'
+            ];
+            dangerousGlobals.forEach((name) => {
+              try { window[name] = undefined; } catch (e) { /* ignore */ }
+              try { self[name] = undefined; } catch (e) { /* ignore */ }
+            });
+
             const logs = [];
             const capture = (level) => (...args) => {
               const message = args.map(a => {
@@ -108,20 +127,16 @@ export function runInSandbox(code: string, timeoutMs = 5000): Promise<SandboxRes
               error
             }, '*');
           })();
-        <\/script>
+        </script>
       </body>
       </html>
     `;
-
-    const blob = new Blob([blobContent], { type: 'text/html' });
-    const blobUrl = URL.createObjectURL(blob);
 
     let settled = false;
 
     const cleanup = () => {
       if (settled) return;
       settled = true;
-      URL.revokeObjectURL(blobUrl);
       if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
     };
 
@@ -137,17 +152,19 @@ export function runInSandbox(code: string, timeoutMs = 5000): Promise<SandboxRes
       clearTimeout(timer);
       window.removeEventListener('message', handler);
       cleanup();
-      const error = data.error ? {
-        message: data.error.message || String(data.error),
-        stack: data.error.stack || '',
-        name: data.error.name || 'Error'
-      } : undefined;
+      const error = data.error
+        ? {
+            message: data.error.message || String(data.error),
+            stack: data.error.stack || '',
+            name: data.error.name || 'Error',
+          }
+        : undefined;
       resolve({ logs: data.logs || [], result: data.result || '', error });
     };
 
     window.addEventListener('message', handler);
 
     document.body.appendChild(iframe);
-    iframe.src = blobUrl;
+    iframe.srcdoc = blobContent;
   });
 }

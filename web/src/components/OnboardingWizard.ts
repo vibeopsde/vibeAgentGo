@@ -38,7 +38,7 @@ export class OnboardingWizard {
   private stepIndicator(active: number) {
     return `
       <div class="onboarding-steps">
-        ${[1, 2, 3, 4].map(n => `<span class="step ${n === active ? 'active' : ''}">${n}</span>`).join('')}
+        ${[1, 2, 3, 4].map((n) => `<span class="step ${n === active ? 'active' : ''}">${n}</span>`).join('')}
       </div>
     `;
   }
@@ -46,7 +46,7 @@ export class OnboardingWizard {
   private renderWelcome() {
     this.element.innerHTML = `
       <div class="onboarding-card">
-        <div class="onboarding-logo">${t('app.title')}</div>
+        <img class="onboarding-logo" src="./logo-192.png" alt="vibeAgentGo" width="80" height="80" />
         <h1>${t('onboarding.welcome')}</h1>
         <p class="onboarding-subtitle">${t('onboarding.subtitle')}</p>
 
@@ -117,7 +117,10 @@ export class OnboardingWizard {
 
   private renderLanguage() {
     const languageOptions = getAvailableLanguages()
-      .map(l => `<option value="${l.value}" ${this.config.language === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`)
+      .map(
+        (l) =>
+          `<option value="${l.value}" ${this.config.language === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`
+      )
       .join('');
 
     this.element.innerHTML = `
@@ -165,7 +168,7 @@ export class OnboardingWizard {
           <label for="ob-preset">${t('settings.provider')}</label>
           <select id="ob-preset">
             <option value="" ${!currentPreset ? 'selected' : ''}>${t('onboarding.manual')}</option>
-            ${PROVIDER_PRESETS.map(p => `<option value="${escapeHtml(p.key)}" ${currentPreset?.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
+            ${PROVIDER_PRESETS.map((p) => `<option value="${escapeHtml(p.key)}" ${currentPreset?.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
           </select>
         </div>
 
@@ -228,7 +231,6 @@ export class OnboardingWizard {
       const preset = findPresetByKey(presetSelect.value);
       if (preset) {
         baseUrlInput.value = preset.baseUrl;
-        apiKeyInput.value = '';
         apiKeyInput.placeholder = preset.apiKeyPlaceholder;
         if (preset.model) {
           // When no model field is present yet, auto-fill from preset to streamline setup
@@ -271,7 +273,9 @@ export class OnboardingWizard {
       this.render();
     });
 
-    verifyBtn.addEventListener('click', () => this.verifyLLM(baseUrlInput, apiKeyInput, modelSelect, modelManual, verifyBtn, nextBtn, resultEl));
+    verifyBtn.addEventListener('click', () =>
+      this.verifyLLM(baseUrlInput, apiKeyInput, modelSelect, modelManual, verifyBtn, nextBtn, resultEl)
+    );
     this.element.querySelector('#ob-next')!.addEventListener('click', () => this.saveLLM());
   }
 
@@ -356,7 +360,9 @@ export class OnboardingWizard {
     if (models.length > 0) {
       const currentModel = this.config.model;
       const options = models
-        .map(m => `<option value="${escapeHtml(m)}" ${m === currentModel ? 'selected' : ''}>${escapeHtml(m)}</option>`)
+        .map(
+          (m) => `<option value="${escapeHtml(m)}" ${m === currentModel ? 'selected' : ''}>${escapeHtml(m)}</option>`
+        )
         .join('');
       modelSelect.innerHTML = `<option value="">${t('onboarding.pickModel')}</option>${options}`;
       modelSelect.disabled = false;
@@ -380,11 +386,9 @@ export class OnboardingWizard {
 
   private saveLLM() {
     const baseUrl = (this.element.querySelector('#ob-baseurl') as HTMLInputElement).value.trim();
-    const modelManual = (this.element.querySelector('#ob-model-manual') as HTMLInputElement);
-    const modelSelect = (this.element.querySelector('#ob-model') as HTMLSelectElement);
-    const model = modelManual.style.display === 'block'
-      ? modelManual.value.trim()
-      : modelSelect.value.trim();
+    const modelManual = this.element.querySelector('#ob-model-manual') as HTMLInputElement;
+    const modelSelect = this.element.querySelector('#ob-model') as HTMLSelectElement;
+    const model = (modelManual.style.display === 'block' ? modelManual.value.trim() : modelSelect.value.trim());
     const apiKey = (this.element.querySelector('#ob-apikey') as HTMLInputElement).value.trim();
     const maxTurns = parseInt((this.element.querySelector('#ob-maxturns') as HTMLInputElement).value) || 30;
 
@@ -399,7 +403,8 @@ export class OnboardingWizard {
   }
 
   private complete() {
-    const searchProvider = (this.element.querySelector('#ob-search-provider') as HTMLSelectElement).value as 'none' | 'tavily';
+    const searchProvider = (this.element.querySelector('#ob-search-provider') as HTMLSelectElement).value as
+      'none' | 'tavily';
     const searchApiKey = (this.element.querySelector('#ob-search-apikey') as HTMLInputElement).value.trim();
 
     if (searchProvider === 'tavily' && !searchApiKey) {

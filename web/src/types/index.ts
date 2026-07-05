@@ -20,9 +20,7 @@ export interface Message {
   tool_call_id?: string; // for role: 'tool'
 }
 
-export type MessageContentPart =
-  | { type: 'text'; text: string }
-  | { type: 'image_url'; image_url: { url: string } };
+export type MessageContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
 
 export interface ChatAttachment {
   name: string;
@@ -61,15 +59,19 @@ export interface AgentConfig {
 
 export interface ToolContext {
   workspace: string;
-  emit: (event: string, data: any) => void;
-  env: Record<string, any>; // tools may receive memoryStore or other runtime deps
+  emit: (event: string, data: Record<string, unknown>) => void;
+  env: Record<string, unknown>;
 }
 
 export interface Tool {
   name: string;
   description: string;
   parameters: ToolSchema['function']['parameters'];
-  handler: (args: any, ctx: ToolContext) => Promise<string>;
+  handler: (args: Record<string, unknown>, ctx: ToolContext) => Promise<string>;
+}
+
+export function isTextContentPart(part: MessageContentPart): part is { type: 'text'; text: string } {
+  return part.type === 'text' && typeof (part as { text?: string }).text === 'string';
 }
 
 // --- Memory ---

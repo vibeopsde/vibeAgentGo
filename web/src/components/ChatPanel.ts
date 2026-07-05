@@ -241,7 +241,7 @@ export class ChatPanel {
     }
   }
 
-  appendToolCall(name: string, args: any) {
+  appendToolCall(name: string, args: Record<string, unknown>) {
     // Finalize any streaming content before tool call
     this.finalizeStream();
 
@@ -309,6 +309,4 @@ export class ChatPanel {
   private scrollToBottom() {
     this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
   }
-
-
 }

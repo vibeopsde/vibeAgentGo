@@ -1,7 +1,7 @@
 // vibeAgentGo Service Worker
 // Keep CACHE_NAME in sync with version.ts / package.json on every release.
 // The build does not auto-inject this value — update it manually before tagging.
-const CACHE_NAME = 'vibeAgentGo-v2607.3.6';
+const CACHE_NAME = 'vibeAgentGo-__VERSION__';
 const ASSETS = ['./index.html', './manifest.json', './logo-192.png', './logo-512.png', './favicon.ico', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {

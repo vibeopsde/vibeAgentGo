@@ -42,25 +42,25 @@ const LANGUAGE_DIRECTIVE: Record<string, string> = {
 
 function buildMemoryBlock(memories: MemoryEntry[]): string {
   if (memories.length === 0) return '';
-  const lines = memories.map(m => `§ ${m.content}`);
+  const lines = memories.map((m) => `§ ${m.content}`);
   return `## Memory (persistent across sessions, stored in browser)\n${lines.join('\n')}`;
 }
 
 function buildUserProfile(profile: MemoryEntry[]): string {
   if (profile.length === 0) return '';
-  const lines = profile.map(p => `§ ${p.content}`);
+  const lines = profile.map((p) => `§ ${p.content}`);
   return `## User Profile\n${lines.join('\n')}`;
 }
 
 function buildSkillsBlock(skills: Skill[]): string {
   if (skills.length === 0) return '';
-  const blocks = skills.map(s => `### Skill: ${s.name}\n${s.description}\n\n${s.content}`);
+  const blocks = skills.map((s) => `### Skill: ${s.name}\n${s.description}\n\n${s.content}`);
   return `## Skills\n${blocks.join('\n\n---\n\n')}`;
 }
 
 function buildToolSchemas(tools: Tool[]): string {
   if (tools.length === 0) return '';
-  const lines = tools.map(t => `- **${t.name}**: ${t.description}`);
+  const lines = tools.map((t) => `- **${t.name}**: ${t.description}`);
   return `## Available Tools\n${lines.join('\n')}`;
 }
 
@@ -103,7 +103,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 }
 
 export function toolsToSchemas(tools: Tool[]): ToolSchema[] {
-  return tools.map(t => ({
+  return tools.map((t) => ({
     type: 'function' as const,
     function: {
       name: t.name,
@@ -117,7 +117,7 @@ export function toolsToSchemas(tools: Tool[]): ToolSchema[] {
 export async function loadSkills(): Promise<Skill[]> {
   const store = new SkillStore();
   const records = await store.listSkills();
-  return records.map(r => ({
+  return records.map((r) => ({
     name: r.name,
     description: r.description,
     content: r.content,

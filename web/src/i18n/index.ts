@@ -84,7 +84,8 @@ const de: Translations = {
   'settings.opencodeExample': 'OpenCode (go/zen): https://opencode.go/zen',
   'settings.ollamaCloudExample': 'Ollama Cloud: https://ollama.cloud/v1',
   'settings.resetData': 'Alle lokalen Daten löschen',
-  'settings.resetConfirm': 'Das löscht alle Sessions, Dateien, Memory-Einträge, Skills und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.',
+  'settings.resetConfirm':
+    'Das löscht alle Sessions, Dateien, Memory-Einträge, Skills und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.',
   'settings.resetCancel': 'Abbrechen',
   'settings.resetConfirmBtn': 'Ja, alles löschen',
   'settings.backup': 'Backup & Wiederherstellen',
@@ -93,7 +94,8 @@ const de: Translations = {
   'settings.import': 'Backup importieren',
   'settings.exportSuccess': 'Backup erfolgreich heruntergeladen',
   'settings.exportError': 'Backup konnte nicht erstellt werden',
-  'settings.importConfirm': 'Dies überschreibt alle aktuellen Daten (Sessions, Memory, Skills, Dateien, Einstellungen). Fortfahren?',
+  'settings.importConfirm':
+    'Dies überschreibt alle aktuellen Daten (Sessions, Memory, Skills, Dateien, Einstellungen). Fortfahren?',
   'settings.importSuccess': 'Backup erfolgreich wiederhergestellt. Seite wird neu geladen.',
   'settings.importError': 'Backup konnte nicht wiederhergestellt werden',
 
@@ -114,7 +116,8 @@ const de: Translations = {
   'onboarding.llmHint': 'Wähle einen Provider oder trage deine Endpunktdaten manuell ein.',
   'onboarding.verifyTitle': 'Verbindung testen',
   'onboarding.verifyHint': 'Wähle ein Modell aus der Liste oder gib es manuell ein.',
-  'onboarding.searchHint': 'Optional: Aktiviere Websuche über Tavily. Du kannst dies später in den Einstellungen ändern.',
+  'onboarding.searchHint':
+    'Optional: Aktiviere Websuche über Tavily. Du kannst dies später in den Einstellungen ändern.',
   'onboarding.apiKeyHint': 'Bei lokalen Endpunkten kann das Feld leer bleiben.',
   'onboarding.manual': 'Manuell',
   'onboarding.verifyFirst': 'Bitte zuerst Verbindung testen',
@@ -122,11 +125,14 @@ const de: Translations = {
   'onboarding.pickModel': 'Modell wählen...',
   'onboarding.noModelsManual': 'Keine Modelle gelistet — manuell eingeben',
   'onboarding.dataSovereigntyTitle': 'Datenhoheit',
-  'onboarding.dataSovereigntyText': 'Alle Sessions, Dateien, Memory und Skills liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen verlassen das Gerät.',
+  'onboarding.dataSovereigntyText':
+    'Alle Sessions, Dateien, Memory und Skills liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen verlassen das Gerät.',
   'onboarding.toolsTitle': 'Tools im Browser',
-  'onboarding.toolsText': 'Dateien lesen/schreiben, Code ausführen, Websuchen, Erinnerungen speichern und interaktive HTML-Views rendern.',
+  'onboarding.toolsText':
+    'Dateien lesen/schreiben, Code ausführen, Websuchen, Erinnerungen speichern und interaktive HTML-Views rendern.',
   'onboarding.openaiTitle': 'OpenAI-kompatibel',
-  'onboarding.openaiText': 'vibeAgentGo spricht mit jedem OpenAI-kompatiblen Endpunkt. OpenAI, Ollama, OpenRouter — du wählst.',
+  'onboarding.openaiText':
+    'vibeAgentGo spricht mit jedem OpenAI-kompatiblen Endpunkt. OpenAI, Ollama, OpenRouter — du wählst.',
   'onboarding.modelList': 'Modelle',
   'onboarding.modelManual': 'Manuelles Modell',
   'onboarding.modelPlaceholder': 'model-id',
@@ -157,7 +163,8 @@ const de: Translations = {
 
   // Skills
   'skills.title': 'Skills',
-  'skills.hint': 'Projekt-Style Skills: Markdown mit Trigger-Wörtern. Passen den System-Prompt an, wenn ein Trigger im Chat fällt.',
+  'skills.hint':
+    'Projekt-Style Skills: Markdown mit Trigger-Wörtern. Passen den System-Prompt an, wenn ein Trigger im Chat fällt.',
   'skills.empty': 'Noch keine Skills. Erstelle einen Skill mit Trigger-Wörtern.',
   'skills.new': 'Neuer Skill',
   'skills.edit': 'Skill bearbeiten',
@@ -258,7 +265,8 @@ const en: Translations = {
   'settings.opencodeExample': 'OpenCode (go/zen): https://opencode.go/zen',
   'settings.ollamaCloudExample': 'Ollama Cloud: https://ollama.cloud/v1',
   'settings.resetData': 'Delete all local data',
-  'settings.resetConfirm': 'This deletes all sessions, files, memories, skills and settings from this browser. Cannot be undone.',
+  'settings.resetConfirm':
+    'This deletes all sessions, files, memories, skills and settings from this browser. Cannot be undone.',
   'settings.resetCancel': 'Cancel',
   'settings.resetConfirmBtn': 'Yes, delete everything',
   'settings.backup': 'Backup & Restore',
@@ -267,7 +275,8 @@ const en: Translations = {
   'settings.import': 'Import backup',
   'settings.exportSuccess': 'Backup downloaded successfully',
   'settings.exportError': 'Could not create backup',
-  'settings.importConfirm': 'This will overwrite all current data (sessions, memory, skills, files, settings). Continue?',
+  'settings.importConfirm':
+    'This will overwrite all current data (sessions, memory, skills, files, settings). Continue?',
   'settings.importSuccess': 'Backup restored successfully. Reloading page.',
   'settings.importError': 'Could not restore backup',
 
@@ -296,11 +305,13 @@ const en: Translations = {
   'onboarding.pickModel': 'Pick model...',
   'onboarding.noModelsManual': 'No models listed — enter manually',
   'onboarding.dataSovereigntyTitle': 'Data sovereignty',
-  'onboarding.dataSovereigntyText': 'All sessions, files, memories and skills stay in your browser (IndexedDB). Only LLM requests leave the device.',
+  'onboarding.dataSovereigntyText':
+    'All sessions, files, memories and skills stay in your browser (IndexedDB). Only LLM requests leave the device.',
   'onboarding.toolsTitle': 'Browser tools',
   'onboarding.toolsText': 'Read/write files, run code, web search, save memories, and render interactive HTML views.',
   'onboarding.openaiTitle': 'OpenAI-compatible',
-  'onboarding.openaiText': 'vibeAgentGo talks to any OpenAI-compatible endpoint. OpenAI, Ollama, OpenRouter — your choice.',
+  'onboarding.openaiText':
+    'vibeAgentGo talks to any OpenAI-compatible endpoint. OpenAI, Ollama, OpenRouter — your choice.',
   'onboarding.modelList': 'Models',
   'onboarding.modelManual': 'Manual model',
   'onboarding.modelPlaceholder': 'model-id',
@@ -331,7 +342,8 @@ const en: Translations = {
 
   // Skills
   'skills.title': 'Skills',
-  'skills.hint': 'Project-style skills: Markdown with trigger words. They adapt the system prompt when a trigger appears in chat.',
+  'skills.hint':
+    'Project-style skills: Markdown with trigger words. They adapt the system prompt when a trigger appears in chat.',
   'skills.empty': 'No skills yet. Create a skill with trigger words.',
   'skills.new': 'New Skill',
   'skills.edit': 'Edit Skill',

@@ -2,7 +2,7 @@
 // vibeAgentGo — SettingsModal (client-side, localStorage config)
 // ============================================================
 
-import { loadConfig, saveConfig, hasApiKey, resetLocalData } from '../core/memory.js';
+import { loadConfig, saveConfig, resetLocalData } from '../core/memory.js';
 import { BackupManager } from '../core/backup.js';
 import { testConnection } from '../core/llm_client.js';
 import { PROVIDER_PRESETS, findPresetByUrlAndModel, findPresetByKey } from '../core/presets.js';
@@ -52,7 +52,10 @@ export class SettingsModal {
     const theme = getTheme();
     const initialPreset = findPresetByUrlAndModel(config.baseUrl, config.model);
     const languageOptions = getAvailableLanguages()
-      .map(l => `<option value="${l.value}" ${config.language === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`)
+      .map(
+        (l) =>
+          `<option value="${l.value}" ${config.language === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`
+      )
       .join('');
 
     this.modal.innerHTML = `
@@ -73,7 +76,7 @@ export class SettingsModal {
         <label for="cfg-provider">${t('settings.provider')}</label>
         <select id="cfg-provider">
           <option value="custom" ${!initialPreset ? 'selected' : ''}>${t('settings.custom')}</option>
-          ${PROVIDER_PRESETS.map(p => `<option value="${p.key}" ${initialPreset?.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
+          ${PROVIDER_PRESETS.map((p) => `<option value="${p.key}" ${initialPreset?.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
         </select>
         <p class="field-hint">${t('settings.providerHint')}</p>
       </div>
@@ -195,13 +198,13 @@ export class SettingsModal {
   private testConnection() {
     const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value.trim();
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value.trim();
-    const modelInput = (this.modal.querySelector('#cfg-model') as HTMLInputElement);
+    const modelInput = this.modal.querySelector('#cfg-model') as HTMLInputElement;
     const resultEl = this.modal.querySelector('#cfg-test-result') as HTMLElement;
 
     resultEl.textContent = t('common.loading');
     resultEl.className = 'test-result test-pending';
 
-    testConnection({ baseUrl, apiKey }).then(res => {
+    testConnection({ baseUrl, apiKey }).then((res) => {
       if (res.ok) {
         const list = res.models.length ? `\n${res.models.slice(0, 10).join('\n')}` : t('onboarding.modelList');
         resultEl.textContent = `✅ ${t('settings.connectionSuccess')}. ${res.models.length} ${t('onboarding.modelList')}.\n${list}`;
@@ -218,19 +221,21 @@ export class SettingsModal {
   }
 
   private save() {
-    const model = (this.modal.querySelector('#cfg-model') as HTMLInputElement).value;
-    const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value;
-    const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value;
+    const model = (this.modal.querySelector('#cfg-model') as HTMLInputElement).value.trim();
+    const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value.trim();
+    const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value.trim();
     const maxTurns = parseInt((this.modal.querySelector('#cfg-maxturns') as HTMLInputElement).value);
     const language = (this.modal.querySelector('#cfg-language') as HTMLSelectElement).value as 'de' | 'en';
-    const searchProvider = (this.modal.querySelector('#cfg-search-provider') as HTMLSelectElement).value as 'none' | 'tavily';
-    const searchApiKey = (this.modal.querySelector('#cfg-search-apikey') as HTMLInputElement).value;
+    const searchProvider = (this.modal.querySelector('#cfg-search-provider') as HTMLSelectElement).value as
+      'none' | 'tavily';
+    const searchApiKey = (this.modal.querySelector('#cfg-search-apikey') as HTMLInputElement).value.trim();
     const theme = (this.modal.querySelector('#cfg-theme') as HTMLSelectElement).value as ThemeMode;
 
     setLanguage(language);
     setTheme(theme);
     saveConfig({ model, baseUrl, apiKey, maxTurns, language, searchProvider, searchApiKey });
     this.close();
+    window.location.reload();
   }
 
   private async exportBackup(includeApiKeys: boolean) {
