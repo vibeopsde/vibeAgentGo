@@ -1,5 +1,5 @@
 {
-  "name": "vibeAgentGo — Hermes Agent Go",
+  "name": "vibeAgentGo",
   "short_name": "vibeAgentGo",
   "description": "AI Agent with memory, skills, and render_view",
   "start_url": "./",

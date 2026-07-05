@@ -225,7 +225,7 @@ export class Agent {
 
       this.emit('done', { sessionId: id });
 
-      // Extract durable memories asynchronously (Hermes-style)
+      // Extract durable memories asynchronously for future sessions
       this.extractMemoryFromConversation(history, config).catch(() => {});
 
       return response.content;

@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "keywords": [
-    "hermes",
+    "ai-agent",
     "agent",
     "pwa",
     "mobile",

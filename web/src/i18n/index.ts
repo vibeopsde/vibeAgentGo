@@ -7,7 +7,7 @@ interface Translations {
 const de: Translations = {
   // Common
   'app.title': 'vibeAgentGo',
-  'app.tagline': 'Hermes Agent Go',
+  'app.tagline': 'vibeAgentGo',
   'common.save': 'Speichern',
   'common.cancel': 'Abbrechen',
   'common.close': 'Schließen',
@@ -100,7 +100,7 @@ const de: Translations = {
   // Onboarding
   'onboarding.welcome': 'Willkommen bei vibeAgentGo',
   'onboarding.restore': 'Wiederherstellen',
-  'onboarding.subtitle': 'Hermes Agent Go — dein KI-Agent, der komplett im Browser läuft.',
+  'onboarding.subtitle': 'vibeAgentGo — dein KI-Agent, der komplett im Browser läuft.',
   'onboarding.next': 'Weiter',
   'onboarding.back': 'Zurück',
   'onboarding.finish': 'vibeAgentGo starten',
@@ -181,14 +181,13 @@ const de: Translations = {
 const en: Translations = {
   // Common
   'app.title': 'vibeAgentGo',
-  'app.tagline': 'Hermes Agent Go',
+  'app.tagline': 'vibeAgentGo',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.close': 'Close',
   'common.delete': 'Delete',
   'common.add': 'Add',
   'common.loading': 'Loading...',
-  'common.edit': 'Edit',
   'common.error': 'Error',
   'common.success': 'Success',
   'common.retry': 'Retry',
@@ -203,6 +202,7 @@ const en: Translations = {
   'common.send': 'Send',
   'common.thinking': 'Thinking...',
   'common.idle': 'Ready',
+  'common.edit': 'Edit',
   'common.disconnected': 'Disconnected',
   'common.connected': 'Connected',
 
@@ -225,6 +225,7 @@ const en: Translations = {
   'chat.user': 'You',
   'chat.maxTurns': 'Maximum turns reached.',
   'chat.aborted': 'Aborted.',
+
   // Settings
   'settings.title': 'Settings',
   'settings.llm': 'LLM Configuration',
@@ -274,7 +275,7 @@ const en: Translations = {
   // Onboarding
   'onboarding.welcome': 'Welcome to vibeAgentGo',
   'onboarding.restore': 'Restore',
-  'onboarding.subtitle': 'Hermes Agent Go — your AI agent that runs entirely in the browser.',
+  'onboarding.subtitle': 'vibeAgentGo — your AI agent that runs entirely in the browser.',
   'onboarding.next': 'Next',
   'onboarding.back': 'Back',
   'onboarding.finish': 'Start vibeAgentGo',
