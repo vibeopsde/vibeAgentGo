@@ -15,9 +15,21 @@ export interface ToolCall {
 
 export interface Message {
   role: Role;
-  content: string;
+  content: string | MessageContentPart[];
   tool_calls?: ToolCall[];
   tool_call_id?: string; // for role: 'tool'
+}
+
+export type MessageContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
+export interface ChatAttachment {
+  name: string;
+  type: 'image' | 'text' | 'pdf' | 'binary';
+  content: string; // base64 data URL for images/pdf; text for text files
+  size: number;
+  mime: string;
 }
 
 export interface ToolSchema {

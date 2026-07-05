@@ -5,14 +5,7 @@
 import { renderMarkdown } from '../utils/markdown.js';
 import { escapeHtml } from '../utils/escape.js';
 import { t } from '../i18n/index.js';
-
-export interface ChatAttachment {
-  name: string;
-  type: 'image' | 'text' | 'pdf' | 'binary';
-  content: string; // base64 for images, text for text files
-  size: number;
-  mime: string;
-}
+import type { ChatAttachment } from '../types/index.js';
 
 export class ChatPanel {
   element: HTMLElement;
@@ -107,13 +100,12 @@ export class ChatPanel {
     if (!files.length) return;
 
     for (const file of files) {
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
         if (!result) return;
-        const isImage = file.type.startsWith('image/');
-        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-        const isText = !isImage && !isPdf;
         const attachment: ChatAttachment = {
           name: file.name,
           type: isImage ? 'image' : isPdf ? 'pdf' : 'text',
@@ -125,7 +117,7 @@ export class ChatPanel {
         this.renderAttachments();
       };
 
-      if (file.type.startsWith('image/')) {
+      if (isImage || isPdf) {
         reader.readAsDataURL(file);
       } else {
         reader.readAsText(file);

@@ -5,7 +5,8 @@
 
 import './styles/app.css';
 import { initTheme, toggleTheme } from './core/theme.js';
-import { ChatPanel, type ChatAttachment } from './components/ChatPanel.js';
+import { ChatPanel } from './components/ChatPanel.js';
+import type { ChatAttachment } from './types/index.js';
 import { RenderPanel } from './components/RenderPanel.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { MemoryPanel } from './components/MemoryPanel.js';
@@ -138,7 +139,8 @@ async function resumeSession(sessionId: string) {
     if (session) {
       for (const msg of session.messages) {
         if (msg.role === 'user') {
-          chatPanel.appendUser(msg.content);
+          const userText = typeof msg.content === 'string' ? msg.content : msg.content.filter(c => c.type === 'text').map(c => (c as any).text).join('\n');
+          chatPanel.appendUser(userText as string);
         } else if (msg.role === 'assistant') {
           if (msg.tool_calls && msg.tool_calls.length > 0) {
             for (const tc of msg.tool_calls) {
@@ -147,10 +149,11 @@ async function resumeSession(sessionId: string) {
               chatPanel.appendToolCall(tc.function.name, args);
             }
           } else if (msg.content) {
-            chatPanel.appendAssistant(msg.content);
+            const assistantText = typeof msg.content === 'string' ? msg.content : msg.content.filter(c => c.type === 'text').map(c => (c as any).text).join('');
+            chatPanel.appendAssistant(assistantText as string);
           }
         } else if (msg.role === 'tool') {
-          chatPanel.appendToolMessage(msg.tool_call_id || '', msg.content);
+          chatPanel.appendToolMessage(msg.tool_call_id || '', String(msg.content));
         }
       }
     }

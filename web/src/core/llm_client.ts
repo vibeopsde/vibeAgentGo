@@ -38,7 +38,10 @@ export async function llmChatStream(opts: {
 
   const body: any = {
     model: opts.model,
-    messages: opts.messages,
+    messages: opts.messages.map(m => ({
+      ...m,
+      content: typeof m.content === 'string' && !m.content ? null : m.content,
+    })),
     stream: true,
   };
 

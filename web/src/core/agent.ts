@@ -2,13 +2,12 @@
 // vibeAgentGo — Browser Agent Loop (no server, direct LLM calls)
 // ============================================================
 
-import type { Message, Tool, ToolContext, LLMResponse, AgentConfig } from '../types/index.js';
+import type { Message, Tool, ToolContext, LLMResponse, AgentConfig, ChatAttachment } from '../types/index.js';
 import { llmChatStream } from './llm_client.js';
 import { buildSystemPrompt, toolsToSchemas, loadSkills, type PromptContext } from './prompt_builder.js';
 import { MemoryStore } from './memory.js';
 import { randomUUID } from './uuid.js';
 import { filterSkillsByTrigger } from './skill_parser.js';
-import type { ChatAttachment } from '../components/ChatPanel.js';
 
 export interface AgentEventMap {
   'message': { role: string; content: string };
@@ -82,7 +81,7 @@ export class Agent {
     this.sessionId = sessionId || this.sessionId || null;
     this.abortController = new AbortController();
 
-    // Save text files into workspace so the agent can read them with read_file
+    // Save text files and PDFs into workspace so the agent can read them with read_file / read_pdf
     for (const a of attachments) {
       if (a.type === 'text' || a.type === 'pdf') {
         await this.memory.writeFile(a.name, a.content);
@@ -103,20 +102,26 @@ export class Agent {
     const allSkills = await loadSkills();
     const skills = filterSkillsByTrigger(allSkills, userMessage, true);
 
-    // Build the user message with attachment references and inline images
-    let enrichedUserMessage = userMessage;
+    // Build the user message content parts
+    const userContentParts: Message['content'] = [];
+    if (userMessage.trim()) {
+      userContentParts.push({ type: 'text', text: userMessage.trim() });
+    }
     if (attachments.length > 0) {
-      const imageParts = attachments
-        .filter(a => a.type === 'image')
-        .map(a => `Image attachment: ${a.name}\n![${a.name}](${a.content})`);
       const fileParts = attachments
         .filter(a => a.type === 'text' || a.type === 'pdf')
-        .map(a => `File attached: ${a.name} (saved to workspace). Use read_file to read it.`);
-      const parts = [...(imageParts.length ? imageParts : []), ...(fileParts.length ? fileParts : [])];
-      if (parts.length) {
-        enrichedUserMessage = userMessage + '\n\n' + parts.join('\n\n');
+        .map(a => `File attached: ${a.name} (saved to workspace). Use read_file or read_pdf to read it.`);
+      if (fileParts.length) {
+        userContentParts.push({ type: 'text', text: fileParts.join('\n') });
       }
+      const imageParts = attachments
+        .filter(a => a.type === 'image')
+        .map(a => ({ type: 'image_url' as const, image_url: { url: a.content } }));
+      userContentParts.push(...imageParts);
     }
+    const finalUserContent = userContentParts.length === 1 && userContentParts[0].type === 'text'
+      ? userContentParts[0].text
+      : userContentParts;
 
     // Build system prompt
     const promptCtx: PromptContext = {
@@ -135,7 +140,7 @@ export class Agent {
     } else {
       history[0] = { role: 'system', content: systemPrompt };
     }
-    history.push({ role: 'user', content: enrichedUserMessage });
+    history.push({ role: 'user', content: finalUserContent });
 
     const toolSchemas = toolsToSchemas(this.tools);
     const ctx = this.buildToolContext();
@@ -208,9 +213,11 @@ export class Agent {
       this.sessionId = id;
       const existing = await this.memory.getSession(id);
       const existingTitle = existing?.title;
+      const firstUser = history.find(m => m.role === 'user')?.content;
+      const firstUserText = typeof firstUser === 'string' ? firstUser : firstUser?.filter(c => c.type === 'text').map(c => (c as any).text).join(' ');
       await this.memory.saveSession({
         id,
-        title: existingTitle || history.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Untitled',
+        title: existingTitle || firstUserText?.slice(0, 50) || 'Untitled',
         messages: history,
         created_at: existing?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -264,7 +271,10 @@ Rules:
 - Do NOT save generic filler like greetings or the user asking for help.
 - If there are no new durable facts, return {"memories": []}.
 - Each memory entry should be 1 concise sentence, not longer than 200 characters.` },
-      { role: 'user', content: 'Conversation:\n\n' + history.map(m => `${m.role}: ${m.content || ''}`).join('\n\n') },
+      { role: 'user', content: 'Conversation:\n\n' + history.map(m => {
+        const text = typeof m.content === 'string' ? m.content : m.content.filter(c => c.type === 'text').map(c => (c as any).text).join(' ');
+        return `${m.role}: ${text}`;
+      }).join('\n\n') },
     ];
 
     try {

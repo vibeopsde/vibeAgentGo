@@ -27,7 +27,7 @@ const getMemoryStore = (ctx: ToolContext): MemoryStore => ctx.env.memoryStore as
 
 const read_file: Tool = {
   name: 'read_file',
-  description: 'Read the contents of a file from the browser workspace (IndexedDB). Returns the file content as a string.',
+  description: 'Read the contents of a text file from the browser workspace (IndexedDB). Returns the file content as a string.',
   parameters: {
     type: 'object',
     properties: {
@@ -40,6 +40,40 @@ const read_file: Tool = {
     const content = await mem.readFile(args.path);
     if (content === null) return `File not found: ${args.path}`;
     return content;
+  },
+};
+
+const read_pdf: Tool = {
+  name: 'read_pdf',
+  description: 'Extract text content from a PDF file in the browser workspace (IndexedDB). Returns the extracted text. If the PDF is a scanned image, text extraction may be limited.',
+  parameters: {
+    type: 'object',
+    properties: {
+      path: { type: 'string', description: 'Relative path to the PDF file within the workspace' },
+    },
+    required: ['path'],
+  },
+  handler: async (args, ctx) => {
+    const mem = getMemoryStore(ctx);
+    const content = await mem.readFile(args.path);
+    if (content === null) return `File not found: ${args.path}`;
+    try {
+      const pdfjs = await import('pdfjs-dist');
+      const pdfjsLib = pdfjs.default || pdfjs;
+      const base64 = content.startsWith('data:') ? content.split(',')[1] : content;
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+      let text = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const contentItems = await page.getTextContent();
+        const pageText = contentItems.items.map((item: any) => item.str).join(' ');
+        text += `\n\n--- Page ${i} ---\n\n${pageText}`;
+      }
+      return text.trim() || 'No text found in PDF.';
+    } catch (e: any) {
+      return `PDF extraction error: ${e.message || String(e)}`;
+    }
   },
 };
 
@@ -490,5 +524,5 @@ const inspect_view: Tool = {
 // --- Registry ---
 
 export function createDefaultTools(): Tool[] {
-  return [read_file, write_file, search_files, run_code, web_search, memory_save, memory_search, state_view, state_update, render_view, inspect_view];
+  return [read_file, read_pdf, write_file, search_files, run_code, web_search, memory_save, memory_search, state_view, state_update, render_view, inspect_view];
 }
