@@ -75,9 +75,9 @@ export class OnboardingWizard {
         </div>
 
         <div class="onboarding-actions">
-          <button id="onboarding-restore" class="btn btn-secondary btn-large">${t('onboarding.restore')}</button>
           <button id="onboarding-next" class="btn btn-primary btn-large">${t('onboarding.next')}</button>
         </div>
+        <button id="onboarding-restore" class="onboarding-restore-link">${t('onboarding.restore')}</button>
         <input id="onboarding-restore-file" type="file" accept=".zip" style="display:none;" />
         <div id="onboarding-restore-result" class="test-result" style="margin-top:12px;"></div>
       </div>
