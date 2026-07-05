@@ -100,13 +100,19 @@ export function updateState(
 
   if (updates.tasks) {
     for (const t of updates.tasks) {
+      const normalizedStatus: TaskStatus = isValidTaskStatus(t.status || '') ? (t.status as TaskStatus) : 'open';
       if (t.id && next.tasks.some(existing => existing.id === t.id)) {
-        next.tasks = next.tasks.map(existing => (existing.id === t.id ? { ...existing, ...t } as ProjectTask : existing));
+        const update: ProjectTask = { ...next.tasks.find(existing => existing.id === t.id)! };
+        if (t.title !== undefined) update.title = t.title;
+        update.status = normalizedStatus;
+        if (t.depends_on !== undefined) update.depends_on = t.depends_on;
+        if (t.notes !== undefined) update.notes = t.notes;
+        next.tasks = next.tasks.map(existing => (existing.id === t.id ? update : existing));
       } else if (t.title) {
         next.tasks.push({
           id: t.id || generateId(),
           title: t.title,
-          status: t.status || 'open',
+          status: normalizedStatus,
           depends_on: t.depends_on || [],
           notes: t.notes || '',
         } as ProjectTask);
@@ -116,14 +122,21 @@ export function updateState(
 
   if (updates.open_issues) {
     for (const i of updates.open_issues) {
+      const normalizedSeverity = isValidIssueSeverity(i.severity || '') ? (i.severity as 'low' | 'medium' | 'high') : 'medium';
+      const normalizedIssueStatus = isValidIssueStatus(i.status || '') ? (i.status as 'open' | 'closed') : 'open';
       if (i.id && next.open_issues.some(existing => existing.id === i.id)) {
-        next.open_issues = next.open_issues.map(existing => (existing.id === i.id ? { ...existing, ...i } as ProjectIssue : existing));
+        const update: ProjectIssue = { ...next.open_issues.find(existing => existing.id === i.id)! };
+        if (i.title !== undefined) update.title = i.title;
+        update.severity = normalizedSeverity;
+        update.status = normalizedIssueStatus;
+        if (i.notes !== undefined) update.notes = i.notes;
+        next.open_issues = next.open_issues.map(existing => (existing.id === i.id ? update : existing));
       } else if (i.title) {
         next.open_issues.push({
           id: i.id || generateId(),
           title: i.title,
-          severity: i.severity || 'medium',
-          status: i.status || 'open',
+          severity: normalizedSeverity,
+          status: normalizedIssueStatus,
           notes: i.notes || '',
         } as ProjectIssue);
       }

@@ -180,9 +180,10 @@ export class Agent {
       // Save session
       const id = this.sessionId || randomUUID().slice(0, 8);
       this.sessionId = id;
+      const existingTitle = (await this.memory.getSession(id))?.title;
       await this.memory.saveSession({
         id,
-        title: history.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Untitled',
+        title: existingTitle || history.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Untitled',
         messages: history,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

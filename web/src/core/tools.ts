@@ -5,6 +5,7 @@
 import type { Tool, ToolContext } from '../types/index.js';
 import { MemoryStore, loadConfig } from './memory.js';
 import { runInSandbox } from '../utils/sandbox.js';
+import { escapeHtml } from '../utils/escape.js';
 import {
   loadState,
   saveState,
@@ -422,15 +423,6 @@ function renderStateDashboard(state: any): string {
   <ul>${fileItems || '<li style="color:#7d8590">No files tracked</li>'}</ul>
 </body>
 </html>`;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 interface RenderPanelLike {

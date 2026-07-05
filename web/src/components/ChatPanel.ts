@@ -154,7 +154,7 @@ export class ChatPanel {
     // Finalize any streaming content before tool call
     this.finalizeStream();
 
-    const argStr = Object.keys(args).length > 0 ? JSON.stringify(args).slice(0, 120) : '';
+    const argStr = Object.keys(args).length > 0 ? escapeHtml(JSON.stringify(args).slice(0, 120)) : '';
     const el = document.createElement('details');
     el.className = 'msg msg-tool';
     el.innerHTML = `

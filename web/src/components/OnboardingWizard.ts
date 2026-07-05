@@ -149,7 +149,7 @@ export class OnboardingWizard {
 
         <div class="form-group">
           <label for="ob-maxtokens">Max Response Tokens</label>
-          <input id="ob-maxtokens" type="number" value="${this.config.maxTokens}" min="256" max="65536" step="256" />
+          <input id="ob-maxtokens" type="number" value="${this.config.maxTokens}" min="0" max="65536" step="256" />
           <p class="field-hint">Limits how many tokens the model may generate per turn. Lower = faster, cheaper answers. 0 = unlimited.</p>
         </div>
 

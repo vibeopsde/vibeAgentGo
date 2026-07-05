@@ -8,17 +8,17 @@ import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 import { escapeHtml } from '../utils/escape.js';
 
 const PRESETS = {
-  'openrouter': {
-    model: 'moonshotai/kimi-k2.7-code',
-    baseUrl: 'https://openrouter.ai/api/v1',
-  },
-  'lm-studio': {
-    model: 'qwen/qwen3.6-35b-a3b',
-    baseUrl: 'https://ki.vibeops.de/v1',
-  },
   'openai': {
     model: 'gpt-4o-mini',
     baseUrl: 'https://api.openai.com/v1',
+  },
+  'openrouter': {
+    model: '',
+    baseUrl: 'https://openrouter.ai/api/v1',
+  },
+  'ollama': {
+    model: 'llama3.2',
+    baseUrl: 'http://localhost:11434/v1',
   },
 };
 
@@ -77,9 +77,9 @@ export class SettingsModal {
         <label for="cfg-provider">Provider Preset</label>
         <select id="cfg-provider">
           <option value="custom" ${!initialPreset ? 'selected' : ''}>Benutzerdefiniert</option>
-          <option value="openrouter" ${initialPreset === 'openrouter' ? 'selected' : ''}>OpenRouter</option>
-          <option value="lm-studio" ${initialPreset === 'lm-studio' ? 'selected' : ''}>Mac Studio (LM Studio)</option>
           <option value="openai" ${initialPreset === 'openai' ? 'selected' : ''}>OpenAI</option>
+          <option value="openrouter" ${initialPreset === 'openrouter' ? 'selected' : ''}>OpenRouter</option>
+          <option value="ollama" ${initialPreset === 'ollama' ? 'selected' : ''}>Ollama (lokal)</option>
         </select>
         <p class="field-hint">Preset trägt Modell + Base URL ein. API Key musst du selbst einfügen.</p>
       </div>
@@ -101,7 +101,7 @@ export class SettingsModal {
       </div>
       <div class="form-group">
         <label for="cfg-maxtokens">Max Response Tokens</label>
-        <input id="cfg-maxtokens" type="number" value="${config.maxTokens}" min="256" max="65536" step="256" />
+        <input id="cfg-maxtokens" type="number" value="${config.maxTokens}" min="0" max="65536" step="256" />
         <p class="field-hint">Limits how many tokens the model may generate per turn. Lower = faster, cheaper answers. 0 = unlimited.</p>
       </div>
       <h3>🔍 Search Provider</h3>
@@ -139,9 +139,9 @@ export class SettingsModal {
         <p><strong>Provider:</strong> Jeder OpenAI-kompatible Endpoint mit CORS funktioniert.</p>
         <p><strong>Beispiele:</strong></p>
         <ul>
-          <li>Mac Studio: <code>https://ki.vibeops.de/v1</code></li>
-          <li>OpenRouter: <code>https://openrouter.ai/api/v1</code></li>
           <li>OpenAI: <code>https://api.openai.com/v1</code></li>
+          <li>OpenRouter: <code>https://openrouter.ai/api/v1</code></li>
+          <li>Ollama (lokal): <code>http://localhost:11434/v1</code></li>
         </ul>
       </div>
     `;
