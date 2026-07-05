@@ -32,10 +32,12 @@ Stored in `localStorage` (never sent to any server):
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| Model | `qwen/qwen3.6-35b-a3b` | OpenAI-compatible model id |
-| Base URL | `https://ki.vibeops.de/v1` | OpenAI-compatible endpoint (must allow CORS) |
+| Model | `gpt-4o` | OpenAI-compatible model id |
+| Base URL | `https://api.openai.com/v1` | OpenAI-compatible endpoint (must allow CORS) |
 | API Key | — | Your endpoint key |
 | Max Turns | 30 | Loop safety limit |
+
+On first launch the onboarding wizard lets you pick a preset or enter your own endpoint. Presets include OpenAI, OpenRouter, and Ollama (local).
 
 ## Architecture
 
@@ -66,7 +68,7 @@ web/
 | `write_file` | Write a file to the IndexedDB workspace |
 | `search_files` | Search filenames or contents in the workspace |
 | `run_code` | Execute JS in a sandboxed iframe (`srcdoc` + `sandbox="allow-scripts"`) |
-| `web_search` | Web search via configured provider (Tavily, CORS-dependent) |
+| `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `render_view` | Render HTML as a live view in the iframe panel |
 
