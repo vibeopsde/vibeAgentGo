@@ -20,7 +20,6 @@ describe('loadConfig', () => {
       baseUrl: 'https://old.example.com',
       apiKey: 'old-key',
       maxTurns: 20,
-      maxTokens: 2048,
       // language intentionally missing
     }));
     const config = loadConfig();

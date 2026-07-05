@@ -107,11 +107,6 @@ export class SettingsModal {
         <label for="cfg-maxturns">${t('settings.maxTurns')}</label>
         <input id="cfg-maxturns" type="number" value="${config.maxTurns}" min="1" max="100" />
       </div>
-      <div class="form-group">
-        <label for="cfg-maxtokens">${t('settings.maxTokens')}</label>
-        <input id="cfg-maxtokens" type="number" value="${config.maxTokens}" min="0" max="65536" step="256" />
-        <p class="field-hint">${t('settings.maxTokensHint')}</p>
-      </div>
       <h3>🔍 ${t('settings.search')}</h3>
       <div class="form-group">
         <label for="cfg-search-provider">${t('settings.provider')}</label>
@@ -192,7 +187,12 @@ export class SettingsModal {
 
   private findPreset(baseUrl: string, model: string): string | null {
     for (const [key, preset] of Object.entries(PRESETS)) {
-      if (preset.baseUrl === baseUrl && preset.model === model) return key;
+      if (preset.baseUrl !== baseUrl) continue;
+      if (preset.model === '') {
+        // Generic endpoint: accept any model that matches the base URL
+        return key;
+      }
+      if (preset.model === model) return key;
     }
     return null;
   }
@@ -222,8 +222,6 @@ export class SettingsModal {
     const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value;
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value;
     const maxTurns = parseInt((this.modal.querySelector('#cfg-maxturns') as HTMLInputElement).value);
-    const maxTokensInput = (this.modal.querySelector('#cfg-maxtokens') as HTMLInputElement).value;
-    const maxTokens = maxTokensInput.trim() === '' ? 0 : Math.max(0, parseInt(maxTokensInput) || 0);
     const language = (this.modal.querySelector('#cfg-language') as HTMLSelectElement).value as 'de' | 'en';
     const searchProvider = (this.modal.querySelector('#cfg-search-provider') as HTMLSelectElement).value as 'none' | 'tavily';
     const searchApiKey = (this.modal.querySelector('#cfg-search-apikey') as HTMLInputElement).value;
@@ -231,7 +229,7 @@ export class SettingsModal {
 
     setLanguage(language);
     setTheme(theme);
-    saveConfig({ model, baseUrl, apiKey, maxTurns, maxTokens, language, searchProvider, searchApiKey });
+    saveConfig({ model, baseUrl, apiKey, maxTurns, language, searchProvider, searchApiKey });
     this.close();
   }
 }

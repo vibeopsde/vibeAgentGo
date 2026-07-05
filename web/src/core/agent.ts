@@ -125,7 +125,6 @@ export class Agent {
           model: config.model,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
-          maxTokens: config.maxTokens,
           onDelta: (delta) => this.emit('stream_delta', { delta }),
           signal: this.abortController.signal,
         });
@@ -181,12 +180,13 @@ export class Agent {
       // Save session
       const id = this.sessionId || randomUUID().slice(0, 8);
       this.sessionId = id;
-      const existingTitle = (await this.memory.getSession(id))?.title;
+      const existing = await this.memory.getSession(id);
+      const existingTitle = existing?.title;
       await this.memory.saveSession({
         id,
         title: existingTitle || history.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Untitled',
         messages: history,
-        created_at: new Date().toISOString(),
+        created_at: existing?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
 

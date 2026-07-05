@@ -44,7 +44,6 @@ export interface AgentConfig {
   baseUrl: string;
   apiKey: string;
   maxTurns: number;
-  maxTokens: number;
   language: 'de' | 'en';
 }
 

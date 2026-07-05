@@ -208,7 +208,7 @@ export class ChatPanel {
   }
 
   setTurn(turn: number, total: number) {
-    this.statusEl.textContent = `Runde ${turn}/${total}`;
+    this.statusEl.textContent = `${t('common.turn')} ${turn}/${total}`;
   }
 
   setConnectionStatus(connected: boolean) {

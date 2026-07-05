@@ -216,7 +216,6 @@ export interface ClientConfig {
   baseUrl: string;
   apiKey: string;
   maxTurns: number;
-  maxTokens: number;
   language: 'de' | 'en';
   searchProvider: 'none' | 'tavily';
   searchApiKey: string;
@@ -234,12 +233,15 @@ export function loadConfig(): ClientConfig {
     baseUrl: '',
     apiKey: '',
     maxTurns: 30,
-    maxTokens: 4096,
     language: defaultLanguage,
     searchProvider: 'none',
     searchApiKey: '',
   };
-  const config: ClientConfig = { ...DEFAULT_CONFIG, ...parsed };
+  // Strip legacy keys from old stored configs (e.g. maxTokens was removed in V2607.1.9)
+  const stripped: Partial<ClientConfig> = parsed || {};
+  delete (stripped as any).maxTokens;
+
+  const config: ClientConfig = { ...DEFAULT_CONFIG, ...stripped };
   // Normalize language to a valid value for old/invalid configs
   config.language = config.language === 'en' ? 'en' : 'de';
   return config;

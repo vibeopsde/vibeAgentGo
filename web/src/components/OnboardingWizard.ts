@@ -167,6 +167,7 @@ export class OnboardingWizard {
         <div class="form-group">
           <label for="ob-baseurl">${t('settings.baseUrl')}</label>
           <input id="ob-baseurl" type="text" value="${escapeHtml(this.config.baseUrl)}" placeholder="https://api.example.com/v1" />
+          <p class="field-hint">${t('onboarding.apiKeyHint')}</p>
         </div>
 
         <div class="form-group">
@@ -191,12 +192,6 @@ export class OnboardingWizard {
           <input id="ob-maxturns" type="number" value="${this.config.maxTurns}" min="1" max="100" />
         </div>
 
-        <div class="form-group">
-          <label for="ob-maxtokens">${t('settings.maxTokens')}</label>
-          <input id="ob-maxtokens" type="number" value="${this.config.maxTokens}" min="0" max="65536" step="256" />
-          <p class="field-hint">${t('settings.maxTokensHint')}</p>
-        </div>
-
         <div id="ob-test-result" class="test-result"></div>
 
         <div class="onboarding-actions">
@@ -216,7 +211,9 @@ export class OnboardingWizard {
     const resultEl = this.element.querySelector('#ob-test-result') as HTMLElement;
 
     const updateVerifyButton = () => {
-      const canVerify = baseUrlInput.value.trim().length > 0 && apiKeyInput.value.trim().length > 0;
+      // Ollama and some local endpoints don't require an API key; baseUrl is enough.
+      const isLocal = baseUrlInput.value.trim().includes('localhost') || baseUrlInput.value.trim().includes('127.0.0.1');
+      const canVerify = baseUrlInput.value.trim().length > 0 && (isLocal || apiKeyInput.value.trim().length > 0);
       verifyBtn.disabled = !canVerify;
     };
     baseUrlInput.addEventListener('input', updateVerifyButton);
@@ -227,7 +224,18 @@ export class OnboardingWizard {
       const preset = PRESETS.find(p => p.name === presetSelect.value);
       if (preset) {
         baseUrlInput.value = preset.baseUrl;
+        apiKeyInput.value = '';
         apiKeyInput.placeholder = preset.apiKeyPlaceholder;
+        if (preset.model) {
+          // When no model field is present yet, auto-fill from preset to streamline setup
+          const modelSelect = this.element.querySelector('#ob-model') as HTMLSelectElement;
+          const modelManual = this.element.querySelector('#ob-model-manual') as HTMLInputElement;
+          if (modelSelect && !modelSelect.value && modelSelect.disabled) {
+            modelManual.style.display = 'block';
+            modelManual.value = preset.model;
+            modelSelect.style.display = 'none';
+          }
+        }
       }
       updateVerifyButton();
     });
@@ -365,15 +373,13 @@ export class OnboardingWizard {
       : modelSelect.value.trim();
     const apiKey = (this.element.querySelector('#ob-apikey') as HTMLInputElement).value.trim();
     const maxTurns = parseInt((this.element.querySelector('#ob-maxturns') as HTMLInputElement).value) || 30;
-    const maxTokensInput = (this.element.querySelector('#ob-maxtokens') as HTMLInputElement).value;
-    const maxTokens = maxTokensInput.trim() === '' ? 0 : Math.max(0, parseInt(maxTokensInput) || 0);
 
     if (!baseUrl || !model) {
       alert(t('error.noModel') + ' / ' + t('error.noBaseUrl'));
       return;
     }
 
-    this.config = saveConfig({ ...this.config, baseUrl, model, apiKey, maxTurns, maxTokens });
+    this.config = saveConfig({ ...this.config, baseUrl, model, apiKey, maxTurns });
     this.step = 4;
     this.render();
   }
