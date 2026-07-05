@@ -42,6 +42,8 @@ const de: Translations = {
 
   // Chat
   'chat.placeholder': 'Nachricht an vibeAgentGo...',
+  'chat.attachFile': 'Datei anhängen',
+  'chat.removeAttachment': 'Anhang entfernen',
   'chat.empty': 'Starte eine Unterhaltung',
   'chat.toolCall': 'Tool-Aufruf',
   'chat.toolResult': 'Ergebnis',
@@ -214,13 +216,15 @@ const en: Translations = {
 
   // Chat
   'chat.placeholder': 'Message vibeAgentGo...',
+  'chat.attachFile': 'Attach file',
+  'chat.removeAttachment': 'Remove attachment',
   'chat.empty': 'Start a conversation',
   'chat.toolCall': 'Tool call',
   'chat.toolResult': 'Result',
   'chat.unknownTool': 'Unknown tool',
+  'chat.user': 'You',
   'chat.maxTurns': 'Maximum turns reached.',
   'chat.aborted': 'Aborted.',
-
   // Settings
   'settings.title': 'Settings',
   'settings.llm': 'LLM Configuration',

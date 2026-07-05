@@ -5,7 +5,7 @@
 
 import './styles/app.css';
 import { initTheme, toggleTheme } from './core/theme.js';
-import { ChatPanel } from './components/ChatPanel.js';
+import { ChatPanel, type ChatAttachment } from './components/ChatPanel.js';
 import { RenderPanel } from './components/RenderPanel.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { MemoryPanel } from './components/MemoryPanel.js';
@@ -227,7 +227,7 @@ function buildLayout() {
   header.querySelector('#btn-mobile-menu')!.addEventListener('click', () => openMobileMenu());
 
   // Chat submit — runs agent directly in browser
-  chatPanel.onSubmit = async (text: string) => {
+  chatPanel.onSubmit = async (text: string, attachments: ChatAttachment[]) => {
     const config = loadConfig();
     if (!config.apiKey) {
       chatPanel.appendError(t('error.noApiKey'));
@@ -240,7 +240,7 @@ function buildLayout() {
       return;
     }
 
-    chatPanel.appendUser(text);
+    chatPanel.appendUser(text, attachments);
     chatPanel.setStatus('thinking');
     chatPanel.startStream();
     isRunning = true;
@@ -251,7 +251,7 @@ function buildLayout() {
     }
 
     try {
-      await agent.run(text, config, currentSessionId || undefined);
+      await agent.run(text, config, currentSessionId || undefined, attachments);
     } catch (e: any) {
       chatPanel.appendError(e.message);
       chatPanel.setStatus('idle');

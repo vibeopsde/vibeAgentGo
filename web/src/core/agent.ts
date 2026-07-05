@@ -8,6 +8,7 @@ import { buildSystemPrompt, toolsToSchemas, loadSkills, type PromptContext } fro
 import { MemoryStore } from './memory.js';
 import { randomUUID } from './uuid.js';
 import { filterSkillsByTrigger } from './skill_parser.js';
+import type { ChatAttachment } from '../components/ChatPanel.js';
 
 export interface AgentEventMap {
   'message': { role: string; content: string };
@@ -75,10 +76,18 @@ export class Agent {
   async run(
     userMessage: string,
     config: AgentConfig,
-    sessionId?: string
+    sessionId?: string,
+    attachments: ChatAttachment[] = []
   ): Promise<string> {
     this.sessionId = sessionId || this.sessionId || null;
     this.abortController = new AbortController();
+
+    // Save text files into workspace so the agent can read them with read_file
+    for (const a of attachments) {
+      if (a.type === 'text' || a.type === 'pdf') {
+        await this.memory.writeFile(a.name, a.content);
+      }
+    }
 
     // Load existing session messages if resuming
     let sessionMessages: Message[] | undefined;
@@ -93,6 +102,21 @@ export class Agent {
     const { memories, profile } = await this.memory.getAllMemory();
     const allSkills = await loadSkills();
     const skills = filterSkillsByTrigger(allSkills, userMessage, true);
+
+    // Build the user message with attachment references and inline images
+    let enrichedUserMessage = userMessage;
+    if (attachments.length > 0) {
+      const imageParts = attachments
+        .filter(a => a.type === 'image')
+        .map(a => `Image attachment: ${a.name}\n![${a.name}](${a.content})`);
+      const fileParts = attachments
+        .filter(a => a.type === 'text' || a.type === 'pdf')
+        .map(a => `File attached: ${a.name} (saved to workspace). Use read_file to read it.`);
+      const parts = [...(imageParts.length ? imageParts : []), ...(fileParts.length ? fileParts : [])];
+      if (parts.length) {
+        enrichedUserMessage = userMessage + '\n\n' + parts.join('\n\n');
+      }
+    }
 
     // Build system prompt
     const promptCtx: PromptContext = {
@@ -111,7 +135,7 @@ export class Agent {
     } else {
       history[0] = { role: 'system', content: systemPrompt };
     }
-    history.push({ role: 'user', content: userMessage });
+    history.push({ role: 'user', content: enrichedUserMessage });
 
     const toolSchemas = toolsToSchemas(this.tools);
     const ctx = this.buildToolContext();

@@ -6,6 +6,14 @@ import { renderMarkdown } from '../utils/markdown.js';
 import { escapeHtml } from '../utils/escape.js';
 import { t } from '../i18n/index.js';
 
+export interface ChatAttachment {
+  name: string;
+  type: 'image' | 'text' | 'pdf' | 'binary';
+  content: string; // base64 for images, text for text files
+  size: number;
+  mime: string;
+}
+
 export class ChatPanel {
   element: HTMLElement;
   private messagesEl: HTMLElement;
@@ -13,7 +21,9 @@ export class ChatPanel {
   private sendBtn: HTMLButtonElement;
   private statusEl: HTMLElement;
   private streamEl: HTMLElement | null = null;
-  onSubmit: ((text: string) => void) | null = null;
+  private attachments: ChatAttachment[] = [];
+  private attachmentsEl: HTMLElement;
+  onSubmit: ((text: string, attachments: ChatAttachment[]) => void) | null = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -41,15 +51,34 @@ export class ChatPanel {
     this.sendBtn.textContent = '➤';
     this.sendBtn.addEventListener('click', () => this.send());
 
+    const attachBtn = document.createElement('button');
+    attachBtn.className = 'attach-btn';
+    attachBtn.title = t('chat.attachFile');
+    attachBtn.textContent = '📎';
+    attachBtn.addEventListener('click', () => fileInput.click());
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = true;
+    fileInput.accept = 'image/*,.pdf,.txt,.md,.json,.js,.ts,.html,.css,.py,.csv,.xml,.yaml,.yml,.log';
+    fileInput.style.display = 'none';
+    fileInput.addEventListener('change', (e) => this.handleFiles(e));
+
+    this.attachmentsEl = document.createElement('div');
+    this.attachmentsEl.className = 'chat-attachments';
+
     this.statusEl = document.createElement('div');
     this.statusEl.className = 'status-bar';
     this.statusEl.textContent = t('common.idle');
 
+    inputArea.appendChild(attachBtn);
     inputArea.appendChild(this.inputEl);
     inputArea.appendChild(this.sendBtn);
+    inputArea.appendChild(fileInput);
 
     this.element.appendChild(this.messagesEl);
     this.element.appendChild(this.statusEl);
+    this.element.appendChild(this.attachmentsEl);
     this.element.appendChild(inputArea);
 
     this.setStatus('idle');
@@ -62,10 +91,73 @@ export class ChatPanel {
 
   private send() {
     const text = this.inputEl.value.trim();
-    if (!text) return;
+    if (!text && this.attachments.length === 0) return;
     this.inputEl.value = '';
     this.inputEl.style.height = 'auto';
-    if (this.onSubmit) this.onSubmit(text);
+    const attachments = this.attachments;
+    this.attachments = [];
+    this.renderAttachments();
+    if (this.onSubmit) this.onSubmit(text, attachments);
+  }
+
+  private handleFiles(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length) return;
+
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (!result) return;
+        const isImage = file.type.startsWith('image/');
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        const isText = !isImage && !isPdf;
+        const attachment: ChatAttachment = {
+          name: file.name,
+          type: isImage ? 'image' : isPdf ? 'pdf' : 'text',
+          content: result,
+          size: file.size,
+          mime: file.type || 'application/octet-stream',
+        };
+        this.attachments.push(attachment);
+        this.renderAttachments();
+      };
+
+      if (file.type.startsWith('image/')) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsText(file);
+      }
+    }
+  }
+
+  private removeAttachment(index: number) {
+    this.attachments.splice(index, 1);
+    this.renderAttachments();
+  }
+
+  private renderAttachments() {
+    this.attachmentsEl.innerHTML = '';
+    if (this.attachments.length === 0) {
+      this.attachmentsEl.style.display = 'none';
+      return;
+    }
+    this.attachmentsEl.style.display = 'flex';
+    for (let i = 0; i < this.attachments.length; i++) {
+      const a = this.attachments[i];
+      const el = document.createElement('div');
+      el.className = 'chat-attachment';
+      const icon = a.type === 'image' ? '🖼️' : a.type === 'pdf' ? '📄' : '📃';
+      el.innerHTML = `
+        <span class="attachment-icon">${icon}</span>
+        <span class="attachment-name" title="${escapeHtml(a.name)}">${escapeHtml(a.name)}</span>
+        <button class="attachment-remove" title="${t('chat.removeAttachment')}">×</button>
+      `;
+      el.querySelector('.attachment-remove')?.addEventListener('click', () => this.removeAttachment(i));
+      this.attachmentsEl.appendChild(el);
+    }
   }
 
   clear() {
@@ -73,10 +165,23 @@ export class ChatPanel {
     this.streamEl = null;
   }
 
-  appendUser(text: string) {
+  appendUser(text: string, attachments: ChatAttachment[] = []) {
     const el = document.createElement('div');
     el.className = 'msg msg-user';
-    el.textContent = text;
+    let html = escapeHtml(text);
+    if (attachments.length > 0) {
+      html += '<div class="msg-attachments">';
+      for (const a of attachments) {
+        if (a.type === 'image') {
+          html += `<img src="${escapeHtml(a.content)}" alt="${escapeHtml(a.name)}" class="msg-attachment-image" />`;
+        } else {
+          const icon = a.type === 'pdf' ? '📄' : '📃';
+          html += `<div class="msg-attachment-file"><span>${icon}</span><span>${escapeHtml(a.name)}</span></div>`;
+        }
+      }
+      html += '</div>';
+    }
+    el.innerHTML = html;
     this.messagesEl.appendChild(el);
     this.scrollToBottom();
   }
