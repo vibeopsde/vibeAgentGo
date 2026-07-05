@@ -7,6 +7,7 @@ import { llmChatStream } from './llm_client.js';
 import { buildSystemPrompt, toolsToSchemas, loadSkills, type PromptContext } from './prompt_builder.js';
 import { MemoryStore } from './memory.js';
 import { randomUUID } from './uuid.js';
+import { filterSkillsByTrigger } from './skill_parser.js';
 
 export interface AgentEventMap {
   'message': { role: string; content: string };
@@ -90,7 +91,8 @@ export class Agent {
 
     // Load memory and skills
     const { memories, profile } = await this.memory.getAllMemory();
-    const skills = await loadSkills();
+    const allSkills = await loadSkills();
+    const skills = filterSkillsByTrigger(allSkills, userMessage, true);
 
     // Build system prompt
     const promptCtx: PromptContext = {

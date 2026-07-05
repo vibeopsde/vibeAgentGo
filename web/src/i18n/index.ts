@@ -28,6 +28,7 @@ const de: Translations = {
   'common.send': 'Senden',
   'common.thinking': 'Denkt nach...',
   'common.idle': 'Bereit',
+  'common.edit': 'Bearbeiten',
   'common.disconnected': 'Getrennt',
   'common.connected': 'Verbunden',
 
@@ -35,6 +36,7 @@ const de: Translations = {
   'header.settings': 'Einstellungen',
   'header.newChat': 'Neuer Chat',
   'header.memory': 'Memory',
+  'header.skills': 'Skills',
   'header.sessions': 'Sessions',
   'header.theme': 'Design',
 
@@ -141,6 +143,19 @@ const de: Translations = {
   'render.empty': 'Noch keine View gerendert.',
   'render.emptyHint': 'Der Agent kann hier HTML-Mini-Apps anzeigen.',
 
+  // Skills
+  'skills.title': 'Skills',
+  'skills.hint': 'Projekt-Style Skills: Markdown mit Trigger-Wörtern. Passen den System-Prompt an, wenn ein Trigger im Chat fällt.',
+  'skills.empty': 'Noch keine Skills. Erstelle einen Skill mit Trigger-Wörtern.',
+  'skills.new': 'Neuer Skill',
+  'skills.edit': 'Skill bearbeiten',
+  'skills.name': 'Name',
+  'skills.description': 'Beschreibung',
+  'skills.triggers': 'Trigger-Wörter',
+  'skills.triggersHint': 'Komma-getrennt. Bei Treffer im Chat wird der Skill automatisch aktiviert.',
+  'skills.body': 'Skill-Body',
+  'skills.deleteConfirm': 'Diesen Skill wirklich löschen?',
+
   // Errors
   'error.noModel': 'Bitte Modell angeben.',
   'error.noApiKey': 'Bitte API Key eingeben.',
@@ -161,6 +176,7 @@ const en: Translations = {
   'common.delete': 'Delete',
   'common.add': 'Add',
   'common.loading': 'Loading...',
+  'common.edit': 'Edit',
   'common.error': 'Error',
   'common.success': 'Success',
   'common.retry': 'Retry',
@@ -182,6 +198,7 @@ const en: Translations = {
   'header.settings': 'Settings',
   'header.newChat': 'New Chat',
   'header.memory': 'Memory',
+  'header.skills': 'Skills',
   'header.sessions': 'Sessions',
   'header.theme': 'Theme',
 
@@ -285,8 +302,21 @@ const en: Translations = {
 
   // Render
   'render.title': 'Render View',
-  'render.empty': 'No view rendered yet.',
+  'render.empty': 'No render view yet.',
   'render.emptyHint': 'The agent can render HTML mini-apps here.',
+
+  // Skills
+  'skills.title': 'Skills',
+  'skills.hint': 'Project-style skills: Markdown with trigger words. They adapt the system prompt when a trigger appears in chat.',
+  'skills.empty': 'No skills yet. Create a skill with trigger words.',
+  'skills.new': 'New Skill',
+  'skills.edit': 'Edit Skill',
+  'skills.name': 'Name',
+  'skills.description': 'Description',
+  'skills.triggers': 'Trigger Words',
+  'skills.triggersHint': 'Comma-separated. When matched in chat, the skill is automatically activated.',
+  'skills.body': 'Skill Body',
+  'skills.deleteConfirm': 'Delete this skill?',
 
   // Errors
   'error.noModel': 'Please provide a model.',

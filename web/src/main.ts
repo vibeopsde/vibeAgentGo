@@ -10,6 +10,7 @@ import { RenderPanel } from './components/RenderPanel.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { MemoryPanel } from './components/MemoryPanel.js';
 import { SessionPanel } from './components/SessionPanel.js';
+import { SkillsPanel } from './components/SkillsPanel.js';
 import { MobileNav, type MobileTab } from './components/MobileNav.js';
 import { OnboardingWizard } from './components/OnboardingWizard.js';
 import { Agent } from './core/agent.js';
@@ -52,6 +53,7 @@ const renderPanel = new RenderPanel();
 const settingsModal = new SettingsModal();
 const memoryPanel = new MemoryPanel();
 const sessionPanel = new SessionPanel();
+const skillsPanel = new SkillsPanel();
 
 // --- Agent lifecycle ---
 
@@ -179,6 +181,7 @@ function buildLayout() {
       <button id="btn-sessions" class="icon-btn desktop-only" title="${t('header.sessions')}">💬</button>
       <button id="btn-new" class="icon-btn desktop-only" title="${t('header.newChat')}">✨</button>
       <button id="btn-memory" class="icon-btn desktop-only" title="${t('header.memory')}">🧠</button>
+      <button id="btn-skills" class="icon-btn desktop-only" title="${t('header.skills')}">🛠️</button>
       <button id="btn-settings" class="icon-btn desktop-only" title="${t('header.settings')}">⚙️</button>
       <button id="btn-mobile-menu" class="icon-btn mobile-only" title="${t('common.menu')}" aria-label="${t('common.menu')}">☰</button>
     </div>
@@ -217,6 +220,7 @@ function buildLayout() {
   // Wire buttons
   header.querySelector('#btn-settings')!.addEventListener('click', () => settingsModal.open());
   header.querySelector('#btn-memory')!.addEventListener('click', () => memoryPanel.open());
+  header.querySelector('#btn-skills')!.addEventListener('click', () => skillsPanel.open());
   header.querySelector('#btn-sessions')!.addEventListener('click', () => sessionPanel.open());
   header.querySelector('#btn-new')!.addEventListener('click', () => newChat());
   header.querySelector('#btn-theme')!.addEventListener('click', () => toggleTheme());
