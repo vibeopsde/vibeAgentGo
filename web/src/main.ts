@@ -359,3 +359,11 @@ if (hasCompletedOnboarding()) {
 } else {
   startOnboarding();
 }
+
+// Force the PWA to activate a new service worker immediately and reload so
+// updates (e.g. new JS/CSS hashes) are never hidden behind a stale SW.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}
