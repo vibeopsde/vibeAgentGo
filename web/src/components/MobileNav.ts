@@ -15,7 +15,7 @@ export class MobileNav {
     this.onTab = onTab;
     this.onNew = onNew;
     this.element = document.createElement('nav');
-    this.element.className = 'mobile-nav';
+    this.element.className = 'mobile-nav mobile-only';
     this.element.setAttribute('role', 'tablist');
     this.element.setAttribute('aria-label', 'Mobile tabs');
     this.render();

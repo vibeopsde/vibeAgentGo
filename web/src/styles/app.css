@@ -181,8 +181,12 @@ html, body {
 
 /* Mobile: tabbed view */
 @media (max-width: 768px) {
-  .app-header .header-right {
-    display: none;
+  .desktop-only {
+    display: none !important;
+  }
+
+  .app-header .header-right .mobile-only {
+    display: flex;
   }
 
   .app-main {
@@ -209,7 +213,7 @@ html, body {
 }
 
 @media (min-width: 769px) {
-  .mobile-nav,
+  .mobile-only,
   .mobile-menu-overlay {
     display: none !important;
   }
