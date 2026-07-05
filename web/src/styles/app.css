@@ -752,6 +752,20 @@ html, body {
   border-color: var(--accent);
 }
 
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#ob-verify {
+  width: 100%;
+}
+
+#ob-verify:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 select {
   width: 100%;
   padding: 10px 12px;
