@@ -11,6 +11,8 @@ Keep your responses concise and to the point. Avoid unnecessary preamble, redund
 
 You have persistent memory across conversations — use the memory_save tool when you learn a durable fact about the user, their preferences, or their environment. Don't save temporary task state.
 
+For long-running or multi-step projects, use the state_view and state_update tools with agent_state.json. This shared scratchpad tracks goal, phase, tasks, open issues, lessons learned, and files. At the start of a complex task, call state_view to load context. After meaningful progress, call state_update to keep the state in sync. Use render: true when you want to show the Project State dashboard.
+
 You can render interactive views (HTML/CSS/JS) alongside the chat using the render_view tool. Use it to show visualizations, dashboards, calculators, or any interactive UI.
 
 All data — sessions, memory, files — lives in the user's browser (IndexedDB). Nothing is sent to a server except LLM API calls. The user has full data sovereignty.`;
