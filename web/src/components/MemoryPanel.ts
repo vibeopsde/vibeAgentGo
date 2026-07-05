@@ -3,6 +3,7 @@
 // ============================================================
 
 import { MemoryStore } from '../core/memory.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export class MemoryPanel {
   element: HTMLElement;
@@ -48,7 +49,7 @@ export class MemoryPanel {
       const profileHtml = data.profile.map((m: any) => `
         <div class="memory-item memory-user">
           <span class="memory-id">#${m.id}</span>
-          <span class="memory-content">${this.escape(m.content)}</span>
+          <span class="memory-content">${escapeHtml(m.content)}</span>
           <button class="memory-delete" data-id="${m.id}">🗑</button>
         </div>
       `).join('');
@@ -56,7 +57,7 @@ export class MemoryPanel {
       const memoriesHtml = data.memories.map((m: any) => `
         <div class="memory-item memory-general">
           <span class="memory-id">#${m.id}</span>
-          <span class="memory-content">${this.escape(m.content)}</span>
+          <span class="memory-content">${escapeHtml(m.content)}</span>
           <button class="memory-delete" data-id="${m.id}">🗑</button>
         </div>
       `).join('');
@@ -88,11 +89,5 @@ export class MemoryPanel {
     } catch (e) {
       this.modal.innerHTML = `<p>Fehler: ${e}</p>`;
     }
-  }
-
-  private escape(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   }
 }

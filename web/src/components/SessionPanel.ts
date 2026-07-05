@@ -3,6 +3,7 @@
 // ============================================================
 
 import { MemoryStore } from '../core/memory.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export class SessionPanel {
   element: HTMLElement;
@@ -65,7 +66,7 @@ export class SessionPanel {
         return `
           <div class="session-item" data-id="${s.id}">
             <div class="session-info">
-              <div class="session-title">${this.escape(s.title)}</div>
+              <div class="session-title">${escapeHtml(s.title)}</div>
               <div class="session-date">${date}</div>
             </div>
             <div class="session-actions">
@@ -115,11 +116,5 @@ export class SessionPanel {
     } catch (e) {
       this.modal.innerHTML = `<p>Fehler beim Laden: ${e}</p>`;
     }
-  }
-
-  private escape(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   }
 }

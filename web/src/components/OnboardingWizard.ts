@@ -4,6 +4,7 @@
 
 import { saveConfig, loadConfig, completeOnboarding } from '../core/memory.js';
 import { testConnection } from '../core/llm_client.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export interface OnboardingCompleteCallback {
   (): void;
@@ -30,16 +31,10 @@ const PRESETS: Preset[] = [
     apiKeyPlaceholder: 'ollama (optional)',
   },
   {
-    name: 'Claude (OpenRouter)',
+    name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'anthropic/claude-sonnet-4',
+    model: 'moonshotai/kimi-k2.7-code',
     apiKeyPlaceholder: 'sk-or-...',
-  },
-  {
-    name: 'Kimi Code',
-    baseUrl: 'https://api.moonshot.cn/v1',
-    model: 'kimi-k2-5-coder',
-    apiKeyPlaceholder: 'sk-...',
   },
 ];
 
@@ -127,17 +122,17 @@ export class OnboardingWizard {
         
         <div class="form-group">
           <label for="ob-baseurl">Base URL</label>
-          <input id="ob-baseurl" type="text" value="${this.escape(this.config.baseUrl)}" placeholder="https://api.example.com/v1" />
+          <input id="ob-baseurl" type="text" value="${escapeHtml(this.config.baseUrl)}" placeholder="https://api.example.com/v1" />
         </div>
         
         <div class="form-group">
           <label for="ob-model">Model</label>
-          <input id="ob-model" type="text" value="${this.escape(this.config.model)}" placeholder="model-id" />
+          <input id="ob-model" type="text" value="${escapeHtml(this.config.model)}" placeholder="model-id" />
         </div>
         
         <div class="form-group">
           <label for="ob-apikey">API Key</label>
-          <input id="ob-apikey" type="password" value="${this.escape(this.config.apiKey)}" placeholder="sk-..." />
+          <input id="ob-apikey" type="password" value="${escapeHtml(this.config.apiKey)}" placeholder="sk-..." />
         </div>
         
         <div class="form-group">
@@ -205,7 +200,7 @@ export class OnboardingWizard {
         
         <div class="form-group" id="ob-search-key-group">
           <label for="ob-search-apikey">Tavily API Key</label>
-          <input id="ob-search-apikey" type="password" value="${this.escape(this.config.searchApiKey)}" placeholder="tvly-..." />
+          <input id="ob-search-apikey" type="password" value="${escapeHtml(this.config.searchApiKey)}" placeholder="tvly-..." />
           <p class="field-hint">Nur im Browser gespeichert. Hole deinen Key unter <a href="https://app.tavily.com/" target="_blank" rel="noopener">app.tavily.com</a>.</p>
         </div>
         
@@ -288,9 +283,4 @@ export class OnboardingWizard {
     if (this.onComplete) this.onComplete();
   }
 
-  private escape(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

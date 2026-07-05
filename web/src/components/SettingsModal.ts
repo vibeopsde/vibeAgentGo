@@ -8,10 +8,6 @@ import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 import { escapeHtml } from '../utils/escape.js';
 
 const PRESETS = {
-  'kimi-code': {
-    model: 'kimi-for-coding',
-    baseUrl: 'https://vag.vibeops.de/api/kimi/v1',
-  },
   'openrouter': {
     model: 'moonshotai/kimi-k2.7-code',
     baseUrl: 'https://openrouter.ai/api/v1',
@@ -65,6 +61,7 @@ export class SettingsModal {
     const config = loadConfig();
 
     const theme = getTheme();
+    const initialPreset = this.findPreset(config.baseUrl, config.model);
 
     this.modal.innerHTML = `
       <h2>⚙️ Settings</h2>
@@ -79,11 +76,10 @@ export class SettingsModal {
       <div class="form-group">
         <label for="cfg-provider">Provider Preset</label>
         <select id="cfg-provider">
-          <option value="custom">Benutzerdefiniert</option>
-          <option value="kimi-code">Kimi Code</option>
-          <option value="openrouter">OpenRouter</option>
-          <option value="lm-studio">Mac Studio (LM Studio)</option>
-          <option value="openai">OpenAI</option>
+          <option value="custom" ${!initialPreset ? 'selected' : ''}>Benutzerdefiniert</option>
+          <option value="openrouter" ${initialPreset === 'openrouter' ? 'selected' : ''}>OpenRouter</option>
+          <option value="lm-studio" ${initialPreset === 'lm-studio' ? 'selected' : ''}>Mac Studio (LM Studio)</option>
+          <option value="openai" ${initialPreset === 'openai' ? 'selected' : ''}>OpenAI</option>
         </select>
         <p class="field-hint">Preset trägt Modell + Base URL ein. API Key musst du selbst einfügen.</p>
       </div>
@@ -144,7 +140,6 @@ export class SettingsModal {
         <p><strong>Beispiele:</strong></p>
         <ul>
           <li>Mac Studio: <code>https://ki.vibeops.de/v1</code></li>
-          <li>Kimi Code: <code>https://api.kimi.com/coding/v1</code> (Modell: <code>kimi-for-coding</code>)</li>
           <li>OpenRouter: <code>https://openrouter.ai/api/v1</code></li>
           <li>OpenAI: <code>https://api.openai.com/v1</code></li>
         </ul>
@@ -187,6 +182,13 @@ export class SettingsModal {
       this.close();
       window.location.reload();
     });
+  }
+
+  private findPreset(baseUrl: string, model: string): string | null {
+    for (const [key, preset] of Object.entries(PRESETS)) {
+      if (preset.baseUrl === baseUrl && preset.model === model) return key;
+    }
+    return null;
   }
 
   private testConnection() {

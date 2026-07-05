@@ -145,7 +145,6 @@ export class Agent {
           tool_calls: response.tool_calls,
         };
         history.push(assistantMsg);
-        this.emit('message', { role: 'assistant', content: response.content || '(calling tools...)' });
 
         for (const tc of response.tool_calls) {
           const toolName = tc.function.name;

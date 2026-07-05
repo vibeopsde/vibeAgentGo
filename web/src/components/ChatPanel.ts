@@ -80,6 +80,22 @@ export class ChatPanel {
     this.scrollToBottom();
   }
 
+  appendToolMessage(toolCallId: string, content: string) {
+    this.finalizeStream();
+    const el = document.createElement('details');
+    el.className = 'msg msg-tool';
+    el.innerHTML = `
+      <summary>
+        <span class="tool-icon">🔧</span>
+        <span class="tool-name">tool</span>
+        <span class="tool-args">${escapeHtml(toolCallId)}</span>
+      </summary>
+      <div class="tool-result-body">${escapeHtml(content)}</div>
+    `;
+    this.messagesEl.appendChild(el);
+    this.scrollToBottom();
+  }
+
   appendAssistant(text: string) {
     if (text === undefined || text === null) return;
     // Non-streaming path: append to last assistant msg or create new

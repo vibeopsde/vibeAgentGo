@@ -135,8 +135,18 @@ async function resumeSession(sessionId: string) {
       for (const msg of session.messages) {
         if (msg.role === 'user') {
           chatPanel.appendUser(msg.content);
-        } else if (msg.role === 'assistant' && msg.content) {
-          chatPanel.appendAssistant(msg.content);
+        } else if (msg.role === 'assistant') {
+          if (msg.tool_calls && msg.tool_calls.length > 0) {
+            for (const tc of msg.tool_calls) {
+              let args: any = {};
+              try { args = JSON.parse(tc.function.arguments); } catch { }
+              chatPanel.appendToolCall(tc.function.name, args);
+            }
+          } else if (msg.content) {
+            chatPanel.appendAssistant(msg.content);
+          }
+        } else if (msg.role === 'tool') {
+          chatPanel.appendToolMessage(msg.tool_call_id || '', msg.content);
         }
       }
     }
