@@ -56,6 +56,17 @@ const memoryPanel = new MemoryPanel();
 const sessionPanel = new SessionPanel();
 const skillsPanel = new SkillsPanel();
 
+let mobileNav: MobileNav | null = null;
+let chatSection: HTMLElement | null = null;
+let renderSection: HTMLElement | null = null;
+
+function setMobileTab(tab: MobileTab) {
+  if (!chatSection || !renderSection) return;
+  chatSection.classList.toggle('is-active', tab === 'chat');
+  renderSection.classList.toggle('is-active', tab === 'render');
+  mobileNav?.setActive(tab);
+}
+
 // --- Agent lifecycle ---
 
 function createAgent(): Agent {
@@ -121,6 +132,10 @@ function addView(title: string, html: string) {
   }
   activeView = title;
   renderPanel.render(views, activeView);
+  // On mobile, automatically switch to the Render tab so the view is visible.
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    setMobileTab('render');
+  }
 }
 
 // --- Session Resume ---
@@ -181,7 +196,7 @@ function buildLayout() {
   header.className = 'app-header';
   header.innerHTML = `
     <div class="header-left">
-      <span class="logo">vibeAgentGo</span>
+      <img class="logo" src="./logo-192.png" alt="vibeAgentGo" width="32" height="32" />
       <span class="version-tag">${VERSION}</span>
     </div>
     <div class="header-right">
@@ -198,11 +213,11 @@ function buildLayout() {
   const main = document.createElement('main');
   main.className = 'app-main';
 
-  const chatSection = document.createElement('section');
+  chatSection = document.createElement('section');
   chatSection.className = 'chat-section';
   chatSection.appendChild(chatPanel.element);
 
-  const renderSection = document.createElement('section');
+  renderSection = document.createElement('section');
   renderSection.className = 'render-section';
   renderSection.appendChild(renderPanel.element);
 
@@ -212,11 +227,9 @@ function buildLayout() {
   // Mobile starts on Chat tab
   chatSection.classList.add('is-active');
 
-  const mobileNav = new MobileNav(
+  mobileNav = new MobileNav(
     (tab: MobileTab) => {
-      chatSection.classList.toggle('is-active', tab === 'chat');
-      renderSection.classList.toggle('is-active', tab === 'render');
-      mobileNav.setActive(tab);
+      setMobileTab(tab);
     },
     () => newChat()
   );
