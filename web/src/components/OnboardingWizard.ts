@@ -20,22 +20,22 @@ interface Preset {
 
 const PRESETS: Preset[] = [
   {
-    name: 'OpenAI',
-    baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4o',
-    apiKeyPlaceholder: 'sk-...',
-  },
-  {
-    name: 'Ollama (local)',
-    baseUrl: 'http://localhost:11434/v1',
-    model: 'llama3.2',
-    apiKeyPlaceholder: 'ollama (optional)',
-  },
-  {
     name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1',
     model: '',
     apiKeyPlaceholder: 'sk-or-...',
+  },
+  {
+    name: 'OpenCode (go/zen)',
+    baseUrl: 'https://opencode.go/zen',
+    model: '',
+    apiKeyPlaceholder: 'oc-...',
+  },
+  {
+    name: 'Ollama Cloud',
+    baseUrl: 'https://ollama.cloud/v1',
+    model: 'llama3.2',
+    apiKeyPlaceholder: 'ollama cloud key',
   },
 ];
 
@@ -212,8 +212,7 @@ export class OnboardingWizard {
 
     const updateVerifyButton = () => {
       // Ollama and some local endpoints don't require an API key; baseUrl is enough.
-      const isLocal = baseUrlInput.value.trim().includes('localhost') || baseUrlInput.value.trim().includes('127.0.0.1');
-      const canVerify = baseUrlInput.value.trim().length > 0 && (isLocal || apiKeyInput.value.trim().length > 0);
+      const canVerify = baseUrlInput.value.trim().length > 0;
       verifyBtn.disabled = !canVerify;
     };
     baseUrlInput.addEventListener('input', updateVerifyButton);

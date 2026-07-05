@@ -9,17 +9,17 @@ import { escapeHtml } from '../utils/escape.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 
 const PRESETS = {
-  'openai': {
-    model: 'gpt-4o-mini',
-    baseUrl: 'https://api.openai.com/v1',
-  },
   'openrouter': {
     model: '',
     baseUrl: 'https://openrouter.ai/api/v1',
   },
-  'ollama': {
+  'opencode': {
+    model: '',
+    baseUrl: 'https://opencode.go/zen',
+  },
+  'ollama-cloud': {
     model: 'llama3.2',
-    baseUrl: 'http://localhost:11434/v1',
+    baseUrl: 'https://ollama.cloud/v1',
   },
 };
 
@@ -85,19 +85,19 @@ export class SettingsModal {
         <label for="cfg-provider">${t('settings.provider')}</label>
         <select id="cfg-provider">
           <option value="custom" ${!initialPreset ? 'selected' : ''}>${t('settings.custom')}</option>
-          <option value="openai" ${initialPreset === 'openai' ? 'selected' : ''}>${t('settings.openai')}</option>
           <option value="openrouter" ${initialPreset === 'openrouter' ? 'selected' : ''}>${t('settings.openrouter')}</option>
-          <option value="ollama" ${initialPreset === 'ollama' ? 'selected' : ''}>${t('settings.ollama')}</option>
+          <option value="opencode" ${initialPreset === 'opencode' ? 'selected' : ''}>${t('settings.opencode')}</option>
+          <option value="ollama-cloud" ${initialPreset === 'ollama-cloud' ? 'selected' : ''}>${t('settings.ollamaCloud')}</option>
         </select>
         <p class="field-hint">${t('settings.providerHint')}</p>
       </div>
       <div class="form-group">
         <label for="cfg-model">${t('settings.model')}</label>
-        <input id="cfg-model" type="text" value="${escapeHtml(config.model)}" placeholder="gpt-4o-mini" />
+        <input id="cfg-model" type="text" value="${escapeHtml(config.model)}" placeholder="llama3.2" />
       </div>
       <div class="form-group">
         <label for="cfg-baseurl">${t('settings.baseUrl')}</label>
-        <input id="cfg-baseurl" type="text" value="${escapeHtml(config.baseUrl)}" placeholder="https://api.openai.com/v1" />
+        <input id="cfg-baseurl" type="text" value="${escapeHtml(config.baseUrl)}" placeholder="https://openrouter.ai/api/v1" />
       </div>
       <div class="form-group">
         <label for="cfg-apikey">${t('settings.apiKey')} ${config.apiKey ? '✓' : ''}</label>
@@ -140,9 +140,9 @@ export class SettingsModal {
         <p><strong>Provider:</strong> ${t('settings.providerInfo')}</p>
         <p><strong>${t('settings.examples')}</strong></p>
         <ul>
-          <li>${t('settings.openai')} <code>${t('settings.openaiUrl')}</code></li>
           <li>${t('settings.openrouter')} <code>${t('settings.openrouterUrl')}</code></li>
-          <li>${t('settings.ollama')} <code>${t('settings.ollamaUrl')}</code></li>
+          <li>${t('settings.opencode')} <code>${t('settings.opencodeUrl')}</code></li>
+          <li>${t('settings.ollamaCloud')} <code>${t('settings.ollamaCloudUrl')}</code></li>
         </ul>
       </div>
     `;
