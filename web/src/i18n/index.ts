@@ -87,7 +87,7 @@ const de: Translations = {
   'onboarding.languageTitle': 'Sprache wählen',
   'onboarding.languageHint': 'Die Sprache wird für die Benutzeroberfläche und die System-Prompts verwendet.',
   'onboarding.llmTitle': 'KI-Schnittstelle',
-  'onboarding.llmHint': 'Wähle einen Provider oder trage deine Endpunktdaten manuell ein.',
+  'onboarding.llmHint': 'Wähle einen Provider.',
   'onboarding.searchHint':
     'Optional: Aktiviere Websuche über Tavily. Du kannst dies später in den Einstellungen ändern.',
   'onboarding.apiKeyHint': 'Bei lokalen Endpunkten kann das Feld leer bleiben.',
@@ -231,7 +231,7 @@ const en: Translations = {
   'onboarding.languageTitle': 'Choose language',
   'onboarding.languageHint': 'This language will be used for the UI and system prompts.',
   'onboarding.llmTitle': 'Connect LLM',
-  'onboarding.llmHint': 'Choose a provider or enter your endpoint data manually.',
+  'onboarding.llmHint': 'Choose a provider.',
   'onboarding.searchHint': 'Optional: Enable web search via Tavily. You can change this later in Settings.',
   'onboarding.apiKeyHint': 'For local endpoints this field can be left empty.',
   'onboarding.apiKeyRequired': 'API key required for this provider.',
