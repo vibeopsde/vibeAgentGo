@@ -210,7 +210,7 @@ body {
   }
 
   .mobile-nav {
-    display: flex;
+    display: flex !important;
   }
 }
 
