@@ -80,9 +80,10 @@ function runCode(code) {
   let error = null;
 
   try {
-    // Build a function with the user's code, injecting fs and console
-    // importScripts is available in the worker global scope for CDN imports
-    const fn = new Function('fs', 'console', 'importScripts', code);
+    // Wrap user code in an async function so `await` works at the top level.
+    // This lets the user write `const sql = await initSqlJs(...)` directly.
+    // Any returned Promise is then caught by the instanceof check below.
+    const fn = new Function('fs', 'console', 'importScripts', `return (async () => {\n${code}\n})()`);
     result = fn(fs, console, importScripts);
   } catch (e) {
     error = {
