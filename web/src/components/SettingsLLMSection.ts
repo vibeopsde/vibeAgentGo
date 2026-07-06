@@ -29,7 +29,7 @@ export function renderLLMConfigSection(
   const initialPreset = selectedPreset;
   const savedModel = config.model;
 
-  container.innerHTML += `
+  container.insertAdjacentHTML('beforeend', `
     <div class="form-group">
       <label for="cfg-provider">${t('settings.provider')}</label>
       <select id="cfg-provider">
@@ -57,7 +57,7 @@ export function renderLLMConfigSection(
       <input id="cfg-maxturns" type="number" value="${config.maxTurns}" min="1" max="100" />
     </div>
     <div id="cfg-test-result" class="test-result"></div>
-  `;
+  `);
 
   const providerSelect = container.querySelector('#cfg-provider') as HTMLSelectElement;
   const apiKeyInput = container.querySelector('#cfg-apikey') as HTMLInputElement;

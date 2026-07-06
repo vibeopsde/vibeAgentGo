@@ -12,7 +12,7 @@ export interface BackupHandlers {
 }
 
 export function renderBackupSection(modal: HTMLElement, handlers: BackupHandlers): void {
-  modal.innerHTML += `
+  modal.insertAdjacentHTML('beforeend', `
     <h3>🗄️ ${t('settings.backup')}</h3>
     <div class="form-group">
       <label class="checkbox-label">
@@ -25,7 +25,7 @@ export function renderBackupSection(modal: HTMLElement, handlers: BackupHandlers
       <button id="cfg-import" class="btn btn-secondary">${t('settings.import')}</button>
     </div>
     <input id="cfg-import-file" type="file" accept=".zip" style="display:none;" />
-  `;
+  `);
 
   const exportBtn = modal.querySelector('#cfg-export') as HTMLButtonElement;
   const importBtn = modal.querySelector('#cfg-import') as HTMLButtonElement;

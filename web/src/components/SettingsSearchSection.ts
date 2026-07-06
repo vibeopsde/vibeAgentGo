@@ -12,7 +12,7 @@ export interface SearchConfigResult {
 }
 
 export function renderSearchConfigSection(modal: HTMLElement, config: ClientConfig): SearchConfigResult {
-  modal.innerHTML += `
+  modal.insertAdjacentHTML('beforeend', `
     <h3>🔍 ${t('settings.search')}</h3>
     <div class="form-group">
       <label for="cfg-search-provider">${t('settings.provider')}</label>
@@ -26,7 +26,7 @@ export function renderSearchConfigSection(modal: HTMLElement, config: ClientConf
       <input id="cfg-search-apikey" type="password" value="${escapeHtml(config.searchApiKey)}" placeholder="tvly-..." />
       <p class="field-hint">Tavily: <a href="https://app.tavily.com/" target="_blank" rel="noopener">app.tavily.com</a></p>
     </div>
-  `;
+  `);
 
   const providerSelect = modal.querySelector('#cfg-search-provider') as HTMLSelectElement;
   const keyGroup = modal.querySelector('#cfg-search-apikey-group') as HTMLElement;

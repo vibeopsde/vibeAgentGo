@@ -6,7 +6,7 @@ import { t } from '../i18n/index.js';
 import { resetLocalData } from '../core/memory.js';
 
 export function renderDangerZoneSection(modal: HTMLElement, onReload: () => void): void {
-  modal.innerHTML += `
+  modal.insertAdjacentHTML('beforeend', `
     <h3>⚠️ ${t('settings.dangerZone')}</h3>
     <div class="form-actions">
       <button id="cfg-reset" class="btn btn-danger">${t('settings.resetData')}</button>
@@ -18,7 +18,7 @@ export function renderDangerZoneSection(modal: HTMLElement, onReload: () => void
         <button id="cfg-reset-confirm-btn" class="btn btn-danger">${t('settings.resetConfirmBtn')}</button>
       </div>
     </div>
-  `;
+  `);
 
   const resetBtn = modal.querySelector('#cfg-reset') as HTMLButtonElement;
   const resetConfirm = modal.querySelector('#cfg-reset-confirm') as HTMLElement;

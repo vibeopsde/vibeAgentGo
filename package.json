@@ -1,6 +1,6 @@
 {
   "name": "vibeagentgo",
-  "version": "2607.5.0",
+  "version": "2607.5.2",
   "description": "vibeAgentGo — Fully client-side AI agent PWA with memory, skills, and Web Worker code sandbox",
   "type": "module",
   "private": true,
