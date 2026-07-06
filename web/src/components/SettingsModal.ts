@@ -135,13 +135,6 @@ export class SettingsModal {
       </div>
       <div class="config-hint">
         <p><strong>Provider:</strong> ${t('settings.providerInfo')}</p>
-        <p><strong>${t('settings.examples')}</strong></p>
-        <ul>
-          <li>ki.vibeops.de <code>https://ki.vibeops.de/v1</code></li>
-          <li>Kimi Code <code>https://vag.vibeops.de/api/kimi</code></li>
-          <li>${t('settings.ollamaCloud')} <code>${t('settings.ollamaCloudUrl')}</code></li>
-          <li>OpenCode Go/Zen <code>https://vag.vibeops.de/api/opencode</code></li>
-        </ul>
       </div>
     `;
 

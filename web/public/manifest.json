@@ -1,7 +1,7 @@
 {
   "name": "vibeAgentGo",
   "short_name": "vibeAgentGo",
-  "description": "AI Agent with memory, skills, and render_view",
+  "description": "AI Agent with memory, skills, and Web Worker code sandbox",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0d1117",

@@ -10,8 +10,8 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
 - **Project State** scratchpad (`agent_state.json`) for long-running tasks
-- **13 Tools** including file I/O, code sandbox, web search, memory, state, render, and rich terminal execution
-- **render_view**: Agent builds HTML/CSS/JS mini-apps rendered in a sandboxed iframe panel
+- **10 Tools** including file I/O, PDF extraction, web search, memory, project state, and code execution
+- **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace
 - **Backup & Restore**: Export and import all data as a single ZIP file
 - **Sessions**: Resume, browse, and delete past conversations
@@ -34,14 +34,14 @@ Stored in `localStorage` (never sent to any server):
 | Setting | Default | Description |
 |---------|---------|-------------|
 | Model | (empty) | OpenAI-compatible model id (auto-filled by provider preset) |
-| Base URL | (empty) | OpenAI-compatible endpoint (must allow CORS) |
-| API Key | — | Your endpoint key |
+| Base URL | (auto) | Set automatically by the selected provider preset |
+| API Key | — | Your endpoint key (hidden for local endpoints) |
 | Max Turns | 30 | Loop safety limit |
 | Language | system default | `de` or `en`; detected from `navigator.language` |
 | Search Provider | `none` | Optional Tavily web search |
 | Search API Key | — | Key for the configured search provider |
 
-On first launch the onboarding wizard lets you pick a preset or enter your own endpoint. Presets include OpenRouter, OpenCode (go/zen), and Ollama Cloud.
+On first launch the onboarding wizard lets you pick a fixed provider preset. Presets include ki.vibeops.de (LM Studio), Kimi Code, Ollama Cloud, and OpenCode Go/Zen.
 
 ## Architecture
 
@@ -81,15 +81,12 @@ web/
 | `read_pdf` | Extract text from a PDF in the workspace using `pdfjs-dist` |
 | `write_file` | Write a file to the IndexedDB workspace |
 | `search_files` | Search filenames or contents in the workspace |
-| `run_code` | Execute JS in a sandboxed iframe (`srcdoc` + `sandbox="allow-scripts"`) |
-| `run_terminal` | Rich JS execution in a Web Worker with `importScripts()` for CDN libs (sql.js, etc.) and workspace I/O (`fs.readFile/writeFile/listFiles`), 30s timeout |
+| `run` | Execute JavaScript in a Web Worker sandbox with CDN imports, workspace I/O, and `render(title, html)` for interactive views |
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `memory_search` | Search existing memory entries by keyword |
 | `state_view` | Read the project state from `agent_state.json` |
 | `state_update` | Update project state: goal, phase, tasks, issues, lessons, files |
-| `render_view` | Render HTML as a live view in the iframe panel |
-| `inspect_view` | Retrieve captured console logs/errors from a rendered view |
 
 ## Memory
 
@@ -118,20 +115,16 @@ For long-running projects the agent uses `agent_state.json` as a shared scratchp
 
 Call `state_view` to load context and `state_update` to keep progress in sync. Use `render: true` to show an interactive dashboard in the render panel.
 
-## render_view
+## Code Sandbox
 
-The agent can write HTML/CSS/JS and display it live:
+The agent can write and execute JavaScript in a Web Worker sandbox. It can also render interactive HTML/CSS/JS views via `render(title, html)` inside the `run` tool:
 
 ```
 User: "Build me a calculator"
-Agent: writes HTML+JS → calls render_view → Calculator appears in the view panel
+Agent: calls run with code that renders HTML+JS → Calculator appears in the view panel
 ```
 
-The rendered view runs in a sandboxed iframe via `srcdoc`. The `inspect_view` tool can retrieve its console logs, errors, and unhandled exceptions for debugging.
-
-### Code Sandbox (`run_code`)
-
-`run_code` executes JavaScript in an isolated iframe with `sandbox="allow-scripts"` using `srcdoc`. It has no access to `parent`, `window.document`, `fetch`, `indexedDB`, or the main page's `localStorage`. A `log()` function and a limited `console` are injected for output.
+The sandbox runs in a Web Worker with no DOM access. It has no access to `parent`, `window.document`, `fetch`, `localStorage`, or direct IndexedDB. File I/O goes through the workspace bridge (`fs.readFile/writeFile/listFiles`). Console output is captured and returned.
 
 ## Multimodal Attachments
 
