@@ -183,7 +183,22 @@ async function runPython(code) {
   try {
     const pyodide = await getPyodide();
     const result = pyodide.runPythonAsync(code);
-    finish(result, null);
+    // Pyodide returns a Python proxy — convert to a plain JS value.
+    // If it's a Pyodide proxy with .toJs(), use it; otherwise use as-is.
+    let jsResult = result;
+    if (result && typeof result === 'object' && typeof result.toJs === 'function') {
+      try {
+        jsResult = result.toJs({ depth: 1 });
+      } catch {
+        // toJs failed — try toString or destruct
+        try { jsResult = String(result); } catch { jsResult = undefined; }
+      }
+    }
+    // Destroy the proxy to free WASM memory
+    if (result && typeof result === 'object' && typeof result.destroy === 'function') {
+      try { result.destroy(); } catch {}
+    }
+    finish(jsResult, null);
   } catch (e) {
     finish(undefined, {
       message: e.message || String(e),
