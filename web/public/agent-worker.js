@@ -1,9 +1,8 @@
 // ============================================================
-// vibeAgentGo — Agent Worker (rich execution sandbox)
+// vibeAgentGo — Agent Worker (execution sandbox)
 // Runs in a Web Worker: no DOM, no localStorage, no IndexedDB.
-// Can importScripts() from CDN (Pyodide, sql.js, csv parsers, etc.).
+// Can importScripts() from CDN (sql.js, csv parsers, etc.).
 // Workspace I/O via postMessage bridge to main thread.
-// Supports: JavaScript (native) and Python (via Pyodide WASM).
 // ============================================================
 
 self.__workerSandbox = true;
@@ -31,7 +30,6 @@ const console = {
 };
 
 // --- Workspace I/O bridge ---
-// These are async — they postMessage to main thread and wait for response.
 const pendingRequests = new Map();
 let requestCounter = 0;
 
@@ -47,7 +45,6 @@ self.addEventListener('message', (event) => {
   const data = event.data;
   if (!data || data.__workerSandbox !== true) return;
 
-  // Response to our I/O request
   if (data.type === 'readFileResult' || data.type === 'writeFileResult' || data.type === 'listFilesResult') {
     const pending = pendingRequests.get(data.id);
     if (!pending) return;
@@ -62,14 +59,8 @@ self.addEventListener('message', (event) => {
     return;
   }
 
-  // Run code request
   if (data.type === 'run') {
-    const lang = data.lang || 'javascript';
-    if (lang === 'python') {
-      runPython(data.code);
-    } else {
-      runCode(data.code);
-    }
+    runCode(data.code);
   }
 });
 
@@ -85,7 +76,12 @@ function render(title, html) {
   self.postMessage({ __workerSandbox: true, type: 'render', title, html });
 }
 
-// --- JavaScript execution ---
+// --- Code execution ---
+// NOTE: This worker uses a classic (non-module) Worker so that importScripts()
+// is available for CDN libraries. In the future, additional language runtimes
+// (e.g., Python via Pyodide WASM) could be docked here by branching on a
+// `lang` field in the run message — see git history for a working prototype.
+
 function runCode(code) {
   let result = undefined;
   let error = null;
@@ -114,101 +110,6 @@ function runCode(code) {
   }
 }
 
-// --- Python execution (via Pyodide) ---
-let pyodidePromise = null;
-
-async function getPyodide() {
-  if (pyodidePromise) return pyodidePromise;
-
-  pyodidePromise = (async () => {
-    // Load Pyodide from CDN
-    importScripts('https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js');
-    const pyodide = await loadPyodide();
-
-    // Redirect stdout/stderr to our console capture
-    pyodide.setStdout({ batched: (text) => console.log(text) });
-    pyodide.setStderr({ batched: (text) => console.error(text) });
-
-    // Expose fs and render to Python
-    pyodide.globals.set('_fs_readFile', (path) => {
-      // Pyodide JS proxy returns a Promise — pyodide awaits it
-      return fs.readFile(path);
-    });
-    pyodide.globals.set('_fs_writeFile', (path, content) => {
-      return fs.writeFile(path, content);
-    });
-    pyodide.globals.set('_fs_listFiles', () => {
-      return fs.listFiles();
-    });
-    pyodide.globals.set('_render', (title, html) => {
-      render(title, html);
-    });
-
-    // Inject Python helpers that bridge to JS
-    pyodide.runPython(`
-import js
-import pathlib
-import builtins
-
-class _FS:
-    @staticmethod
-    def read_file(path):
-        """Read a file from the browser workspace (IndexedDB). Returns str or None."""
-        return _fs_readFile(path)
-
-    @staticmethod
-    def write_file(path, content):
-        """Write a file to the browser workspace (IndexedDB)."""
-        return _fs_writeFile(path, content)
-
-    @staticmethod
-    def list_files():
-        """List all files in the browser workspace."""
-        return _fs_listFiles()
-
-def render(title, html):
-    """Render HTML in the Render Panel."""
-    _render(title, html)
-
-fs = _FS
-`);
-
-    return pyodide;
-  })();
-
-  return pyodidePromise;
-}
-
-async function runPython(code) {
-  try {
-    const pyodide = await getPyodide();
-    const result = pyodide.runPythonAsync(code);
-    // Pyodide returns a Python proxy — convert to a plain JS value.
-    // If it's a Pyodide proxy with .toJs(), use it; otherwise use as-is.
-    let jsResult = result;
-    if (result && typeof result === 'object' && typeof result.toJs === 'function') {
-      try {
-        jsResult = result.toJs({ depth: 1 });
-      } catch {
-        // toJs failed — try toString or destruct
-        try { jsResult = String(result); } catch { jsResult = undefined; }
-      }
-    }
-    // Destroy the proxy to free WASM memory
-    if (result && typeof result === 'object' && typeof result.destroy === 'function') {
-      try { result.destroy(); } catch {}
-    }
-    finish(jsResult, null);
-  } catch (e) {
-    finish(undefined, {
-      message: e.message || String(e),
-      name: e.name || 'PythonError',
-      stack: e.stack || '',
-    });
-  }
-}
-
-// --- Finish ---
 function finish(result, error) {
   let resultStr;
   if (result === undefined) {

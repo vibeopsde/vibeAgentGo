@@ -19,8 +19,6 @@ export interface WorkerSandboxOptions {
   listFiles?: () => Promise<{ path: string; content: string }[]>;
   /** Called when worker calls render(title, html) — displays in Render Panel */
   onRender?: (title: string, html: string) => void;
-  /** Language: "javascript" (default) or "python" */
-  lang?: 'javascript' | 'python';
   /** Timeout in ms (default: 30000, max: 60000) */
   timeoutMs?: number;
 }
@@ -30,7 +28,6 @@ export function runInWorkerSandbox(
   options: WorkerSandboxOptions = {}
 ): Promise<WorkerSandboxResult> {
   const timeoutMs = Math.max(1000, Math.min(options.timeoutMs ?? 30000, 60000));
-  const lang = options.lang || 'javascript';
 
   return new Promise((resolve) => {
     let settled = false;
@@ -143,6 +140,6 @@ export function runInWorkerSandbox(
     };
 
     // Send the code to the worker
-    worker.postMessage({ __workerSandbox: true, type: 'run', code, lang, timeoutMs });
+    worker.postMessage({ __workerSandbox: true, type: 'run', code, timeoutMs });
   });
 }

@@ -174,12 +174,11 @@ const search_files: Tool = {
 const run: Tool = {
   name: 'run',
   description:
-    'Execute code in the sandbox — the single gateway to the execution environment. Runs in a Web Worker. Supports JavaScript (default) and Python (via Pyodide WASM, lazy-loaded on first use). Capabilities: importScripts() for CDN libraries (JS only), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in the Render Panel, async/await. Use for ALL code execution: data processing, CSV→SQLite queries, file transformations, calculations, Python data analysis (numpy, pandas), and building interactive HTML/CSS/JS mini-apps. 30s timeout, no DOM access. Use console.log() / print() for output.',
+    'Execute JavaScript in the sandbox — the single gateway to the execution environment. Runs in a Web Worker. Capabilities: importScripts() for CDN libraries (sql.js for SQLite, csv parsers, charting libs, etc.), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in the Render Panel, async/await. Use for ALL code execution: data processing, CSV→SQLite queries, file transformations, calculations, and building interactive HTML/CSS/JS mini-apps. 30s timeout, no DOM access. Use console.log() for output.',
   parameters: {
     type: 'object',
     properties: {
-      code: { type: 'string', description: 'Code to execute. In JS mode: globals are fs, console, importScripts, render, async/await. In Python mode: globals are fs (with read_file/write_file/list_files methods), render(title, html), print(), and all Pyodide builtins (numpy, pandas, etc. available after importing).' },
-      lang: { type: 'string', enum: ['javascript', 'python'], description: 'Language: "javascript" (default) or "python". Python uses Pyodide (CPython compiled to WASM) — supports numpy, pandas, matplotlib, scipy, etc.' },
+      code: { type: 'string', description: 'JavaScript code to execute. Available globals: fs (workspace I/O: fs.readFile, fs.writeFile, fs.listFiles), console, importScripts (CDN imports), render(title, html) to show interactive views, async/await.' },
       timeout: { type: 'number', description: 'Timeout in milliseconds (default: 30000, max: 60000)' },
     },
     required: ['code'],
@@ -188,7 +187,6 @@ const run: Tool = {
     const { runInWorkerSandbox } = await import('../utils/worker-sandbox.js');
     const mem = getMemoryStore(ctx);
     const timeoutMs = Math.max(1000, Math.min(asNumber(args.timeout, 30000), 60000));
-    const lang = asString(args.lang, 'javascript') as 'javascript' | 'python';
 
     try {
       const { logs, result, error, files } = await runInWorkerSandbox(asString(args.code), {
@@ -198,7 +196,6 @@ const run: Tool = {
         onRender: (title, html) => {
           ctx.emit('render_view', { title, html });
         },
-        lang,
         timeoutMs,
       });
 
