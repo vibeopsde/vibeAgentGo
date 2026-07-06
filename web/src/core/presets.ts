@@ -31,7 +31,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     key: 'ollama-cloud',
     label: 'Ollama Cloud',
     model: 'llama3.2',
-    baseUrl: 'https://ollama.cloud/v1',
+    baseUrl: 'https://ollama.com/v1',
     apiKeyPlaceholder: 'ollama cloud key',
   },
 ];
