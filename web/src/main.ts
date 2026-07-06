@@ -405,7 +405,9 @@ function startOnboarding() {
   app.appendChild(wizard.element);
 }
 
-if (hasCompletedOnboarding()) {
+const isDevMode = new URLSearchParams(window.location.search).has('dev');
+
+if (hasCompletedOnboarding() || isDevMode) {
   startApp();
 } else {
   startOnboarding();
