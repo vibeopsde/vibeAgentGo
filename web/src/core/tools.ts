@@ -1,10 +1,10 @@
 // ============================================================
-// vibeAgentGo — Browser Tools (client-side, IndexedDB + iframe sandbox)
+// vibeAgentGo — Browser Tools (client-side, IndexedDB + Web Worker sandbox)
+// Single execution gateway: run_terminal (Web Worker)
 // ============================================================
 
 import type { Tool, ToolContext, ProjectState } from '../types/index.js';
 import { MemoryStore, loadConfig } from './memory.js';
-import { runInSandbox } from '../utils/sandbox.js';
 import { escapeHtml } from '../utils/escape.js';
 import {
   loadState,
@@ -169,48 +169,16 @@ const search_files: Tool = {
   },
 };
 
-// --- Code Execution (browser sandbox via Function constructor) ---
-
-const run_code: Tool = {
-  name: 'run_code',
-  description:
-    'Execute JavaScript code in a sandboxed iframe environment. Captures console.log/error/warn/info and uncaught exceptions. Use log() or console.log() for output. Returns the result value, logs, and error details including stack traces. No access to IndexedDB or the parent page.',
-  parameters: {
-    type: 'object',
-    properties: {
-      code: { type: 'string', description: 'JavaScript code to execute' },
-      timeout: { type: 'number', description: 'Optional timeout in milliseconds (default: 5000, max: 30000)' },
-    },
-    required: ['code'],
-  },
-  handler: async (args: Record<string, unknown>) => {
-    try {
-      const timeoutMs = Math.max(100, Math.min(asNumber(args.timeout, 5000), 30000));
-      const { logs, result, error } = await runInSandbox(asString(args.code), timeoutMs);
-      const logsText =
-        logs.length > 0
-          ? logs.map((l) => `[${l.level.toUpperCase()}] ${l.message}${l.stack ? '\n' + l.stack : ''}`).join('\n')
-          : 'No logs';
-      if (error) {
-        return `Sandbox error: ${error.name}: ${error.message}\n${error.stack || ''}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
-      }
-      return logs.length > 0 ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
-    } catch (e) {
-      return `Sandbox error: ${e instanceof Error ? e.message : String(e)}`;
-    }
-  },
-};
-
-// --- Rich Execution Environment (Web Worker with CDN imports + workspace I/O) ---
+// --- Execution Gateway (Web Worker with CDN imports + workspace I/O + render) ---
 
 const run_terminal: Tool = {
   name: 'run_terminal',
   description:
-    'Execute JavaScript in a Web Worker sandbox with rich capabilities: importScripts() for CDN libraries (e.g., sql.js for SQLite, csv parsers), fs.readFile/writeFile/listFiles for workspace I/O, and async/await support. Use this for data processing, CSV→SQLite queries, file transformations, or any task needing external libs. Runs in parallel to the UI with a 30s timeout. No DOM access. Use console.log() for output. The fs object provides: fs.readFile(path), fs.writeFile(path, content), fs.listFiles().',
+    'Execute JavaScript in the sandbox — the single gateway to the execution environment. Runs in a Web Worker with rich capabilities: importScripts() for CDN libraries (e.g., sql.js for SQLite, csv parsers), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in the Render Panel, and async/await support. Use this for ALL code execution: data processing, CSV→SQLite queries, file transformations, calculations, and building interactive HTML/CSS/JS mini-apps. Runs in parallel to the UI with a 30s timeout. No DOM access. Use console.log() for output. Available globals: fs (workspace I/O), console, importScripts (CDN imports), render (display HTML), async/await. Example: render("Dashboard", "<h1>Hello</h1>"); or const sql = await importScripts("https://cdn.jsdelivr.net/npm/sql.js/dist/sql-wasm.js"); ...',
   parameters: {
     type: 'object',
     properties: {
-      code: { type: 'string', description: 'JavaScript code to execute. Available globals: fs (workspace I/O), console, importScripts (CDN imports), async/await. Example: const sql = await importScripts("https://cdn.jsdelivr.net/npm/sql.js/dist/sql-wasm.js"); const db = new SQL.Database(); ...' },
+      code: { type: 'string', description: 'JavaScript code to execute. Available globals: fs (workspace I/O), console, importScripts (CDN imports), render (display HTML in Render Panel), async/await. Call render(title, html) to show interactive views. Example: render("Chart", "<canvas id=\\"c\\"></canvas><script>...</script>");' },
       timeout: { type: 'number', description: 'Timeout in milliseconds (default: 30000, max: 60000)' },
     },
     required: ['code'],
@@ -225,6 +193,9 @@ const run_terminal: Tool = {
         readFile: async (path) => mem.readFile(path),
         writeFile: async (path, content) => mem.writeFile(path, content),
         listFiles: async () => mem.listFiles(),
+        onRender: (title, html) => {
+          ctx.emit('render_view', { title, html });
+        },
         timeoutMs,
       });
 
@@ -585,72 +556,6 @@ function renderStateDashboard(state: ProjectState): string {
 </html>`;
 }
 
-interface RenderPanelLike {
-  getLogs(title: string): { level: string; message: string; stack?: string; timestamp: string }[];
-  clearLogs(title: string): void;
-}
-
-// --- Render View (iframe, same as before) ---
-
-const render_view: Tool = {
-  name: 'render_view',
-  description:
-    'Render HTML/CSS/JS as a live interactive view alongside the chat. The view runs in a sandboxed iframe. Pass HTML directly or reference a file path in the workspace. To debug a rendered view, use the inspect_view tool to retrieve its console logs and uncaught errors.',
-  parameters: {
-    type: 'object',
-    properties: {
-      title: { type: 'string', description: 'Tab title for the view (same title = update existing)' },
-      html: { type: 'string', description: 'Full HTML document to render' },
-      path: { type: 'string', description: 'Path to an HTML file in the workspace' },
-    },
-    required: ['title'],
-  },
-  handler: async (args: Record<string, unknown>, ctx) => {
-    let html: string;
-    const title = asString(args.title);
-    if (typeof args.html === 'string') {
-      html = args.html;
-    } else if (typeof args.path === 'string') {
-      const mem = getMemoryStore(ctx);
-      const content = await mem.readFile(args.path);
-      if (content === null) return `File not found: ${args.path}`;
-      html = content;
-    } else {
-      return 'Either html or path is required';
-    }
-    ctx.emit('render_view', { title, html });
-    return `Rendered "${title}" in the view panel (${html.length} bytes)`;
-  },
-};
-
-// --- Inspect View (debug logs from rendered views) ---
-
-const inspect_view: Tool = {
-  name: 'inspect_view',
-  description:
-    'Retrieve captured console logs, errors, warnings, and unhandled exceptions from a rendered view (render_view). Use this to debug HTML/JS mini-apps after rendering them. Set clear=true to reset the captured log buffer after reading.',
-  parameters: {
-    type: 'object',
-    properties: {
-      title: { type: 'string', description: 'Title of the rendered view to inspect' },
-      clear: { type: 'boolean', description: 'Whether to clear the log buffer after reading. Default: false' },
-    },
-    required: ['title'],
-  },
-  handler: async (args: Record<string, unknown>, ctx) => {
-    const panel = ctx.env.renderPanel as RenderPanelLike | undefined;
-    if (!panel) return 'No render panel is available';
-    const title = asString(args.title);
-    const logs = panel.getLogs(title);
-    if (!logs.length) return `No logs captured for view "${title}".`;
-    const text = logs
-      .map((l) => `[${l.timestamp}] [${l.level.toUpperCase()}] ${l.message}${l.stack ? '\n' + l.stack : ''}`)
-      .join('\n');
-    if (asBoolean(args.clear)) panel.clearLogs(title);
-    return `Logs for "${title}":\n\n${text}`;
-  },
-};
-
 // --- Registry ---
 
 export function createDefaultTools(): Tool[] {
@@ -659,14 +564,11 @@ export function createDefaultTools(): Tool[] {
     read_pdf,
     write_file,
     search_files,
-    run_code,
     run_terminal,
     web_search,
     memory_save,
     memory_search,
     state_view,
     state_update,
-    render_view,
-    inspect_view,
   ];
 }

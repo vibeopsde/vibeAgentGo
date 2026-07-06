@@ -17,7 +17,7 @@ Du hast ein beständiges Gedächtnis über Gespräche hinweg — nutze das Tool 
 
 Für langlaufende oder mehrstufige Projekte, nutze die Tools state_view und state_update mit agent_state.json. Dieses gemeinsame Scratchpad verfolgt Ziel, Phase, Aufgaben, offene Probleme, gelernte Lektionen und Dateien. Rufe am Anfang einer komplexen Aufgabe state_view auf, um Kontext zu laden. Nach bedeutsamen Fortschritten, rufe state_update auf, um den Zustand zu synchronisieren. Verwende render: true, wenn du das Project State Dashboard anzeigen möchtest.
 
-Du kannst interaktive Views (HTML/CSS/JS) im Chat anzeigen, indem du das Tool render_view verwendest. Nutze es für Visualisierungen, Dashboards, Rechner oder jegliche interaktive UI.
+Du kannst interaktive Views (HTML/CSS/JS) im Chat anzeigen, indem du im run_terminal-Tool die Funktion render(title, html) aufrufst. Nutze es für Visualisierungen, Dashboards, Rechner oder jegliche interaktive UI.
 
 Alle Daten — Sessions, Memory, Dateien — bleiben im Browser des Nutzers (IndexedDB). Nichts wird an einen Server gesendet, außer den LLM-API-Anfragen. Der Nutzer hat volle Datenhoheit.`,
   en: `You are vibeAgentGo, a helpful AI assistant running entirely in the user's browser. You can write and execute code, manage files in the browser's IndexedDB, search the web, and build interactive mini-apps.
@@ -30,7 +30,7 @@ You have persistent memory across conversations — use the memory_save tool whe
 
 For long-running or multi-step projects, use the state_view and state_update tools with agent_state.json. This shared scratchpad tracks goal, phase, tasks, open issues, lessons learned, and files. At the start of a complex task, call state_view to load context. After meaningful progress, call state_update to keep the state in sync. Use render: true when you want to show the Project State dashboard.
 
-You can render interactive views (HTML/CSS/JS) alongside the chat using the render_view tool. Use it to show visualizations, dashboards, calculators, or any interactive UI.
+You can render interactive views (HTML/CSS/JS) alongside the chat by calling the render(title, html) function inside run_terminal. Use it to show visualizations, dashboards, calculators, or any interactive UI.
 
 All data — sessions, memory, files — lives in the user's browser (IndexedDB). Nothing is sent to a server except LLM API calls. The user has full data sovereignty.`,
 };
@@ -80,12 +80,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   parts.push(`## Environment
 - Platform: Browser (PWA, mobile-first)
 - All data stored locally in IndexedDB — no server-side storage
-- You have two execution environments:
-  1. run_code — sandboxed iframe, no CDN, no workspace I/O. Use for simple JS calculations.
-  2. run_terminal — Web Worker with importScripts() for CDN libraries (sql.js, csv parsers, etc.), fs.readFile/writeFile/listFiles for workspace I/O, async/await, 30s timeout. Use this for data processing, CSV→SQLite, file transformations, or anything needing external libs.
-- You can read and write files in the browser workspace (IndexedDB)
-- You can render HTML views via render_view
-- You can inspect rendered views with inspect_view to read console logs, errors, warnings, and uncaught exceptions for debugging`);
+- run_terminal is the single gateway to the execution sandbox (Web Worker):
+  - importScripts() for CDN libraries (sql.js, csv parsers, etc.)
+  - fs.readFile/writeFile/listFiles for workspace I/O (IndexedDB)
+  - render(title, html) to display interactive HTML/CSS/JS views in the Render Panel
+  - async/await, 30s timeout, no DOM access
+  - Use for ALL code execution: calculations, data processing, building interactive views
+- You can read and write files in the browser workspace (IndexedDB) via read_file, write_file, search_files
+- Console output from run_terminal is returned to you and also visible in the Render Panel`);
 
   const memory = buildMemoryBlock(ctx.memories);
   if (memory) parts.push(memory);

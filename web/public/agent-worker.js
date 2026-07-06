@@ -74,6 +74,11 @@ const fs = {
   listFiles: () => sendRequest('listFiles', {}),
 };
 
+// Render API: display HTML in the Render Panel (same path as render_view used)
+function render(title, html) {
+  self.postMessage({ __workerSandbox: true, type: 'render', title, html });
+}
+
 // --- Code execution ---
 function runCode(code) {
   let result = undefined;
@@ -83,8 +88,8 @@ function runCode(code) {
     // Wrap user code in an async function so `await` works at the top level.
     // This lets the user write `const sql = await initSqlJs(...)` directly.
     // Any returned Promise is then caught by the instanceof check below.
-    const fn = new Function('fs', 'console', 'importScripts', `return (async () => {\n${code}\n})()`);
-    result = fn(fs, console, importScripts);
+    const fn = new Function('fs', 'console', 'importScripts', 'render', `return (async () => {\n${code}\n})()`);
+    result = fn(fs, console, importScripts, render);
   } catch (e) {
     error = {
       message: e.message || String(e),

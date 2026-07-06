@@ -17,6 +17,8 @@ export interface WorkerSandboxOptions {
   readFile?: (path: string) => Promise<string | null>;
   writeFile?: (path: string, content: string) => Promise<void>;
   listFiles?: () => Promise<{ path: string; content: string }[]>;
+  /** Called when worker calls render(title, html) — displays in Render Panel */
+  onRender?: (title: string, html: string) => void;
   /** Timeout in ms (default: 30000, max: 60000) */
   timeoutMs?: number;
 }
@@ -99,6 +101,12 @@ export function runInWorkerSandbox(
             error: String(e),
           });
         }
+        return;
+      }
+
+      // Render request from worker — display HTML in the Render Panel
+      if (data.type === 'render') {
+        if (options.onRender) options.onRender(data.title, data.html);
         return;
       }
 
