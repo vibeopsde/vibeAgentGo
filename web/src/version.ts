@@ -3,4 +3,4 @@
 // Format: vYYMM.xyz (xyz resets on new month)
 // ============================================================
 
-export const VERSION = 'v2607.4.4';
+export const VERSION = 'v2607.4.5';

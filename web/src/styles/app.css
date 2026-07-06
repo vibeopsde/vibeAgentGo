@@ -1365,6 +1365,14 @@ select {
   letter-spacing: 0.5px;
 }
 
+.onboarding-version {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 4px 0 0;
+  letter-spacing: 0.3px;
+}
+
 .onboarding-restore-link {
   display: block;
   width: 100%;

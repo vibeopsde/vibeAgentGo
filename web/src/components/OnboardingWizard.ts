@@ -48,6 +48,7 @@ export class OnboardingWizard {
       <div class="onboarding-card">
         <img class="onboarding-logo onboarding-logo-xl" src="./logo-192.png" alt="vibeAgentGo" width="120" height="120" />
         <h1 class="onboarding-greeting">Willkommen · Welcome</h1>
+        <p class="onboarding-version">vibeAgentGo ${VERSION}</p>
 
         <div class="language-flag-row">
           <button id="lang-de" class="lang-flag-btn" data-lang="de">
