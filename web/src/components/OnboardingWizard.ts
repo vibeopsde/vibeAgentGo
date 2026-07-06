@@ -1,5 +1,5 @@
 // ============================================================
-// vibeAgentGo — Onboarding Wizard (4 steps: welcome, language, LLM config, search config)
+// vibeAgentGo — Onboarding Wizard (4 steps: welcome+language, description, LLM config, search config)
 // ============================================================
 
 import { saveConfig, loadConfig, completeOnboarding } from '../core/memory.js';
@@ -7,7 +7,7 @@ import { testConnection } from '../core/llm_client.js';
 import { BackupManager } from '../core/backup.js';
 import { VERSION } from '../version.js';
 import { escapeHtml } from '../utils/escape.js';
-import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
+import { t, setLanguage, type Language } from '../i18n/index.js';
 import { PROVIDER_PRESETS, findPresetByUrlAndModel, findPresetByKey, type ProviderPreset } from '../core/presets.js';
 
 export interface OnboardingCompleteCallback {
@@ -29,8 +29,8 @@ export class OnboardingWizard {
 
   private render() {
     this.element.innerHTML = '';
-    if (this.step === 1) this.renderWelcome();
-    else if (this.step === 2) this.renderLanguage();
+    if (this.step === 1) this.renderWelcomeLanguage();
+    else if (this.step === 2) this.renderDescription();
     else if (this.step === 3) this.renderLLMConfig();
     else this.renderSearchConfig();
   }
@@ -43,10 +43,56 @@ export class OnboardingWizard {
     `;
   }
 
-  private renderWelcome() {
+  private renderWelcomeLanguage() {
     this.element.innerHTML = `
       <div class="onboarding-card">
         <img class="onboarding-logo" src="./logo-192.png" alt="vibeAgentGo" width="80" height="80" />
+        <h1>${t('onboarding.welcome')}</h1>
+        <p class="onboarding-subtitle">${t('onboarding.subtitle')}</p>
+
+        <div class="language-flag-row">
+          <button id="lang-de" class="lang-flag-btn" data-lang="de">
+            <span class="lang-flag-emoji">🇩🇪</span>
+            <span class="lang-flag-label">Deutsch</span>
+          </button>
+          <button id="lang-en" class="lang-flag-btn" data-lang="en">
+            <span class="lang-flag-emoji">🇬🇧</span>
+            <span class="lang-flag-label">English</span>
+          </button>
+        </div>
+
+        <div class="onboarding-actions">
+          <button id="onboarding-next" class="btn btn-primary btn-large" disabled>${t('onboarding.next')}</button>
+        </div>
+      </div>
+    `;
+
+    const nextBtn = this.element.querySelector('#onboarding-next') as HTMLButtonElement;
+
+    const selectLang = (lang: Language) => {
+      this.config = saveConfig({ ...this.config, language: lang });
+      setLanguage(lang);
+      // mark active
+      this.element.querySelectorAll('.lang-flag-btn').forEach((b) =>
+        b.classList.toggle('lang-flag-active', (b as HTMLElement).dataset.lang === lang)
+      );
+      nextBtn.disabled = false;
+    };
+
+    this.element.querySelectorAll('.lang-flag-btn').forEach((btn) =>
+      btn.addEventListener('click', (e) => selectLang((e.currentTarget as HTMLElement).dataset.lang as Language))
+    );
+
+    nextBtn.addEventListener('click', () => {
+      this.step = 2;
+      this.render();
+    });
+  }
+
+  private renderDescription() {
+    this.element.innerHTML = `
+      <div class="onboarding-card">
+        ${this.stepIndicator(2)}
         <h1>${t('onboarding.welcome')}</h1>
         <p class="onboarding-subtitle">${t('onboarding.subtitle')}</p>
 
@@ -75,6 +121,7 @@ export class OnboardingWizard {
         </div>
 
         <div class="onboarding-actions">
+          <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
           <button id="onboarding-next" class="btn btn-primary btn-large">${t('onboarding.next')}</button>
         </div>
         <button id="onboarding-restore" class="onboarding-restore-link">${t('onboarding.restore')}</button>
@@ -82,8 +129,14 @@ export class OnboardingWizard {
         <div id="onboarding-restore-result" class="test-result" style="margin-top:12px;"></div>
       </div>
     `;
+
+    this.element.querySelector('#ob-back')!.addEventListener('click', () => {
+      this.step = 1;
+      this.render();
+    });
+
     this.element.querySelector('#onboarding-next')!.addEventListener('click', () => {
-      this.step = 2;
+      this.step = 3;
       this.render();
     });
 
@@ -113,46 +166,6 @@ export class OnboardingWizard {
       resultEl.textContent = `❌ ${t('settings.importError')}: ${(err as Error).message}`;
       resultEl.className = 'test-result test-error';
     }
-  }
-
-  private renderLanguage() {
-    const languageOptions = getAvailableLanguages()
-      .map(
-        (l) =>
-          `<option value="${l.value}" ${this.config.language === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`
-      )
-      .join('');
-
-    this.element.innerHTML = `
-      <div class="onboarding-card">
-        ${this.stepIndicator(2)}
-        <h1>${t('onboarding.languageTitle')}</h1>
-        <p class="onboarding-subtitle">${t('onboarding.languageHint')}</p>
-
-        <div class="form-group">
-          <label for="ob-language">${t('settings.language')}</label>
-          <select id="ob-language">${languageOptions}</select>
-        </div>
-
-        <div class="onboarding-actions">
-          <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
-          <button id="ob-next" class="btn btn-primary">${t('onboarding.next')}</button>
-        </div>
-      </div>
-    `;
-
-    this.element.querySelector('#ob-back')!.addEventListener('click', () => {
-      this.step = 1;
-      this.render();
-    });
-
-    this.element.querySelector('#ob-next')!.addEventListener('click', () => {
-      const language = (this.element.querySelector('#ob-language') as HTMLSelectElement).value as 'de' | 'en';
-      this.config = saveConfig({ ...this.config, language });
-      setLanguage(language);
-      this.step = 3;
-      this.render();
-    });
   }
 
   private renderLLMConfig() {
