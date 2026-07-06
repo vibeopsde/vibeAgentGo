@@ -1,6 +1,6 @@
 // ============================================================
 // vibeAgentGo — Browser Tools (client-side, IndexedDB + Web Worker sandbox)
-// Single execution gateway: run_terminal (Web Worker)
+// Single execution gateway: run (Web Worker)
 // ============================================================
 
 import type { Tool, ToolContext, ProjectState } from '../types/index.js';
@@ -171,8 +171,8 @@ const search_files: Tool = {
 
 // --- Execution Gateway (Web Worker with CDN imports + workspace I/O + render) ---
 
-const run_terminal: Tool = {
-  name: 'run_terminal',
+const run: Tool = {
+  name: 'run',
   description:
     'Execute code in the sandbox — the single gateway to the execution environment. Runs in a Web Worker. Supports JavaScript (default) and Python (via Pyodide WASM, lazy-loaded on first use). Capabilities: importScripts() for CDN libraries (JS only), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in the Render Panel, async/await. Use for ALL code execution: data processing, CSV→SQLite queries, file transformations, calculations, Python data analysis (numpy, pandas), and building interactive HTML/CSS/JS mini-apps. 30s timeout, no DOM access. Use console.log() / print() for output.',
   parameters: {
@@ -567,7 +567,7 @@ export function createDefaultTools(): Tool[] {
     read_pdf,
     write_file,
     search_files,
-    run_terminal,
+    run,
     web_search,
     memory_save,
     memory_search,
