@@ -2,22 +2,16 @@
 // vibeAgentGo — Vitest setup: polyfill IndexedDB in jsdom
 // ============================================================
 
-import { indexedDB } from 'fake-indexeddb';
+import { IDBFactory, IDBKeyRange, IDBTransaction } from 'fake-indexeddb';
+import { beforeEach } from 'vitest';
 
-// @ts-ignore
-if (typeof globalThis.indexedDB === 'undefined') {
+// Give every test a fresh IndexedDB factory so each test starts with a clean
+// database schema and no stale object stores from previous test runs.
+beforeEach(() => {
   // @ts-ignore
-  globalThis.indexedDB = indexedDB;
-}
-
-// @ts-ignore
-if (typeof globalThis.IDBKeyRange === 'undefined') {
+  globalThis.indexedDB = new IDBFactory();
   // @ts-ignore
-  globalThis.IDBKeyRange = require('fake-indexeddb/lib/FDBKeyRange');
-}
-
-// @ts-ignore
-if (typeof globalThis.IDBTransaction === 'undefined') {
+  globalThis.IDBKeyRange = IDBKeyRange;
   // @ts-ignore
-  globalThis.IDBTransaction = require('fake-indexeddb/lib/FDBTransaction');
-}
+  globalThis.IDBTransaction = IDBTransaction;
+});

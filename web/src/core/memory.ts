@@ -5,7 +5,7 @@
 import type { Message, MemoryEntry, Session } from '../types/index.js';
 
 const DB_NAME = 'vibeAgentGo-agent';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -28,6 +28,12 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains('files')) {
         db.createObjectStore('files', { keyPath: 'path' });
+      }
+      if (!db.objectStoreNames.contains('logs')) {
+        const logStore = db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
+        logStore.createIndex('timestamp', 'timestamp', { unique: false });
+        logStore.createIndex('level', 'level', { unique: false });
+        logStore.createIndex('source', 'source', { unique: false });
       }
     };
   });

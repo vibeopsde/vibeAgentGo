@@ -15,6 +15,7 @@ import { SkillsPanel } from './components/SkillsPanel.js';
 import { MobileNav, type MobileTab } from './components/MobileNav.js';
 import { OnboardingWizard } from './components/OnboardingWizard.js';
 import { Agent } from './core/agent.js';
+import { registerGlobalErrorHandlers, captureFunctionError } from './core/global_errors.js';
 import {
   loadConfig,
   saveConfig,
@@ -31,6 +32,9 @@ import { setLanguage, t } from './i18n/index.js';
 // Initialize theme and language before first render to avoid flash
 initTheme();
 setLanguage(loadConfig().language);
+
+// Capture global JS errors / unhandled rejections so we can inspect them later
+registerGlobalErrorHandlers();
 
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -116,6 +120,8 @@ function setupAgent(a: Agent) {
   });
   a.on('error', ({ message }) => {
     chatPanel.appendError(message);
+    chatPanel.setStatus('idle');
+    isRunning = false;
   });
   a.on('turn', ({ turn, total }) => {
     if (turn > 1) {
@@ -323,6 +329,7 @@ function buildLayout() {
     try {
       await agent.run(text, config, currentSessionId || undefined, attachments);
     } catch (e) {
+      captureFunctionError('main.onSubmit', e, { sessionId: currentSessionId });
       chatPanel.appendError(e instanceof Error ? e.message : String(e));
       chatPanel.setStatus('idle');
       isRunning = false;

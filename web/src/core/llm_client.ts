@@ -4,6 +4,7 @@
 // ============================================================
 
 import type { Message, ToolSchema, LLMResponse, ToolCall } from '../types/index.js';
+import { logger } from './logger.js';
 
 const DEFAULT_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 500;
@@ -94,6 +95,7 @@ export async function llmChatStream(opts: {
   signal?: AbortSignal;
 }): Promise<LLMResponse> {
   const url = `${opts.baseUrl.trim().replace(/\/$/, '')}/chat/completions`;
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const body: Record<string, unknown> = {
     model: opts.model,
@@ -110,6 +112,12 @@ export async function llmChatStream(opts: {
     body.tool_choice = 'auto';
   }
 
+  logger.debug('llm.request', `Request ${requestId} starting`, {
+    model: opts.model,
+    baseUrl: opts.baseUrl,
+    messageCount: opts.messages.length,
+  });
+
   const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: {
@@ -122,6 +130,11 @@ export async function llmChatStream(opts: {
     const err = e instanceof Error ? e : new Error(String(e));
     const statusMatch = /HTTP (\d+)/.exec(err.message);
     const status = statusMatch ? statusMatch[1] : 'unknown';
+    logger.error('llm.request', `Request ${requestId} failed: ${err.message}`, {
+      model: opts.model,
+      baseUrl: opts.baseUrl,
+      status,
+    });
     throw new Error(`LLM API error ${status}: ${err.message}`);
   });
 
@@ -136,11 +149,26 @@ export async function llmChatStream(opts: {
   let fullContent = '';
   let finishReason = 'stop';
   const toolCallMap = new Map<number, { id: string; function: { name: string; arguments: string } }>();
+  let malformedChunks = 0;
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      let done = false;
+      let value: Uint8Array | undefined;
+      try {
+        const readResult = await reader.read();
+        done = readResult.done;
+        value = readResult.value;
+      } catch (streamErr) {
+        const err = streamErr instanceof Error ? streamErr : new Error(String(streamErr));
+        logger.error('llm.stream', `Stream read failed for ${requestId}: ${err.message}`, {
+          model: opts.model,
+        });
+        throw new Error(`Stream read failed: ${err.message}`);
+      }
+
       if (done) break;
+      if (!value) continue;
 
       buffer += decoder.decode(value, { stream: true });
 
@@ -149,30 +177,62 @@ export async function llmChatStream(opts: {
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        if (!trimmed) continue;
 
-        const data = trimmed.slice(6);
-        if (data === '[DONE]') continue;
+        // SSE lines can have multiple `data:` prefixes in malformed streams
+        const dataParts: string[] = [];
+        if (trimmed.startsWith('data: ')) {
+          dataParts.push(trimmed.slice(6));
+        } else if (trimmed.startsWith('data:')) {
+          dataParts.push(trimmed.slice(5).trimStart());
+        } else if (trimmed === 'data: [DONE]' || trimmed === '[DONE]') {
+          continue;
+        } else {
+          // Non-data lines (e.g. retry, event) are ignored
+          continue;
+        }
 
-        try {
-          const parsed = JSON.parse(data);
+        for (const data of dataParts) {
+          if (data === '[DONE]') continue;
+          if (!data) continue;
+
+          let parsed: any;
+          try {
+            parsed = JSON.parse(data);
+          } catch (parseErr) {
+            malformedChunks++;
+            if (malformedChunks <= 3) {
+              logger.warn('llm.stream', `Malformed SSE chunk for ${requestId}`, {
+                chunk: data.slice(0, 200),
+                error: parseErr instanceof Error ? parseErr.message : String(parseErr),
+              });
+            }
+            continue;
+          }
+
           const choice = parsed.choices?.[0];
-          if (!choice) continue;
+          if (!choice) {
+            // Some providers send empty keep-alive chunks; ignore silently
+            continue;
+          }
 
           const delta = choice.delta;
+          if (!delta) continue;
 
-          if (typeof delta?.content === 'string') {
+          if (typeof delta.content === 'string') {
             // Guard against literal 'undefined' or malformed deltas from the provider.
             const text = delta.content === 'undefined' ? '' : delta.content;
             fullContent += text;
             if (text) opts.onDelta?.(text);
           }
 
-          if (delta?.tool_calls) {
+          if (delta.tool_calls) {
             for (const tc of delta.tool_calls) {
               const idx = tc.index ?? 0;
               const existing = toolCallMap.get(idx);
               if (existing) {
+                if (tc.id) existing.id = tc.id;
+                if (tc.function?.name) existing.function.name += tc.function.name;
                 if (tc.function?.arguments) {
                   existing.function.arguments += tc.function.arguments;
                 }
@@ -186,19 +246,41 @@ export async function llmChatStream(opts: {
                 });
               }
             }
+            // A tool-calls stream may not set finish_reason on every chunk
+            if (choice.finish_reason === 'tool_calls') {
+              finishReason = 'tool_calls';
+            }
           }
 
           if (choice.finish_reason) {
             finishReason = choice.finish_reason;
           }
-        } catch {
-          /* skip */
+
+          // Provider-specific error inside the stream
+          if (parsed.error) {
+            const errMsg = typeof parsed.error === 'string' ? parsed.error : JSON.stringify(parsed.error);
+            logger.error('llm.stream', `Provider error in stream for ${requestId}: ${errMsg}`, {
+              model: opts.model,
+            });
+            throw new Error(`Provider error: ${errMsg}`);
+          }
         }
       }
     }
   } finally {
-    reader.releaseLock();
+    try {
+      reader.releaseLock();
+    } catch {
+      /* ignore */
+    }
   }
+
+  logger.debug('llm.stream', `Request ${requestId} completed`, {
+    model: opts.model,
+    contentLength: fullContent.length,
+    toolCallCount: toolCallMap.size,
+    finishReason,
+  });
 
   const toolCalls: ToolCall[] | undefined =
     toolCallMap.size > 0

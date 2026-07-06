@@ -3,6 +3,7 @@
 // ============================================================
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import 'fake-indexeddb/auto';
 import { Agent } from '../src/core/agent.js';
 import { MemoryStore } from '../src/core/memory.js';
 import type { Message, Tool } from '../src/types/index.js';
@@ -21,7 +22,7 @@ import { llmChatStream } from '../src/core/llm_client.js';
 const mockConfig = {
   model: 'test-model',
   baseUrl: 'https://example.com/v1',
-  apiKey: 'test-key',
+  apiKey: 'test-api-key',
   maxTurns: 5,
   language: 'de' as const,
 };
@@ -189,5 +190,39 @@ describe('Agent', () => {
     agent.abort();
 
     await expect(runPromise).resolves.toContain('Aborted');
+  });
+
+  it('handles LLM errors without throwing and keeps the session', async () => {
+    const errors: string[] = [];
+    agent.on('error', ({ message }) => errors.push(message));
+    (llmChatStream as any).mockRejectedValue(new Error('LLM unavailable'));
+
+    const result = await agent.run('fail', mockConfig);
+
+    expect(result).toContain('Error during LLM request');
+    expect(errors).toContain('LLM unavailable');
+    expect(agent.getLastSessionId()).not.toBeNull();
+  });
+
+  it('logs tool dispatch errors and continues the conversation', async () => {
+    const tool: Tool = {
+      name: 'boom',
+      description: 'always throws',
+      parameters: { type: 'object', properties: {} },
+      handler: async () => {
+        throw new Error('tool exploded');
+      },
+    };
+    const agentWithBoom = new Agent([tool], memory);
+    (llmChatStream as any)
+      .mockResolvedValueOnce({
+        content: '',
+        tool_calls: [{ id: 'call_3', type: 'function', function: { name: 'boom', arguments: '{}' } }],
+        finish_reason: 'tool_calls',
+      })
+      .mockResolvedValueOnce({ content: 'Recovered', finish_reason: 'stop' });
+
+    const result = await agentWithBoom.run('boom', mockConfig);
+    expect(result).toBe('Recovered');
   });
 });

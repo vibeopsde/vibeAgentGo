@@ -10,6 +10,8 @@ import { MemoryStore } from './memory.js';
 import { randomUUID } from './uuid.js';
 import { filterSkillsByTrigger } from './skill_parser.js';
 import { validateArgs } from '../utils/schema_validate.js';
+import { logger, readLogs } from './logger.js';
+import { captureFunctionError } from './global_errors.js';
 
 export interface AgentEventMap {
   message: { role: string; content: string };
@@ -86,27 +88,107 @@ export class Agent {
   ): Promise<string> {
     this.sessionId = sessionId || this.sessionId || null;
     this.abortController = new AbortController();
+    const runSessionId = this.sessionId;
+    const controller = this.abortController;
 
+    logger.info('agent.run', 'Starting agent run', {
+      sessionId: runSessionId,
+      hasSession: !!sessionId,
+      model: config.model,
+      baseUrl: config.baseUrl,
+      attachmentCount: attachments.length,
+    });
+
+    try {
+      return await this._runInner(userMessage, config, runSessionId, attachments, controller);
+    } catch (e) {
+      const friendly =
+        e instanceof Error && e.name === 'AbortError'
+          ? 'Request aborted'
+          : e instanceof Error
+            ? e.message
+            : String(e);
+
+      captureFunctionError('agent.run', e, {
+        sessionId: runSessionId,
+        model: config.model,
+        baseUrl: config.baseUrl,
+      });
+      this.emit('error', { message: friendly });
+      // Ensure UI is unlocked even when the run failed hard
+      this.emit('done', { sessionId: runSessionId || 'unknown' });
+      return `Error: ${friendly}`;
+    }
+  }
+
+  private async _runInner(
+    userMessage: string,
+    config: AgentConfig,
+    runSessionId: string | null,
+    attachments: ChatAttachment[],
+    controller: AbortController
+  ): Promise<string> {
     // Save text files and PDFs into workspace so the agent can read them with read_file / read_pdf
     for (const a of attachments) {
       if (a.type === 'text' || a.type === 'pdf') {
-        await this.memory.writeFile(a.name, a.content);
+        try {
+          await this.memory.writeFile(a.name, a.content);
+          logger.info('agent.workspace', `Saved attachment ${a.name}`, {
+            sessionId: runSessionId,
+            type: a.type,
+          });
+        } catch (e) {
+          logger.warn('agent.workspace', `Failed to save attachment ${a.name}`, {
+            sessionId: runSessionId,
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
       }
     }
 
     // Load existing session messages if resuming
     let sessionMessages: Message[] | undefined;
     if (this.sessionId) {
-      const existing = await this.memory.getSession(this.sessionId);
-      if (existing) {
-        sessionMessages = existing.messages;
+      try {
+        const existing = await this.memory.getSession(this.sessionId);
+        if (existing) {
+          sessionMessages = existing.messages;
+          logger.info('agent.resume', `Loaded ${existing.messages.length} messages`, {
+            sessionId: this.sessionId,
+          });
+        }
+      } catch (e) {
+        logger.error('agent.resume', `Failed to load session ${this.sessionId}`, {
+          error: e instanceof Error ? e.message : String(e),
+        });
+        // Continue with a fresh history rather than failing
       }
     }
 
     // Load memory and skills
-    const { memories, profile } = await this.memory.getAllMemory();
-    const allSkills = await loadSkills();
-    const skills = filterSkillsByTrigger(allSkills, userMessage, true);
+    let memories: import('../types/index.js').MemoryEntry[] = [];
+    let profile: import('../types/index.js').MemoryEntry[] = [];
+    try {
+      const all = await this.memory.getAllMemory();
+      memories = all.memories;
+      profile = all.profile;
+    } catch (e) {
+      logger.error('agent.memory', 'Failed to load memory for run', {
+        sessionId: runSessionId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    let skills: import('../types/index.js').Skill[] = [];
+    try {
+      const allSkills = await loadSkills();
+      skills = filterSkillsByTrigger(allSkills, userMessage, true);
+    } catch (e) {
+      logger.error('agent.skills', 'Failed to load skills', {
+        sessionId: runSessionId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
 
     // Build the user message content parts
     const userContentParts: Message['content'] = [];
@@ -154,6 +236,7 @@ export class Agent {
 
     for (let turn = 0; turn < config.maxTurns; turn++) {
       this.emit('turn', { turn: turn + 1, total: config.maxTurns });
+      logger.debug('agent.turn', `Turn ${turn + 1}/${config.maxTurns}`, { sessionId: runSessionId });
 
       let response: LLMResponse;
       try {
@@ -164,15 +247,24 @@ export class Agent {
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           onDelta: (delta) => this.emit('stream_delta', { delta }),
-          signal: this.abortController.signal,
+          signal: controller.signal,
         });
       } catch (e) {
         if (e instanceof Error && e.name === 'AbortError') {
           this.emit('error', { message: 'Request aborted' });
           return 'Aborted';
         }
-        this.emit('error', { message: e instanceof Error ? e.message : String(e) });
-        throw e;
+        const errMsg = e instanceof Error ? e.message : String(e);
+        logger.error('agent.llm', `LLM request failed on turn ${turn + 1}: ${errMsg}`, {
+          sessionId: runSessionId,
+          turn: turn + 1,
+          model: config.model,
+          baseUrl: config.baseUrl,
+        });
+        this.emit('error', { message: errMsg });
+        // Save what we have so the user can inspect / retry in the same session
+        await this.saveCurrentSession(history, runSessionId);
+        return `Error during LLM request: ${errMsg}`;
       }
 
       // Tool calls
@@ -189,7 +281,12 @@ export class Agent {
           let args: Record<string, unknown>;
           try {
             args = JSON.parse(tc.function.arguments) as Record<string, unknown>;
-          } catch {
+          } catch (parseErr) {
+            logger.error('agent.tool.parse', `Failed to parse args for ${toolName}`, {
+              sessionId: runSessionId,
+              arguments: tc.function.arguments,
+              error: parseErr instanceof Error ? parseErr.message : String(parseErr),
+            });
             args = {};
           }
 
@@ -200,6 +297,10 @@ export class Agent {
             result = await this.dispatchToolByName(toolName, args, ctx);
           } catch (e) {
             result = `Tool error: ${e instanceof Error ? e.message : String(e)}`;
+            logger.error('agent.tool.dispatch', `Tool ${toolName} failed`, {
+              sessionId: runSessionId,
+              error: e instanceof Error ? e.message : String(e),
+            });
           }
 
           this.emit('tool_result', { name: toolName, result });
@@ -219,8 +320,26 @@ export class Agent {
       this.emit('message', { role: 'assistant', content: finalContent });
       history.push({ role: 'assistant', content: finalContent });
 
-      // Save session
-      const id = this.sessionId || randomUUID().slice(0, 8);
+      await this.saveCurrentSession(history, runSessionId);
+
+      this.emit('done', { sessionId: this.sessionId! });
+
+      // Extract durable memories asynchronously for future sessions
+      this.extractMemoryFromConversation(history, config).catch(() => {});
+
+      return response.content;
+    }
+
+    const msg = `Max turns (${config.maxTurns}) exceeded`;
+    logger.warn('agent.maxTurns', msg, { sessionId: runSessionId });
+    this.emit('error', { message: msg });
+    await this.saveCurrentSession(history, runSessionId);
+    return msg;
+  }
+
+  private async saveCurrentSession(history: Message[], runSessionId: string | null): Promise<void> {
+    try {
+      const id = runSessionId || randomUUID().slice(0, 8);
       this.sessionId = id;
       const existing = await this.memory.getSession(id);
       const existingTitle = existing?.title;
@@ -239,18 +358,19 @@ export class Agent {
         created_at: existing?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
-
-      this.emit('done', { sessionId: id });
-
-      // Extract durable memories asynchronously for future sessions
-      this.extractMemoryFromConversation(history, config).catch(() => {});
-
-      return response.content;
+      logger.info('agent.session', `Saved session ${id} (${history.length} messages)`, {
+        sessionId: id,
+      });
+    } catch (e) {
+      logger.error('agent.session', 'Failed to save session', {
+        sessionId: runSessionId,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
+  }
 
-    const msg = `Max turns (${config.maxTurns}) exceeded`;
-    this.emit('error', { message: msg });
-    return msg;
+  getRecentErrors(limit = 20): Promise<import('./logger.js').LogEntry[]> {
+    return readLogs({ levels: ['error', 'fatal', 'warn'], limit, sessionId: this.sessionId });
   }
 
   private async dispatchToolByName(name: string, args: unknown, ctx: ToolContext): Promise<string> {
