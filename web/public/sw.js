@@ -35,8 +35,9 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  // Network-first for navigation requests (HTML) — always get latest index.html
-  if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
+  // Network-first for navigation requests (HTML) and un-hashed files — always get latest
+  if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html') ||
+      url.pathname === '/agent-worker.js' || url.pathname === '/manifest.json') {
     e.respondWith(
       fetch(req)
         .then((res) => {
