@@ -1,6 +1,6 @@
 {
   "name": "vibeagentgo",
-  "version": "2607.4.0",
+  "version": "2607.4.1",
   "description": "vibeAgentGo — Fully client-side AI agent PWA with memory, skills, and render_view",
   "type": "module",
   "private": true,
@@ -25,10 +25,12 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@types/sql.js": "^1.4.11",
     "dompurify": "^3.2.0",
     "jszip": "^3.10.1",
     "marked": "^15.0.0",
-    "pdfjs-dist": "^6.1.200"
+    "pdfjs-dist": "^6.1.200",
+    "sql.js": "^1.14.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

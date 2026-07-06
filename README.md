@@ -10,7 +10,7 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
 - **Project State** scratchpad (`agent_state.json`) for long-running tasks
-- **12 Tools** including file I/O, code sandbox, web search, memory, state, render, and debug
+- **13 Tools** including file I/O, code sandbox, web search, memory, state, render, and rich terminal execution
 - **render_view**: Agent builds HTML/CSS/JS mini-apps rendered in a sandboxed iframe panel
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace
 - **Backup & Restore**: Export and import all data as a single ZIP file
@@ -82,6 +82,7 @@ web/
 | `write_file` | Write a file to the IndexedDB workspace |
 | `search_files` | Search filenames or contents in the workspace |
 | `run_code` | Execute JS in a sandboxed iframe (`srcdoc` + `sandbox="allow-scripts"`) |
+| `run_terminal` | Rich JS execution in a Web Worker with `importScripts()` for CDN libs (sql.js, etc.) and workspace I/O (`fs.readFile/writeFile/listFiles`), 30s timeout |
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `memory_search` | Search existing memory entries by keyword |

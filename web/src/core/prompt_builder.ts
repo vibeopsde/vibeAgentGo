@@ -80,7 +80,9 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   parts.push(`## Environment
 - Platform: Browser (PWA, mobile-first)
 - All data stored locally in IndexedDB — no server-side storage
-- You have access to a sandboxed JavaScript runtime via run_code
+- You have two execution environments:
+  1. run_code — sandboxed iframe, no CDN, no workspace I/O. Use for simple JS calculations.
+  2. run_terminal — Web Worker with importScripts() for CDN libraries (sql.js, csv parsers, etc.), fs.readFile/writeFile/listFiles for workspace I/O, async/await, 30s timeout. Use this for data processing, CSV→SQLite, file transformations, or anything needing external libs.
 - You can read and write files in the browser workspace (IndexedDB)
 - You can render HTML views via render_view
 - You can inspect rendered views with inspect_view to read console logs, errors, warnings, and uncaught exceptions for debugging`);

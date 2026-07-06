@@ -201,6 +201,55 @@ const run_code: Tool = {
   },
 };
 
+// --- Rich Execution Environment (Web Worker with CDN imports + workspace I/O) ---
+
+const run_terminal: Tool = {
+  name: 'run_terminal',
+  description:
+    'Execute JavaScript in a Web Worker sandbox with rich capabilities: importScripts() for CDN libraries (e.g., sql.js for SQLite, csv parsers), fs.readFile/writeFile/listFiles for workspace I/O, and async/await support. Use this for data processing, CSV→SQLite queries, file transformations, or any task needing external libs. Runs in parallel to the UI with a 30s timeout. No DOM access. Use console.log() for output. The fs object provides: fs.readFile(path), fs.writeFile(path, content), fs.listFiles().',
+  parameters: {
+    type: 'object',
+    properties: {
+      code: { type: 'string', description: 'JavaScript code to execute. Available globals: fs (workspace I/O), console, importScripts (CDN imports), async/await. Example: const sql = await importScripts("https://cdn.jsdelivr.net/npm/sql.js/dist/sql-wasm.js"); const db = new SQL.Database(); ...' },
+      timeout: { type: 'number', description: 'Timeout in milliseconds (default: 30000, max: 60000)' },
+    },
+    required: ['code'],
+  },
+  handler: async (args: Record<string, unknown>, ctx) => {
+    const { runInWorkerSandbox } = await import('../utils/worker-sandbox.js');
+    const mem = getMemoryStore(ctx);
+    const timeoutMs = Math.max(1000, Math.min(asNumber(args.timeout, 30000), 60000));
+
+    try {
+      const { logs, result, error, files } = await runInWorkerSandbox(asString(args.code), {
+        readFile: async (path) => mem.readFile(path),
+        writeFile: async (path, content) => mem.writeFile(path, content),
+        listFiles: async () => mem.listFiles(),
+        timeoutMs,
+      });
+
+      // Persist any files the worker wrote via the bridge
+      if (files && files.length > 0) {
+        for (const f of files) {
+          await mem.writeFile(f.path, f.content);
+        }
+      }
+
+      const logsText =
+        logs.length > 0
+          ? logs.map((l) => `[${l.level.toUpperCase()}] ${l.message}`).join('\n')
+          : 'No logs';
+
+      if (error) {
+        return `Worker error: ${error.name}: ${error.message}\n${error.stack || ''}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
+      }
+      return logs.length > 0 ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
+    } catch (e) {
+      return `Worker error: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  },
+};
+
 // --- Web Search (Tavily) ---
 
 const web_search: Tool = {
@@ -611,6 +660,7 @@ export function createDefaultTools(): Tool[] {
     write_file,
     search_files,
     run_code,
+    run_terminal,
     web_search,
     memory_save,
     memory_search,
