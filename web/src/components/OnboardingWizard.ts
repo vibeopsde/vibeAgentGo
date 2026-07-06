@@ -188,7 +188,7 @@ export class OnboardingWizard {
 
         <div class="form-group" id="ob-apikey-group">
           <label for="ob-apikey">${t('settings.apiKey')}</label>
-          <input id="ob-apikey" type="password" value="${escapeHtml(this.config.apiKey)}" placeholder="sk-..." />
+          <input id="ob-apikey" type="password" value="" placeholder="sk-..." />
           <p class="field-hint" id="ob-apikey-hint">${t('onboarding.apiKeyHint')}</p>
         </div>
 
@@ -244,16 +244,18 @@ export class OnboardingWizard {
     const applyPreset = (preset: ProviderPreset) => {
       currentBaseUrl = preset.baseUrl;
       apiKeyInput.placeholder = preset.apiKeyPlaceholder;
+      apiKeyInput.value = '';
       // Show/hide API key field based on whether it's required
       apiKeyGroup.style.display = preset.apiKeyRequired ? 'block' : 'none';
       apiKeyHint.textContent = preset.apiKeyRequired
         ? t('onboarding.apiKeyRequired')
         : t('onboarding.apiKeyHint');
-      // Pre-fill model from preset
-      modelManual.style.display = 'block';
-      modelManual.value = preset.model;
-      modelSelect.style.display = 'none';
+      // Reset model dropdown to "verify first" state — do NOT pre-fill
+      modelManual.style.display = 'none';
+      modelManual.value = '';
+      modelSelect.style.display = 'block';
       modelSelect.disabled = true;
+      modelSelect.innerHTML = `<option value="">${t('onboarding.verifyFirst')}</option>`;
       nextBtn.disabled = true;
       updateVerifyButton();
     };
