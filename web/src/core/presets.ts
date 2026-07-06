@@ -17,11 +17,11 @@ export interface ProviderPreset {
 export const PROVIDER_PRESETS: ProviderPreset[] = [
   {
     key: 'ki-vibeops',
-    label: 'ki.vibeops.de (LM Studio)',
+    label: 'ki.vibeops.de',
     model: 'qwen/qwen3.6-35b-a3b',
     baseUrl: 'https://ki.vibeops.de/v1',
-    apiKeyPlaceholder: 'nicht nötig (lokal)',
-    apiKeyRequired: false,
+    apiKeyPlaceholder: 'sk-...',
+    apiKeyRequired: true,
   },
   {
     key: 'kimi-code',
