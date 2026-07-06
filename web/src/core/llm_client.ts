@@ -11,9 +11,7 @@ const INITIAL_BACKOFF_MS = 500;
 function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
-    return (
-      msg.includes('network') || msg.includes('fetch') || msg.includes('timeout') || msg.includes('abort') === false
-    );
+    return msg.includes('network') || msg.includes('fetch') || msg.includes('timeout');
   }
   return false;
 }

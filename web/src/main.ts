@@ -216,6 +216,27 @@ sessionPanel.onResume = (id) => {
 
 // --- Layout ---
 
+function isLocalEndpoint(baseUrl: string): boolean {
+  try {
+    const u = new URL(baseUrl.trim());
+    const host = u.hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') {
+      return true;
+    }
+    if (host.endsWith('.local')) return true;
+    const parts = host.split('.').map((n) => Number(n));
+    if (parts.length === 4 && parts.every((n) => !Number.isNaN(n))) {
+      if (parts[0] === 10) return true;
+      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+      if (parts[0] === 192 && parts[1] === 168) return true;
+      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function buildLayout() {
   const app = document.getElementById('app')!;
   app.innerHTML = '';
@@ -274,27 +295,6 @@ function buildLayout() {
   header.querySelector('#btn-new')!.addEventListener('click', () => newChat());
   header.querySelector('#btn-theme')!.addEventListener('click', () => toggleTheme());
   header.querySelector('#btn-mobile-menu')!.addEventListener('click', () => openMobileMenu());
-
-function isLocalEndpoint(baseUrl: string): boolean {
-  try {
-    const u = new URL(baseUrl.trim());
-    const host = u.hostname.toLowerCase();
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') {
-      return true;
-    }
-    if (host.endsWith('.local')) return true;
-    const parts = host.split('.').map((n) => Number(n));
-    if (parts.length === 4 && parts.every((n) => !Number.isNaN(n))) {
-      if (parts[0] === 10) return true;
-      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-      if (parts[0] === 192 && parts[1] === 168) return true;
-      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
 
   // Chat submit — runs agent directly in browser
   chatPanel.onSubmit = async (text: string, attachments: ChatAttachment[]) => {

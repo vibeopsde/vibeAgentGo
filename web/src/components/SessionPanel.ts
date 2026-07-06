@@ -120,7 +120,7 @@ export class SessionPanel {
         });
       });
     } catch (e) {
-      this.modal.innerHTML = `<p>${t('common.error')}: ${e}</p>`;
+      this.modal.innerHTML = `<p>${t('common.error')}: ${escapeHtml(String(e))}</p>`;
     }
   }
 }

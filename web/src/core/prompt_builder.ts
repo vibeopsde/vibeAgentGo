@@ -113,7 +113,7 @@ export function toolsToSchemas(tools: Tool[]): ToolSchema[] {
   }));
 }
 
-// Skills are loaded from IndexedDB via SkillStore. The UI to create/edit skills is future work.
+// Skills are loaded from IndexedDB via SkillStore.
 export async function loadSkills(): Promise<Skill[]> {
   const store = new SkillStore();
   const records = await store.listSkills();

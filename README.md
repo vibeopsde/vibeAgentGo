@@ -130,7 +130,7 @@ The rendered view runs in a sandboxed iframe via `srcdoc`. The `inspect_view` to
 
 ### Code Sandbox (`run_code`)
 
-`run_code` executes JavaScript in an isolated `blob:`-origin iframe with `sandbox="allow-scripts"`. It has no access to `parent`, `window.document`, `fetch`, `indexedDB`, or the main page's `localStorage`. A `log()` function and a limited `console` are injected for output.
+`run_code` executes JavaScript in an isolated iframe with `sandbox="allow-scripts"` using `srcdoc`. It has no access to `parent`, `window.document`, `fetch`, `indexedDB`, or the main page's `localStorage`. A `log()` function and a limited `console` are injected for output.
 
 ## Multimodal Attachments
 
