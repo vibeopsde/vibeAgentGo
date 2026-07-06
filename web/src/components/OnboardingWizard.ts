@@ -46,9 +46,8 @@ export class OnboardingWizard {
   private renderWelcomeLanguage() {
     this.element.innerHTML = `
       <div class="onboarding-card">
-        <img class="onboarding-logo" src="./logo-192.png" alt="vibeAgentGo" width="80" height="80" />
-        <h1>${t('onboarding.welcome')}</h1>
-        <p class="onboarding-subtitle">${t('onboarding.subtitle')}</p>
+        <img class="onboarding-logo onboarding-logo-xl" src="./logo-192.png" alt="vibeAgentGo" width="120" height="120" />
+        <h1 class="onboarding-greeting">Willkommen · Welcome</h1>
 
         <div class="language-flag-row">
           <button id="lang-de" class="lang-flag-btn" data-lang="de">
@@ -120,9 +119,9 @@ export class OnboardingWizard {
           </div>
         </div>
 
-        <div class="onboarding-actions">
+        <div class="onboarding-actions onboarding-actions-split">
           <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
-          <button id="onboarding-next" class="btn btn-primary btn-large">${t('onboarding.next')}</button>
+          <button id="onboarding-next" class="btn btn-primary">${t('onboarding.next')}</button>
         </div>
         <button id="onboarding-restore" class="onboarding-restore-link">${t('onboarding.restore')}</button>
         <input id="onboarding-restore-file" type="file" accept=".zip" style="display:none;" />

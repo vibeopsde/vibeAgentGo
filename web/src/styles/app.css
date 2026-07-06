@@ -1344,6 +1344,27 @@ select {
   justify-content: center;
 }
 
+.onboarding-actions-split {
+  justify-content: stretch;
+}
+
+.onboarding-actions-split .btn {
+  flex: 1 1 0;
+  justify-content: center;
+}
+
+.onboarding-logo-xl {
+  height: 120px !important;
+  width: 120px !important;
+}
+
+.onboarding-greeting {
+  font-size: 22px;
+  text-align: center;
+  margin-bottom: 0;
+  letter-spacing: 0.5px;
+}
+
 .onboarding-restore-link {
   display: block;
   width: 100%;
