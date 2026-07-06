@@ -215,7 +215,7 @@ export class OnboardingWizard {
 
         <div id="ob-test-result" class="test-result"></div>
 
-        <div class="onboarding-actions">
+        <div class="onboarding-actions onboarding-actions-split">
           <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
           <button id="ob-next" class="btn btn-primary" disabled>${t('onboarding.next')}</button>
         </div>
@@ -313,7 +313,7 @@ export class OnboardingWizard {
           <p class="field-hint">Tavily: <a href="https://app.tavily.com/" target="_blank" rel="noopener">app.tavily.com</a></p>
         </div>
 
-        <div class="onboarding-actions">
+        <div class="onboarding-actions onboarding-actions-split">
           <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
           <button id="ob-complete" class="btn btn-primary">${t('onboarding.finish')}</button>
         </div>
