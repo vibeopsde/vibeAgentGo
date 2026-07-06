@@ -52,11 +52,13 @@ function asRecordArray(value: unknown): Record<string, unknown>[] {
 const read_file: Tool = {
   name: 'read_file',
   description:
-    'Read the contents of a text file from the browser workspace (IndexedDB). Returns the file content as a string.',
+    'Read the contents of a text file from the browser workspace (IndexedDB). Returns the file content as a string. Use offset (1-indexed line number to start from) and limit (max lines to read) for large files. Lines are prefixed with line numbers.',
   parameters: {
     type: 'object',
     properties: {
       path: { type: 'string', description: 'Relative path to the file within the workspace' },
+      offset: { type: 'number', description: 'Line number to start reading from (1-indexed). Default: 1' },
+      limit: { type: 'number', description: 'Maximum number of lines to read. Default: all lines' },
     },
     required: ['path'],
   },
@@ -65,7 +67,24 @@ const read_file: Tool = {
     const path = asString(args.path);
     const content = await mem.readFile(path);
     if (content === null) return `File not found: ${path}`;
-    return content;
+
+    const offset = asNumber(args.offset, 1);
+    const limit = asNumber(args.limit, 0);
+
+    // If no offset/limit, return the full content
+    if (offset <= 1 && limit <= 0) return content;
+
+    const lines = content.split('\n');
+    const start = Math.max(0, offset - 1);
+    const end = limit > 0 ? start + limit : lines.length;
+    const slice = lines.slice(start, end);
+
+    // Prefix with line numbers like Hermes: LINE_NUM|CONTENT
+    const numbered = slice.map((line, i) => `${start + i + 1}|${line}`).join('\n');
+    const totalLines = lines.length;
+    const shownFrom = start + 1;
+    const shownTo = Math.min(end, totalLines);
+    return `${numbered}\n\n(shown ${shownFrom}-${shownTo} of ${totalLines} lines)`;
   },
 };
 
