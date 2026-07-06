@@ -81,11 +81,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 - Platform: Browser (PWA, mobile-first)
 - All data stored locally in IndexedDB — no server-side storage
 - run_terminal is the single gateway to the execution sandbox (Web Worker):
-  - importScripts() for CDN libraries (sql.js, csv parsers, etc.)
-  - fs.readFile/writeFile/listFiles for workspace I/O (IndexedDB)
-  - render(title, html) to display interactive HTML/CSS/JS views in the Render Panel
-  - async/await, 30s timeout, no DOM access
-  - Use for ALL code execution: calculations, data processing, building interactive views
+  - lang: "javascript" (default) or "python"
+  - JavaScript: importScripts() for CDN libs (sql.js, csv parsers, etc.), fs, render, async/await
+  - Python: Pyodide (CPython compiled to WASM) — supports numpy, pandas, matplotlib, scipy, etc.
+    - Python globals: fs.read_file(path), fs.write_file(path, content), fs.list_files(), render(title, html), print()
+    - Pyodide is lazy-loaded (~10MB on first Python call, cached afterwards)
+  - render(title, html) displays interactive HTML/CSS/JS views in the Render Panel
+  - 30s timeout, no DOM access
+  - Use for ALL code execution: calculations, data processing, data analysis, building interactive views
 - You can read and write files in the browser workspace (IndexedDB) via read_file, write_file, search_files
 - Console output from run_terminal is returned to you and also visible in the Render Panel`);
 
