@@ -170,6 +170,8 @@ export class OnboardingWizard {
 
   private renderLLMConfig() {
     const currentPreset = findPresetByUrlAndModel(this.config.baseUrl, this.config.model);
+    // Default to first preset if no match
+    const selectedPreset = currentPreset ?? PROVIDER_PRESETS[0];
 
     this.element.innerHTML = `
       <div class="onboarding-card">
@@ -180,24 +182,18 @@ export class OnboardingWizard {
         <div class="form-group">
           <label for="ob-preset">${t('settings.provider')}</label>
           <select id="ob-preset">
-            <option value="" ${!currentPreset ? 'selected' : ''}>${t('onboarding.manual')}</option>
-            ${PROVIDER_PRESETS.map((p) => `<option value="${escapeHtml(p.key)}" ${currentPreset?.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
+            ${PROVIDER_PRESETS.map((p) => `<option value="${escapeHtml(p.key)}" ${selectedPreset.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
           </select>
         </div>
 
-        <div class="form-group">
-          <label for="ob-baseurl">${t('settings.baseUrl')}</label>
-          <input id="ob-baseurl" type="text" value="${escapeHtml(this.config.baseUrl)}" placeholder="https://api.example.com/v1" />
-          <p class="field-hint">${t('onboarding.apiKeyHint')}</p>
-        </div>
-
-        <div class="form-group">
+        <div class="form-group" id="ob-apikey-group">
           <label for="ob-apikey">${t('settings.apiKey')}</label>
           <input id="ob-apikey" type="password" value="${escapeHtml(this.config.apiKey)}" placeholder="sk-..." />
+          <p class="field-hint" id="ob-apikey-hint">${t('onboarding.apiKeyHint')}</p>
         </div>
 
         <div class="form-group">
-          <button id="ob-verify" class="btn btn-secondary" disabled>${t('onboarding.testConnection')}</button>
+          <button id="ob-verify" class="btn btn-secondary">${t('onboarding.testConnection')}</button>
         </div>
 
         <div class="form-group">
@@ -223,54 +219,51 @@ export class OnboardingWizard {
     `;
 
     const presetSelect = this.element.querySelector('#ob-preset') as HTMLSelectElement;
-    const baseUrlInput = this.element.querySelector('#ob-baseurl') as HTMLInputElement;
     const apiKeyInput = this.element.querySelector('#ob-apikey') as HTMLInputElement;
+    const apiKeyGroup = this.element.querySelector('#ob-apikey-group') as HTMLElement;
+    const apiKeyHint = this.element.querySelector('#ob-apikey-hint') as HTMLElement;
     const verifyBtn = this.element.querySelector('#ob-verify') as HTMLButtonElement;
     const modelSelect = this.element.querySelector('#ob-model') as HTMLSelectElement;
     const modelManual = this.element.querySelector('#ob-model-manual') as HTMLInputElement;
     const nextBtn = this.element.querySelector('#ob-next') as HTMLButtonElement;
     const resultEl = this.element.querySelector('#ob-test-result') as HTMLElement;
 
+    // Hidden field to track current baseUrl from preset selection
+    let currentBaseUrl = selectedPreset.baseUrl;
+
     const updateVerifyButton = () => {
-      // Ollama and some local endpoints don't require an API key; baseUrl is enough.
-      const canVerify = baseUrlInput.value.trim().length > 0;
-      verifyBtn.disabled = !canVerify;
+      const preset = findPresetByKey(presetSelect.value);
+      if (preset && !preset.apiKeyRequired) {
+        verifyBtn.disabled = false;
+      } else {
+        verifyBtn.disabled = apiKeyInput.value.trim().length === 0;
+      }
     };
-    baseUrlInput.addEventListener('input', updateVerifyButton);
     apiKeyInput.addEventListener('input', updateVerifyButton);
-    updateVerifyButton();
+
+    const applyPreset = (preset: ProviderPreset) => {
+      currentBaseUrl = preset.baseUrl;
+      apiKeyInput.placeholder = preset.apiKeyPlaceholder;
+      // Show/hide API key field based on whether it's required
+      apiKeyGroup.style.display = preset.apiKeyRequired ? 'block' : 'none';
+      apiKeyHint.textContent = preset.apiKeyRequired
+        ? t('onboarding.apiKeyRequired')
+        : t('onboarding.apiKeyHint');
+      // Pre-fill model from preset
+      modelManual.style.display = 'block';
+      modelManual.value = preset.model;
+      modelSelect.style.display = 'none';
+      modelSelect.disabled = true;
+      nextBtn.disabled = true;
+      updateVerifyButton();
+    };
+
+    // Apply initial preset
+    applyPreset(selectedPreset);
 
     presetSelect.addEventListener('change', () => {
       const preset = findPresetByKey(presetSelect.value);
-      if (preset) {
-        baseUrlInput.value = preset.baseUrl;
-        apiKeyInput.placeholder = preset.apiKeyPlaceholder;
-        if (preset.model) {
-          // When no model field is present yet, auto-fill from preset to streamline setup
-          if (!modelSelect.value && modelSelect.disabled) {
-            modelManual.style.display = 'block';
-            modelManual.value = preset.model;
-            modelSelect.style.display = 'none';
-          }
-        } else {
-          // Generic preset: reset to manual input, since verification is still required
-          modelManual.style.display = 'block';
-          modelManual.value = '';
-          modelSelect.style.display = 'none';
-          modelSelect.disabled = true;
-          modelSelect.innerHTML = `<option value="">${t('onboarding.verifyFirst')}</option>`;
-          nextBtn.disabled = true;
-        }
-      } else {
-        // Manual: reset model fields to default state
-        modelManual.style.display = 'none';
-        modelManual.value = '';
-        modelSelect.style.display = 'block';
-        modelSelect.disabled = true;
-        modelSelect.innerHTML = `<option value="">${t('onboarding.verifyFirst')}</option>`;
-        nextBtn.disabled = true;
-      }
-      updateVerifyButton();
+      if (preset) applyPreset(preset);
     });
 
     modelSelect.addEventListener('change', () => {
@@ -287,9 +280,9 @@ export class OnboardingWizard {
     });
 
     verifyBtn.addEventListener('click', () =>
-      this.verifyLLM(baseUrlInput, apiKeyInput, modelSelect, modelManual, verifyBtn, nextBtn, resultEl)
+      this.verifyLLM(currentBaseUrl, apiKeyInput, modelSelect, modelManual, verifyBtn, nextBtn, resultEl)
     );
-    this.element.querySelector('#ob-next')!.addEventListener('click', () => this.saveLLM());
+    this.element.querySelector('#ob-next')!.addEventListener('click', () => this.saveLLM(currentBaseUrl));
   }
 
   private renderSearchConfig() {
@@ -338,7 +331,7 @@ export class OnboardingWizard {
   }
 
   private async verifyLLM(
-    baseUrlInput: HTMLInputElement,
+    baseUrl: string,
     apiKeyInput: HTMLInputElement,
     modelSelect: HTMLSelectElement,
     modelManual: HTMLInputElement,
@@ -346,7 +339,6 @@ export class OnboardingWizard {
     nextBtn: HTMLButtonElement,
     resultEl: HTMLElement
   ) {
-    const baseUrl = baseUrlInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
 
     resultEl.textContent = t('common.loading');
@@ -397,8 +389,7 @@ export class OnboardingWizard {
     }
   }
 
-  private saveLLM() {
-    const baseUrl = (this.element.querySelector('#ob-baseurl') as HTMLInputElement).value.trim();
+  private saveLLM(baseUrl: string) {
     const modelManual = this.element.querySelector('#ob-model-manual') as HTMLInputElement;
     const modelSelect = this.element.querySelector('#ob-model') as HTMLSelectElement;
     const model = (modelManual.style.display === 'block' ? modelManual.value.trim() : modelSelect.value.trim());

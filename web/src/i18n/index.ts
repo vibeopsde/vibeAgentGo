@@ -38,8 +38,8 @@ const de: Translations = {
 
   // Settings
   'settings.title': 'Einstellungen',
-  'settings.provider': 'Provider Preset',
-  'settings.providerHint': 'Preset trägt Modell + Base URL ein. API Key musst du selbst einfügen.',
+  'settings.provider': 'Provider',
+  'settings.providerHint': 'Fester Provider — Base URL wird automatisch gesetzt.',
   'settings.custom': 'Benutzerdefiniert',
   'settings.openrouter': 'OpenRouter',
   'settings.opencode': 'OpenCode (go/zen)',
@@ -91,6 +91,7 @@ const de: Translations = {
   'onboarding.searchHint':
     'Optional: Aktiviere Websuche über Tavily. Du kannst dies später in den Einstellungen ändern.',
   'onboarding.apiKeyHint': 'Bei lokalen Endpunkten kann das Feld leer bleiben.',
+  'onboarding.apiKeyRequired': 'API-Key für diesen Provider erforderlich.',
   'onboarding.manual': 'Manuell',
   'onboarding.verifyFirst': 'Bitte zuerst Verbindung testen',
   'onboarding.verifyFailed': 'Verifizierung fehlgeschlagen',
@@ -181,8 +182,8 @@ const en: Translations = {
 
   // Settings
   'settings.title': 'Settings',
-  'settings.provider': 'Provider Preset',
-  'settings.providerHint': 'Preset fills in model + base URL. You must add your own API key.',
+  'settings.provider': 'Provider',
+  'settings.providerHint': 'Fixed provider — base URL is set automatically.',
   'settings.custom': 'Custom',
   'settings.openrouter': 'OpenRouter',
   'settings.opencode': 'OpenCode (go/zen)',
@@ -233,6 +234,7 @@ const en: Translations = {
   'onboarding.llmHint': 'Choose a provider or enter your endpoint data manually.',
   'onboarding.searchHint': 'Optional: Enable web search via Tavily. You can change this later in Settings.',
   'onboarding.apiKeyHint': 'For local endpoints this field can be left empty.',
+  'onboarding.apiKeyRequired': 'API key required for this provider.',
   'onboarding.manual': 'Manual',
   'onboarding.verifyFirst': 'Please test connection first',
   'onboarding.verifyFailed': 'Verification failed',

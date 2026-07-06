@@ -1,7 +1,7 @@
 // ============================================================
 // vibeAgentGo — Shared LLM Provider Presets
 // Centralized presets used by SettingsModal and OnboardingWizard.
-// Keep vendor-specific URLs and models out of component code.
+// Only fixed providers that work via CORS proxies — no custom URL editing.
 // ============================================================
 
 export interface ProviderPreset {
@@ -10,22 +10,26 @@ export interface ProviderPreset {
   model: string;
   baseUrl: string;
   apiKeyPlaceholder: string;
+  /** Whether an API key is required (local endpoints don't need one). */
+  apiKeyRequired: boolean;
 }
 
 export const PROVIDER_PRESETS: ProviderPreset[] = [
   {
-    key: 'openrouter',
-    label: 'OpenRouter',
-    model: '',
-    baseUrl: 'https://openrouter.ai/api/v1',
-    apiKeyPlaceholder: 'sk-or-...',
+    key: 'ki-vibeops',
+    label: 'ki.vibeops.de (LM Studio)',
+    model: 'qwen/qwen3.6-35b-a3b',
+    baseUrl: 'https://ki.vibeops.de/v1',
+    apiKeyPlaceholder: 'nicht nötig (lokal)',
+    apiKeyRequired: false,
   },
   {
-    key: 'opencode',
-    label: 'OpenCode (go/zen)',
-    model: '',
-    baseUrl: 'https://opencode.go/zen',
-    apiKeyPlaceholder: 'oc-...',
+    key: 'kimi-code',
+    label: 'Kimi Code',
+    model: 'kimi-k2.7-code',
+    baseUrl: 'https://vag.vibeops.de/api/kimi',
+    apiKeyPlaceholder: 'sk-...',
+    apiKeyRequired: true,
   },
   {
     key: 'ollama-cloud',
@@ -33,13 +37,22 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     model: 'llama3.2',
     baseUrl: 'https://vag.vibeops.de/api/ollama/v1',
     apiKeyPlaceholder: 'ollama cloud key',
+    apiKeyRequired: true,
+  },
+  {
+    key: 'opencode-go',
+    label: 'OpenCode Go/Zen',
+    model: 'kimi-k2.7-code',
+    baseUrl: 'https://vag.vibeops.de/api/opencode',
+    apiKeyPlaceholder: 'oc-...',
+    apiKeyRequired: true,
   },
 ];
 
 export function findPresetByUrlAndModel(baseUrl: string, model: string): ProviderPreset | undefined {
   return PROVIDER_PRESETS.find((p) => {
     if (p.baseUrl !== baseUrl) return false;
-    if (p.model === '') return true; // generic endpoint: any model matches
+    if (p.model === '') return true;
     return p.model === model;
   });
 }

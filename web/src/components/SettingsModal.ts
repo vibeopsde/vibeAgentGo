@@ -51,6 +51,7 @@ export class SettingsModal {
 
     const theme = getTheme();
     const initialPreset = findPresetByUrlAndModel(config.baseUrl, config.model);
+    const selectedPreset = initialPreset ?? PROVIDER_PRESETS[0];
     const languageOptions = getAvailableLanguages()
       .map(
         (l) =>
@@ -75,22 +76,17 @@ export class SettingsModal {
       <div class="form-group">
         <label for="cfg-provider">${t('settings.provider')}</label>
         <select id="cfg-provider">
-          <option value="custom" ${!initialPreset ? 'selected' : ''}>${t('settings.custom')}</option>
-          ${PROVIDER_PRESETS.map((p) => `<option value="${p.key}" ${initialPreset?.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
+          ${PROVIDER_PRESETS.map((p) => `<option value="${p.key}" ${selectedPreset.key === p.key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
         </select>
         <p class="field-hint">${t('settings.providerHint')}</p>
       </div>
-      <div class="form-group">
-        <label for="cfg-model">${t('settings.model')}</label>
-        <input id="cfg-model" type="text" value="${escapeHtml(config.model)}" placeholder="llama3.2" />
-      </div>
-      <div class="form-group">
-        <label for="cfg-baseurl">${t('settings.baseUrl')}</label>
-        <input id="cfg-baseurl" type="text" value="${escapeHtml(config.baseUrl)}" placeholder="https://openrouter.ai/api/v1" />
-      </div>
-      <div class="form-group">
+      <div class="form-group" id="cfg-apikey-group">
         <label for="cfg-apikey">${t('settings.apiKey')} ${config.apiKey ? '✓' : ''}</label>
         <input id="cfg-apikey" type="password" value="${escapeHtml(config.apiKey)}" placeholder="sk-..." />
+      </div>
+      <div class="form-group">
+        <label for="cfg-model">${t('settings.model')}</label>
+        <input id="cfg-model" type="text" value="${escapeHtml(config.model)}" placeholder="model-id" />
       </div>
       <div class="form-group">
         <label for="cfg-maxturns">${t('settings.maxTurns')}</label>
@@ -141,9 +137,10 @@ export class SettingsModal {
         <p><strong>Provider:</strong> ${t('settings.providerInfo')}</p>
         <p><strong>${t('settings.examples')}</strong></p>
         <ul>
-          <li>${t('settings.openrouter')} <code>${t('settings.openrouterUrl')}</code></li>
-          <li>${t('settings.opencode')} <code>${t('settings.opencodeUrl')}</code></li>
+          <li>ki.vibeops.de <code>https://ki.vibeops.de/v1</code></li>
+          <li>Kimi Code <code>https://vag.vibeops.de/api/kimi</code></li>
           <li>${t('settings.ollamaCloud')} <code>${t('settings.ollamaCloudUrl')}</code></li>
+          <li>OpenCode Go/Zen <code>https://vag.vibeops.de/api/opencode</code></li>
         </ul>
       </div>
     `;
@@ -163,14 +160,21 @@ export class SettingsModal {
 
     const providerSelect = this.modal.querySelector('#cfg-provider') as HTMLSelectElement;
     const modelInput = this.modal.querySelector('#cfg-model') as HTMLInputElement;
-    const baseUrlInput = this.modal.querySelector('#cfg-baseurl') as HTMLInputElement;
+    const apiKeyGroup = this.modal.querySelector('#cfg-apikey-group') as HTMLElement;
 
-    providerSelect.addEventListener('change', () => {
-      const preset = findPresetByKey(providerSelect.value);
+    const applyProviderPreset = (key: string) => {
+      const preset = findPresetByKey(key);
       if (preset) {
         modelInput.value = preset.model;
-        baseUrlInput.value = preset.baseUrl;
+        // baseUrl is stored in config, not editable in UI — track via dataset
+        (providerSelect as HTMLElement).dataset.baseUrl = preset.baseUrl;
+        apiKeyGroup.style.display = preset.apiKeyRequired ? 'block' : 'none';
       }
+    };
+    applyProviderPreset(selectedPreset.key);
+
+    providerSelect.addEventListener('change', () => {
+      applyProviderPreset(providerSelect.value);
     });
 
     const resetBtn = this.modal.querySelector('#cfg-reset') as HTMLButtonElement;
@@ -196,7 +200,8 @@ export class SettingsModal {
   }
 
   private testConnection() {
-    const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value.trim();
+    const providerSelect = this.modal.querySelector('#cfg-provider') as HTMLSelectElement;
+    const baseUrl = (providerSelect as HTMLElement).dataset.baseUrl || '';
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value.trim();
     const modelInput = this.modal.querySelector('#cfg-model') as HTMLInputElement;
     const resultEl = this.modal.querySelector('#cfg-test-result') as HTMLElement;
@@ -221,8 +226,9 @@ export class SettingsModal {
   }
 
   private save() {
+    const providerSelect = this.modal.querySelector('#cfg-provider') as HTMLSelectElement;
+    const baseUrl = (providerSelect as HTMLElement).dataset.baseUrl || '';
     const model = (this.modal.querySelector('#cfg-model') as HTMLInputElement).value.trim();
-    const baseUrl = (this.modal.querySelector('#cfg-baseurl') as HTMLInputElement).value.trim();
     const apiKey = (this.modal.querySelector('#cfg-apikey') as HTMLInputElement).value.trim();
     const maxTurns = parseInt((this.modal.querySelector('#cfg-maxturns') as HTMLInputElement).value);
     const language = (this.modal.querySelector('#cfg-language') as HTMLSelectElement).value as 'de' | 'en';
