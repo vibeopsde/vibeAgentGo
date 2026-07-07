@@ -98,11 +98,9 @@ const de: Translations = {
     'Dateien lesen/schreiben, Code ausführen, Websuchen, Erinnerungen speichern und interaktive HTML-Views rendern.',
   'onboarding.openaiTitle': 'OpenAI-kompatibel',
   'onboarding.openaiText':
-    'vibeAgentGo spricht mit jedem OpenAI-kompatiblen Endpunkt. OpenAI, Ollama, OpenRouter — du wählst.',
+    'vibeAgentGo spricht mit OpenAI-kompatiblen Endpunkten über feste Provider-Presets mit CORS-Proxy.',
   'onboarding.modelList': 'Modelle',
   'onboarding.testConnection': 'Verbindung testen',
-  'onboarding.connectionSuccess': 'Verbindung OK',
-  'onboarding.connectionError': 'Verbindung fehlgeschlagen',
 
   // Memory
   'memory.title': 'Memory',
@@ -233,11 +231,9 @@ const en: Translations = {
   'onboarding.toolsText': 'Read/write files, run code, web search, save memories, and render interactive HTML views.',
   'onboarding.openaiTitle': 'OpenAI-compatible',
   'onboarding.openaiText':
-    'vibeAgentGo talks to any OpenAI-compatible endpoint. OpenAI, Ollama, OpenRouter — your choice.',
+    'vibeAgentGo connects to OpenAI-compatible endpoints via fixed provider presets with a CORS proxy.',
   'onboarding.modelList': 'Models',
   'onboarding.testConnection': 'Test connection',
-  'onboarding.connectionSuccess': 'Connection OK',
-  'onboarding.connectionError': 'Connection failed',
 
   // Memory
   'memory.title': 'Memory',

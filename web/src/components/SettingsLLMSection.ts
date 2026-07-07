@@ -125,31 +125,27 @@ export function renderLLMConfigSection(
     verifyBtn.disabled = false;
 
     if (!res.ok) {
-      resultEl.textContent = `❌ ${t('onboarding.connectionError')}: ${res.error}`;
+      resultEl.textContent = `❌ ${t('settings.connectionError')}: ${res.error}`;
       resultEl.className = 'test-result test-error';
       modelSelect.disabled = true;
-      modelSelect.innerHTML = `<option value="">${t('onboarding.verifyFailed')}</option>`;
+      modelSelect.innerHTML = `<option value="">${t('settings.connectionError')}</option>`;
       modelManual.style.display = 'none';
       return;
     }
 
     const models = res.models;
-    resultEl.textContent = `✅ ${t('onboarding.connectionSuccess')} (${models.length})`;
+    resultEl.textContent = `✅ ${t('settings.connectionSuccess')} (${models.length})`;
     resultEl.className = 'test-result test-success';
 
     if (models.length > 0) {
+      const selectedModel = savedModel && models.includes(savedModel) ? savedModel : models[0];
       const options = models
-        .map((m) => `<option value="${escapeHtml(m)}" ${m === savedModel ? 'selected' : ''}>${escapeHtml(m)}</option>`)
+        .map((m) => `<option value="${escapeHtml(m)}" ${m === selectedModel ? 'selected' : ''}>${escapeHtml(m)}</option>`)
         .join('');
       modelSelect.innerHTML = `<option value="">${t('onboarding.pickModel')}</option>${options}`;
       modelSelect.disabled = false;
       modelManual.style.display = 'none';
-
-      if (models.includes(savedModel)) {
-        modelSelect.value = savedModel;
-      } else {
-        modelSelect.value = '';
-      }
+      modelSelect.value = selectedModel;
     } else {
       // No models listed — fall back to manual input
       modelSelect.innerHTML = `<option value="">${t('onboarding.noModelsManual')}</option>`;
@@ -210,10 +206,10 @@ export async function testConnectionFrom(container: HTMLElement): Promise<{ ok: 
   const res = await testConnection({ baseUrl: cfg.baseUrl, apiKey: cfg.apiKey });
   if (resultEl) {
     if (res.ok) {
-      resultEl.textContent = `✅ ${t('onboarding.connectionSuccess')} (${res.models.length})`;
+      resultEl.textContent = `✅ ${t('settings.connectionSuccess')} (${res.models.length})`;
       resultEl.className = 'test-result test-success';
     } else {
-      resultEl.textContent = `❌ ${t('onboarding.connectionError')}: ${res.error}`;
+      resultEl.textContent = `❌ ${t('settings.connectionError')}: ${res.error}`;
       resultEl.className = 'test-result test-error';
     }
   }

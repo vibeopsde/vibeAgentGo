@@ -10,7 +10,7 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
 - **Project State** scratchpad (`agent_state.json`) for long-running tasks
-- **10 Tools** including file I/O, PDF extraction, web search, memory, project state, and code execution
+- **11 Tools** including file I/O, PDF extraction, web search, memory, project state, error log, and code execution
 - **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace
 - **Backup & Restore**: Export and import all data as a single ZIP file

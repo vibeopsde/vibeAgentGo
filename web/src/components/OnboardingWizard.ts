@@ -196,12 +196,19 @@ export class OnboardingWizard {
     const modelSelect = card.querySelector('#cfg-model') as HTMLSelectElement;
     const modelManual = card.querySelector('#cfg-model-manual') as HTMLInputElement;
 
-    modelSelect.addEventListener('change', () => {
-      nextBtn.disabled = !modelSelect.value.trim();
-    });
-    modelManual.addEventListener('input', () => {
-      nextBtn.disabled = !modelManual.value.trim();
-    });
+    const updateNextButton = () => {
+      if (modelManual.style.display === 'block') {
+        nextBtn.disabled = !modelManual.value.trim();
+      } else {
+        nextBtn.disabled = !modelSelect.value.trim();
+      }
+    };
+
+    // If a saved model was pre-filled, enable Next immediately
+    updateNextButton();
+
+    modelSelect.addEventListener('change', updateNextButton);
+    modelManual.addEventListener('input', updateNextButton);
 
     this.element.querySelector('#ob-back')!.addEventListener('click', () => {
       this.step = 2;
