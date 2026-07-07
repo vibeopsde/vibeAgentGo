@@ -20,11 +20,10 @@ beforeEach(async () => {
   globalThis.IDBTransaction = IDBTransaction;
 
   // Pre-open the database with the expected schema so every store exists.
-  // Must match DB_VERSION in memory.ts — if the version is lower, the cached
-  // connection in memory.ts triggers a versionchange, closes itself, and
-  // causes test timeouts.
+  // Must match DB_VERSION in db.ts — if the version is lower, the cached
+  // connection triggers a versionchange, closes itself, and causes timeouts.
   await new Promise<void>((resolve, reject) => {
-    const req = indexedDB.open('vibeAgentGo-agent', 3);
+    const req = indexedDB.open('vibeAgentGo-agent', 4);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('memory')) {

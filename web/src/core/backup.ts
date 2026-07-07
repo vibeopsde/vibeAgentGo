@@ -5,7 +5,8 @@
 
 import type { Session } from '../types/index.js';
 import JSZip from 'jszip';
-import { MemoryStore, SkillStore, CONFIG_KEY, loadConfig, tx } from './memory.js';
+import { MemoryStore, SkillStore, CONFIG_KEY, loadConfig } from './memory.js';
+import { tx } from './db.js';
 
 export interface BackupManifest {
   version: number;

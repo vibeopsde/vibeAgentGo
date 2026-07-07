@@ -1,151 +1,14 @@
 // ============================================================
 // vibeAgentGo — IndexedDB Memory Store (client-side, no server)
+// DB connection and schema live in db.ts — single source of truth.
 // ============================================================
 
 import type { Message, MemoryEntry, Session } from '../types/index.js';
 import { logger } from './logger.js';
+import { tx, txAll, cursorAll, cursorByIndex } from './db.js';
 
-const DB_NAME = 'vibeAgentGo-agent';
-const DB_VERSION = 3;
-
-// --- DB connection cache ---
-// Opening a new IDBDatabase connection on every tx() call causes connection
-// leaks: each connection stays open and holds a transaction lock, eventually
-// causing getSession() to silently fail (returning null), which makes the
-// agent lose all conversation context. We cache a single connection and
-// re-open only if it was closed (e.g. by a versionchange from another tab).
-
-let dbPromise: Promise<IDBDatabase> | null = null;
-
-function openDB(): Promise<IDBDatabase> {
-  if (dbPromise) return dbPromise;
-  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onerror = () => {
-      dbPromise = null;
-      reject(req.error);
-    };
-    req.onsuccess = () => {
-      const db = req.result;
-      // If another tab triggers a versionchange, close our cached connection
-      // so the upgrade can proceed. Next tx() will re-open.
-      db.onversionchange = () => {
-        db.close();
-        dbPromise = null;
-      };
-      resolve(db);
-    };
-    req.onupgradeneeded = (event) => {
-      const db = req.result;
-      const oldVersion = event.oldVersion;
-      // Create any stores that are missing — handles both fresh DBs and
-      // upgrades from older versions where stores were added later.
-      if (!db.objectStoreNames.contains('memory')) {
-        const memStore = db.createObjectStore('memory', { keyPath: 'id', autoIncrement: true });
-        memStore.createIndex('category', 'category', { unique: false });
-        memStore.createIndex('created_at', 'created_at', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('sessions')) {
-        const sessStore = db.createObjectStore('sessions', { keyPath: 'id' });
-        sessStore.createIndex('updated_at', 'updated_at', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('skills')) {
-        db.createObjectStore('skills', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('files')) {
-        db.createObjectStore('files', { keyPath: 'path' });
-      }
-      if (!db.objectStoreNames.contains('logs')) {
-        const logStore = db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
-        logStore.createIndex('timestamp', 'timestamp', { unique: false });
-        logStore.createIndex('level', 'level', { unique: false });
-        logStore.createIndex('source', 'source', { unique: false });
-      }
-      logger.info('memory.openDB', `DB upgraded from v${oldVersion} to v${req.result.version}`, {
-        oldVersion,
-        newVersion: req.result.version,
-      });
-    };
-  });
-  return dbPromise;
-}
-
-export function tx<T>(
-  storeName: string,
-  mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest
-): Promise<T> {
-  return openDB().then(
-    (db) =>
-      new Promise<T>((resolve, reject) => {
-        const transaction = db.transaction(storeName, mode);
-        const store = transaction.objectStore(storeName);
-        const req = fn(store);
-        req.onsuccess = () => resolve(req.result as T);
-        req.onerror = () => reject(req.error);
-      })
-  );
-}
-
-function txAll<T>(
-  storeName: string,
-  mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest<T[]>
-): Promise<T[]> {
-  return tx(storeName, mode, fn);
-}
-
-async function cursorAll<T>(storeName: string, direction: IDBCursorDirection = 'prev'): Promise<T[]> {
-  return _cursorAll<T>(storeName, direction);
-}
-
-async function _cursorAll<T>(storeName: string, direction: IDBCursorDirection = 'prev'): Promise<T[]> {
-  const db = await openDB();
-  return new Promise<T[]>((resolve, reject) => {
-    const transaction = db.transaction(storeName, 'readonly');
-    const store = transaction.objectStore(storeName);
-    const request = store.openCursor(null, direction);
-    const results: T[] = [];
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (cursor) {
-        results.push(cursor.value as T);
-        cursor.continue();
-      } else {
-        resolve(results);
-      }
-    };
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function cursorByIndex<T>(
-  storeName: string,
-  indexName: string,
-  value: string,
-  limit: number,
-  direction: IDBCursorDirection = 'prev'
-): Promise<T[]> {
-  const db = await openDB();
-  return new Promise<T[]>((resolve, reject) => {
-    const transaction = db.transaction(storeName, 'readonly');
-    const store = transaction.objectStore(storeName);
-    const index = store.index(indexName);
-    const range = IDBKeyRange.only(value);
-    const request = index.openCursor(range, direction);
-    const results: T[] = [];
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (cursor && results.length < limit) {
-        results.push(cursor.value as T);
-        cursor.continue();
-      } else {
-        resolve(results);
-      }
-    };
-    request.onerror = () => reject(request.error);
-  });
-}
+// Re-export for callers that still import from memory.ts
+export { tx, txAll, cursorAll, cursorByIndex, resetLocalData, DB_NAME, openDB } from './db.js';
 
 // --- Memory ---
 
@@ -222,8 +85,6 @@ export class MemoryStore {
       const result = await tx<Session>('sessions', 'readonly', (store) => store.get(id));
       return result || null;
     } catch (e) {
-      // Log the error so the agent can pick it up via error_log tool.
-      // Don't silently return null — that causes context loss.
       console.error('[vibeAgentGo] getSession failed:', id, e);
       logger.error('memory.getSession', `Failed to load session ${id}`, {
         sessionId: id,
@@ -421,27 +282,4 @@ export function hasCompletedOnboarding(): boolean {
 export function completeOnboarding(): void {
   const state: OnboardingState = { completed: true, completedAt: new Date().toISOString() };
   localStorage.setItem(ONBOARDING_KEY, JSON.stringify(state));
-}
-
-export async function resetLocalData(): Promise<void> {
-  localStorage.removeItem(CONFIG_KEY);
-  localStorage.removeItem(ONBOARDING_KEY);
-  localStorage.removeItem('vibeAgentGo-theme');
-  // Close the cached DB connection before deleting — otherwise deleteDatabase()
-  // is blocked by the open connection and never completes.
-  if (dbPromise) {
-    try {
-      const db = await dbPromise;
-      db.close();
-    } catch {
-      /* ignore — might already be closed */
-    }
-    dbPromise = null;
-  }
-  return new Promise((resolve) => {
-    const req = indexedDB.deleteDatabase(DB_NAME);
-    req.onsuccess = () => resolve();
-    req.onerror = () => resolve(); // resolve anyway — don't block reset
-    req.onblocked = () => resolve(); // resolve even if blocked by another tab
-  });
 }
