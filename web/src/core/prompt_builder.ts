@@ -106,6 +106,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   parts.push(`## Environment
   |- Platform: Browser (PWA, mobile-first)
   |- All data stored locally in IndexedDB — no server-side storage
+  |- help reads built-in reference docs: help({ topic: "sandbox" }) for iframe/events/canvas/bridge API, help({ topic: "ui" }) for CSS/window-manager, help({ topic: "tools" }) for all tool parameters
   |- run is for complex, multi-step JavaScript in a Web Worker (CDN imports, fs I/O, render inside the worker)
   |- run_code is for short JavaScript expressions: calculations, parsing, formatting, simple filtering (no file I/O, no CDN imports)
   |- run_app opens an interactive HTML/CSS/JS view from a workspace file in its own dedicated window (use write_file first, then run_app with the file path)
