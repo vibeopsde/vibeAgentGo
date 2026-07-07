@@ -404,7 +404,10 @@ export class Agent {
 
   private async saveCurrentSession(history: Message[], runSessionId: string | null): Promise<void> {
     try {
-      const id = runSessionId || randomUUID().slice(0, 8);
+      // runSessionId is a const from run() and stays null on the first run.
+      // this.sessionId is set after the first save — reuse it so repeated
+      // checkpoints within the same run don't create duplicate sessions.
+      const id = runSessionId || this.sessionId || randomUUID().slice(0, 8);
       this.sessionId = id;
       const existing = await this.memory.getSession(id);
       const existingTitle = existing?.title;
