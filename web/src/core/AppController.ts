@@ -7,9 +7,7 @@
 import { ChatApp } from '../apps/ChatApp.js';
 import { SettingsApp } from '../apps/SettingsApp.js';
 import { ProgramApp } from '../apps/ProgramApp.js';
-import { MemoryApp } from '../apps/MemoryApp.js';
 import { SessionApp } from '../apps/SessionApp.js';
-import { SkillsApp } from '../apps/SkillsApp.js';
 import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { Agent } from './agent.js';
 import { registerGlobalErrorHandlers, captureFunctionError } from './global_errors.js';
@@ -330,15 +328,11 @@ export class AppController {
 
     this.wm.registerApp('program', () => new ProgramApp(this.handleBridgeRequest));
 
-    this.wm.registerApp('memory', () => new MemoryApp());
-
     this.wm.registerApp('sessions', () => {
       const app = new SessionApp();
       app.onResume = (sessionId) => this.resumeSession(sessionId);
       return app;
     });
-
-    this.wm.registerApp('skills', () => new SkillsApp());
   }
 
   // --- Layout ---
