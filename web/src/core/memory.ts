@@ -217,6 +217,7 @@ export interface ClientConfig {
   language: 'de' | 'en';
   searchProvider: 'none' | 'tavily';
   searchApiKey: string;
+  sounds?: boolean;
 }
 
 export function loadConfig(): ClientConfig {

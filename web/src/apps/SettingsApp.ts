@@ -9,6 +9,7 @@ import { findPresetByUrlAndModel, PROVIDER_PRESETS } from '../core/presets.js';
 import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 import { escapeHtml } from '../utils/escape.js';
 import { VERSION } from '../version.js';
+import { sounds } from '../core/sounds.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 import { renderLLMConfigSection } from '../components/SettingsLLMSection.js';
 import { renderSearchConfigSection } from '../components/SettingsSearchSection.js';
@@ -211,15 +212,24 @@ export class SettingsApp implements App {
             <option value="dark" ${theme === 'dark' ? 'selected' : ''}>Dark</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>System-Sounds</label>
+          <label class="toggle-row">
+            <input type="checkbox" id="cfg-sounds" ${config.sounds !== false ? 'checked' : ''} />
+            <span>🔊 Akustische Signale bei Tool-Aufrufen und Fertig-Meldung</span>
+          </label>
+        </div>
       </div>
     `;
 
     this.addSaveAction(panel, () => {
       const language = (panel.querySelector('#cfg-language') as HTMLSelectElement).value as 'de' | 'en';
       const themeValue = (panel.querySelector('#cfg-theme') as HTMLSelectElement).value as ThemeMode;
+      const soundsEnabled = (panel.querySelector('#cfg-sounds') as HTMLInputElement).checked;
       setLanguage(language);
       setTheme(themeValue);
-      saveConfig({ ...config, language });
+      sounds.setEnabled(soundsEnabled);
+      saveConfig({ ...config, language, sounds: soundsEnabled });
       this.emitReload();
     });
   }

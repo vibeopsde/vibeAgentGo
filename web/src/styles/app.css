@@ -845,6 +845,20 @@ body {
   border-color: var(--accent);
 }
 
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.toggle-row input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
 select:disabled {
   opacity: 0.6;
   cursor: not-allowed;

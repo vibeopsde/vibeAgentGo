@@ -23,6 +23,7 @@ import { createDefaultTools } from './tools.js';
 import { initTheme } from './theme.js';
 import { setLanguage, t } from '../i18n/index.js';
 import { WindowManager } from './window_manager.js';
+import { sounds } from './sounds.js';
 import type { BridgeRequest, BridgeResponse, ChatAttachment, App } from '../types/index.js';
 
 export class AppController {
@@ -39,7 +40,9 @@ export class AppController {
 
   constructor() {
     initTheme();
-    setLanguage(loadConfig().language);
+    const cfg = loadConfig();
+    setLanguage(cfg.language);
+    sounds.setEnabled(cfg.sounds !== false);
     registerGlobalErrorHandlers();
     this.registerServiceWorker();
     this.registerApps();
@@ -205,6 +208,7 @@ export class AppController {
     });
     a.on('tool_call', ({ name, args }) => {
       this.getChatApp()?.appendToolCall(name, args);
+      sounds.play('tool_call');
     });
     a.on('tool_result', ({ name, result }) => {
       this.getChatApp()?.appendToolResult(name, result);
@@ -213,6 +217,7 @@ export class AppController {
       this.getChatApp()?.appendError(message);
       this.getChatApp()?.setStatus('idle');
       this.isRunning = false;
+      sounds.play('error');
     });
     a.on('session_saved', ({ sessionId }) => {
       this.currentSessionId = sessionId;
@@ -230,6 +235,7 @@ export class AppController {
       this.currentSessionId = sessionId;
       this.persistLastSession(sessionId);
       this.isRunning = false;
+      sounds.play('done');
     });
     a.on('abort', () => {
       this.getChatApp()?.setStatus('idle');
