@@ -10,13 +10,20 @@ function readVersion(): string {
 
 function injectHtmlVersion(): Plugin {
   const version = readVersion();
+  // Default build-time language; overwritten at runtime by AppController.
+  const defaultLang = process.env.VITE_APP_LANG === 'en' ? 'en' : 'de';
   return {
     name: 'inject-html-version',
     transformIndexHtml(html) {
-      return html.replace(
-        /<head>/i,
-        `<head>\n  <meta name="vibeagentgo-version" content="${version}" />`
-      );
+      return html
+        .replace(
+          /<head>/i,
+          `<head>\n  <meta name="vibeagentgo-version" content="${version}" />`
+        )
+        .replace(
+          /<html lang="__VITE_APP_LANG__">/i,
+          `<html lang="${defaultLang}">`
+        );
     },
   };
 }

@@ -51,6 +51,7 @@ export class AppController {
   start() {
     const config = loadConfig();
     setLanguage(config.language);
+    document.documentElement.lang = config.language;
     const isDevMode = new URLSearchParams(window.location.search).has('dev');
 
     if (hasCompletedOnboarding() || isDevMode) {
@@ -156,11 +157,15 @@ export class AppController {
           chat?.setStatus('thinking');
           chat?.startStream();
           this.isRunning = true;
-          this.agent.run(req.text, config, this.currentSessionId || undefined).catch((e) => {
+          try {
+            await this.agent.run(req.text, config, this.currentSessionId || undefined);
+          } catch (e) {
+            captureFunctionError('AppController.handleBridgeRequest.sendMessage', e, { sessionId: this.currentSessionId });
             chat?.appendError(e instanceof Error ? e.message : String(e));
             chat?.setStatus('idle');
+          } finally {
             this.isRunning = false;
-          });
+          }
           return { ok: true, data: null };
         }
         default: {

@@ -142,4 +142,16 @@ Use **Settings → Backup & Restore** to export or import. API keys are redacted
 
 ## License
 
-MIT
+MIT License — Copyright Lars Greipl - vibeops.de
+
+## NOTICE
+
+This project was created with assistance from AI models including:
+
+- Kimi Code (Moonshot AI)
+- Kimi K2.5 / K2.7 Code (Moonshot AI)
+- qwen/qwen3.6-35b-a3b (Alibaba Cloud / Qwen series)
+- llama3.2 (Meta / Ollama Cloud)
+- OpenCode Go/Zen inference stack
+
+AI-generated code and content are used under the MIT license terms.

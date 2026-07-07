@@ -326,7 +326,8 @@ const translations: Record<Language, Translations> = { de, en };
 let currentLanguage: Language = normalizeLanguage(navigator.language);
 
 export function normalizeLanguage(lang: unknown): Language {
-  if (lang === 'en') return 'en';
+  const s = String(lang || '').toLowerCase();
+  if (s.startsWith('en')) return 'en';
   return 'de';
 }
 
