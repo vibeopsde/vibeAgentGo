@@ -65,6 +65,7 @@ self.addEventListener('message', (event) => {
 });
 
 // Workspace I/O API exposed to user code
+// fs.listFiles returns only file paths (string[]), not full contents.
 const fs = {
   readFile: (path) => sendRequest('readFile', { path }),
   writeFile: (path, content) => sendRequest('writeFile', { path, content }),

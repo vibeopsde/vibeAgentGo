@@ -16,7 +16,7 @@ export interface WorkerSandboxOptions {
   /** Workspace I/O bridge — called when worker requests file read/write */
   readFile?: (path: string) => Promise<string | null>;
   writeFile?: (path: string, content: string) => Promise<void>;
-  listFiles?: () => Promise<{ path: string; content: string }[]>;
+  listFiles?: () => Promise<string[]>;
   /** Called when worker calls render(title, html) — displays in Render Panel */
   onRender?: (title: string, html: string) => void;
   /** Timeout in ms (default: 30000, max: 60000) */

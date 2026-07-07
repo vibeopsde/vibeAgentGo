@@ -81,6 +81,7 @@ export interface MemoryStore {
   writeFile(path: string, content: string): Promise<void>;
   readFile(path: string): Promise<string | null>;
   listFiles(): Promise<{ path: string; content: string }[]>;
+  listFilePaths(): Promise<string[]>;
   deleteFile(path: string): Promise<boolean>;
   searchFiles(pattern: string, target?: 'files' | 'content'): Promise<string[]>;
 }

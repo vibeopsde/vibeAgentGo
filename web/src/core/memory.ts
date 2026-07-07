@@ -130,6 +130,11 @@ export class MemoryStore {
     return all.sort((a, b) => a.path.localeCompare(b.path));
   }
 
+  async listFilePaths(): Promise<string[]> {
+    const all = await txAll<{ path: string }>('files', 'readonly', (store) => store.getAll());
+    return all.map((f) => f.path).sort((a, b) => a.localeCompare(b));
+  }
+
   async deleteFile(path: string): Promise<boolean> {
     try {
       await tx('files', 'readwrite', (store) => store.delete(path));
@@ -140,16 +145,18 @@ export class MemoryStore {
   }
 
   async searchFiles(pattern: string, target: 'files' | 'content' = 'files'): Promise<string[]> {
-    const all = await this.listFiles();
+    const paths = target === 'files' ? await this.listFilePaths() : (await this.listFiles()).map((f) => f.path);
     const results: string[] = [];
-    for (const f of all) {
+    for (const path of paths) {
       if (target === 'files') {
-        if (f.path.includes(pattern)) results.push(f.path);
+        if (path.includes(pattern)) results.push(path);
       } else {
-        const lines = f.content.split('\n');
+        const content = await this.readFile(path);
+        if (!content) continue;
+        const lines = content.split('\n');
         lines.forEach((line, i) => {
           if (line.includes(pattern)) {
-            results.push(`${f.path}:${i + 1}: ${line.trim()}`);
+            results.push(`${path}:${i + 1}: ${line.trim()}`);
           }
         });
       }

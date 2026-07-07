@@ -59,23 +59,31 @@ const read_file: Tool = {
     const content = await mem.readFile(path);
     if (content === null) return `File not found: ${path}`;
 
-    const offset = asNumber(args.offset, 1);
+    const MAX_CHARS = 8000;
+    const DEFAULT_LIMIT = 200;
+    const offset = Math.max(1, asNumber(args.offset, 1));
     const limit = asNumber(args.limit, 0);
-
-    // If no offset/limit, return the full content
-    if (offset <= 1 && limit <= 0) return content;
+    const effectiveLimit = limit > 0 ? limit : DEFAULT_LIMIT;
 
     const lines = content.split('\n');
-    const start = Math.max(0, offset - 1);
-    const end = limit > 0 ? start + limit : lines.length;
-    const slice = lines.slice(start, end);
-
-    // Prefix with line numbers like Hermes: LINE_NUM|CONTENT
-    const numbered = slice.map((line, i) => `${start + i + 1}|${line}`).join('\n');
     const totalLines = lines.length;
+    const start = Math.max(0, offset - 1);
+    const requestedEnd = start + effectiveLimit;
+    const slice = lines.slice(start, requestedEnd);
+
+    let numbered = slice.map((line, i) => `${start + i + 1}|${line}`).join('\n');
+
+    // Truncate at character level if still too large for a single LLM message.
+    let truncated = false;
+    if (numbered.length > MAX_CHARS) {
+      numbered = numbered.slice(0, MAX_CHARS) + '\n... (truncated)';
+      truncated = true;
+    }
+
+    const shownTo = Math.min(requestedEnd, totalLines);
     const shownFrom = start + 1;
-    const shownTo = Math.min(end, totalLines);
-    return `${numbered}\n\n(shown ${shownFrom}-${shownTo} of ${totalLines} lines)`;
+    const truncationNote = truncated ? ' — truncated to fit model context' : '';
+    return `${numbered}\n\n(shown ${shownFrom}-${shownTo} of ${totalLines} lines${truncationNote})`;
   },
 };
 
@@ -156,7 +164,10 @@ const search_files: Tool = {
     const mem = getMemoryStore(ctx);
     const target = asString(args.target, 'files');
     const results = await mem.searchFiles(asString(args.pattern), target as 'files' | 'content');
-    return results.length > 0 ? results.join('\n') : 'No matches found';
+    const MAX_RESULTS = 50;
+    const shown = results.slice(0, MAX_RESULTS);
+    const more = results.length > MAX_RESULTS ? `\n... and ${results.length - MAX_RESULTS} more matches` : '';
+    return results.length > 0 ? shown.join('\n') + more : 'No matches found';
   },
 };
 
@@ -413,7 +424,7 @@ async function runInSandbox(
   const { logs, result, error, files } = await runInWorkerSandbox(code, {
     readFile: async (path) => mem.readFile(path),
     writeFile: async (path, content) => mem.writeFile(path, content),
-    listFiles: async () => mem.listFiles(),
+    listFiles: async () => mem.listFilePaths(),
     onRender: (title, html) => {
       ctx.emit('render_view', { title, html });
     },
@@ -442,6 +453,11 @@ async function runInSandbox(
   return { result, logsText };
 }
 
+function truncateText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars) + '\n... (truncated)';
+}
+
 const run_code: Tool = {
   name: 'run_code',
   description:
@@ -457,10 +473,12 @@ const run_code: Tool = {
   handler: async (args: Record<string, unknown>, ctx) => {
     const timeoutMs = Math.max(1000, Math.min(asNumber(args.timeout, 10000), 30000));
     const { result, error, logsText } = await runInSandbox(asString(args.code), ctx, timeoutMs);
+    const MAX_CHARS = 4000;
     if (error) {
-      return `${error}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
+      return `${truncateText(error, MAX_CHARS)}\n\nLogs:\n${truncateText(logsText, MAX_CHARS)}\n\nResult: ${truncateText(result, MAX_CHARS)}`;
     }
-    return logsText !== 'No logs' ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
+    const out = logsText !== 'No logs' ? `Logs:\n${truncateText(logsText, MAX_CHARS)}\n\nResult: ${truncateText(result, MAX_CHARS)}` : `Result: ${truncateText(result, MAX_CHARS)}`;
+    return out;
   },
 };
 
@@ -479,10 +497,13 @@ const run: Tool = {
   handler: async (args: Record<string, unknown>, ctx) => {
     const timeoutMs = Math.max(1000, Math.min(asNumber(args.timeout, 30000), 60000));
     const { result, error, logsText } = await runInSandbox(asString(args.code), ctx, timeoutMs);
+    const MAX_CHARS = 4000;
     if (error) {
-      return `${error}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
+      return `${truncateText(error, MAX_CHARS)}\n\nLogs:\n${truncateText(logsText, MAX_CHARS)}\n\nResult: ${truncateText(result, MAX_CHARS)}`;
     }
-    return logsText !== 'No logs' ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
+    return logsText !== 'No logs'
+      ? `Logs:\n${truncateText(logsText, MAX_CHARS)}\n\nResult: ${truncateText(result, MAX_CHARS)}`
+      : `Result: ${truncateText(result, MAX_CHARS)}`;
   },
 };
 
