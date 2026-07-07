@@ -21,6 +21,8 @@ export class WindowManager {
   private instances = new Map<string, App>(); // windowId -> app instance
   private activeWindowId: string | null = null;
   private zCounter = 100;
+  private isProgrammaticScroll = false;
+  private scrollTimer: ReturnType<typeof setTimeout> | null = null;
   private listeners: {
     [K in keyof WindowManagerEventMap]?: Array<(ev: WindowManagerEventMap[K]) => void>;
   } = {};
@@ -41,7 +43,12 @@ export class WindowManager {
     this.element.appendChild(this.spaces);
     this.element.appendChild(this.dock);
 
-    this.spaces.addEventListener('scroll', () => this.updateActiveSpaceOnScroll());
+    this.spaces.addEventListener('scroll', () => {
+      // Ignore scroll events that we triggered via scrollToSpace().
+      if (this.isProgrammaticScroll) return;
+      if (this.scrollTimer) clearTimeout(this.scrollTimer);
+      this.scrollTimer = setTimeout(() => this.updateActiveSpaceOnScroll(), 120);
+    });
     this.updateModeClass();
     window.addEventListener('resize', () => this.updateModeClass());
   }
@@ -327,9 +334,12 @@ export class WindowManager {
 
   private scrollToSpace(id: string) {
     const space = this.spaces.querySelector(`.wm-space[data-window-id="${id}"]`) as HTMLElement | null;
-    if (space) {
-      space.scrollIntoView({ behavior: 'smooth', inline: 'start' });
-    }
+    if (!space) return;
+    // Set guard so scroll events from this programmatic scroll don't fight us.
+    this.isProgrammaticScroll = true;
+    space.scrollIntoView({ behavior: 'smooth', inline: 'start' });
+    // Clear guard after scroll animation completes (~350ms with CSS smooth scroll).
+    setTimeout(() => { this.isProgrammaticScroll = false; }, 400);
   }
 
   private updateActiveSpaceOnScroll() {

@@ -1650,6 +1650,8 @@ select {
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  /* Reserve space for the floating dock so it never overlaps content */
+  padding-bottom: 56px;
 }
 
 .wm-root.mobile .wm-spaces::-webkit-scrollbar {

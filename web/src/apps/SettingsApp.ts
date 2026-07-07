@@ -57,12 +57,18 @@ export class SettingsApp implements App {
   mount(container: HTMLElement) {
     this.container = container;
     container.innerHTML = '';
-    this.renderShell(container);
-    this.renderTab(container, this.currentTab);
+    // Render into our own element, not the container — the container may be
+    // a .wm-space (mobile) whose class must not be overwritten.
+    this.renderShell(this.element);
+    this.renderTab(this.element, this.currentTab);
+    container.appendChild(this.element);
   }
 
   private renderShell(container: HTMLElement) {
-    container.className = 'settings-app';
+    // Add settings-app class without overwriting other classes (e.g. 'focused').
+    if (!container.classList.contains('settings-app')) {
+      container.classList.add('settings-app');
+    }
     container.innerHTML = `
       <aside class="settings-sidebar">
         <div class="settings-brand">
