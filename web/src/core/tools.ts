@@ -170,6 +170,247 @@ const search_files: Tool = {
   },
 };
 
+// --- Patch helpers ---
+
+function countOccurrences(haystack: string, needle: string): number {
+  if (needle.length === 0) return 0;
+  let count = 0;
+  let pos = 0;
+  while ((pos = haystack.indexOf(needle, pos)) !== -1) {
+    count++;
+    pos += needle.length;
+  }
+  return count;
+}
+
+function applyReplace(
+  content: string,
+  oldString: string,
+  newString: string,
+  replaceAll: boolean
+): { content: string; replacements: number } {
+  const occurrences = countOccurrences(content, oldString);
+  if (occurrences === 0) {
+    throw new Error(`old_string not found in file.`);
+  }
+  if (!replaceAll && occurrences > 1) {
+    throw new Error(
+      `old_string is not unique (${occurrences} matches). Use replace_all: true to replace all occurrences, or provide more context to make it unique.`
+    );
+  }
+  const next = replaceAll
+    ? content.split(oldString).join(newString)
+    : content.replace(oldString, newString);
+  return { content: next, replacements: replaceAll ? occurrences : 1 };
+}
+
+function tryValidateFileSyntax(path: string, content: string): { ok: boolean; error?: string } {
+  const lower = path.toLowerCase();
+  if (lower.endsWith('.json')) {
+    try {
+      JSON.parse(content);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: `JSON syntax error: ${e instanceof Error ? e.message : String(e)}` };
+    }
+  }
+  if (lower.endsWith('.js') || lower.endsWith('.ts')) {
+    try {
+      // Lightweight syntax check: parse as a module-like function body. This catches many but not all TS-specific issues.
+      new Function(content);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: `JS/TS syntax error: ${e instanceof Error ? e.message : String(e)}` };
+    }
+  }
+  return { ok: true };
+}
+
+interface PatchHunk {
+  context: string[];
+  removals: string[];
+  additions: string[];
+}
+
+interface PatchFile {
+  path: string;
+  hunks: PatchHunk[];
+}
+
+function parseV4APatch(patchText: string): PatchFile[] {
+  const files: PatchFile[] = [];
+  const blocks = patchText.split('*** Begin Patch').slice(1);
+  for (const block of blocks) {
+    const endIdx = block.indexOf('*** End Patch');
+    const body = endIdx >= 0 ? block.slice(0, endIdx) : block;
+    const fileMatch = body.match(/\*\*\* Update File:\s*(.+)/);
+    if (!fileMatch) continue;
+    const path = fileMatch[1].trim();
+    const hunks: PatchHunk[] = [];
+    const lines = body.split('\n');
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (line.startsWith('@@')) {
+        const hunk: PatchHunk = { context: [], removals: [], additions: [] };
+        i++;
+        while (i < lines.length && !lines[i].startsWith('@@') && !lines[i].startsWith('***')) {
+          const l = lines[i];
+          if (l.startsWith('-')) hunk.removals.push(l.slice(1));
+          else if (l.startsWith('+')) hunk.additions.push(l.slice(1));
+          else if (l.length > 0) hunk.context.push(l);
+          i++;
+        }
+        hunks.push(hunk);
+      } else {
+        i++;
+      }
+    }
+    files.push({ path, hunks });
+  }
+  return files;
+}
+
+function findContextIndex(lines: string[], context: string[], removals: string[]): number {
+  const searchLines = context.length > 0 && removals.length > 0
+    ? context.concat(removals)
+    : context.length > 0
+    ? context
+    : removals;
+  if (searchLines.length === 0) return -1;
+  for (let i = 0; i <= lines.length - searchLines.length; i++) {
+    let match = true;
+    for (let j = 0; j < searchLines.length; j++) {
+      if (lines[i + j] !== searchLines[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return i;
+  }
+  return -1;
+}
+
+function applyHunk(lines: string[], hunk: PatchHunk): string[] {
+  const startIdx = findContextIndex(lines, hunk.context, hunk.removals);
+  if (startIdx < 0) {
+    throw new Error(
+      `Could not find patch context. Expected:\n${hunk.context.concat(hunk.removals).join('\n')}`
+    );
+  }
+  // The context is kept; only the removal lines are replaced by the additions.
+  const removalStartIdx = startIdx + hunk.context.length;
+  const removeCount = hunk.removals.length > 0 ? hunk.removals.length : 0;
+  const before = lines.slice(0, removalStartIdx);
+  const after = lines.slice(removalStartIdx + removeCount);
+  return before.concat(hunk.additions).concat(after);
+}
+
+async function applyV4APatch(
+  mem: MemoryStore,
+  patchText: string
+): Promise<{ path: string; status: string; error?: string }[]> {
+  const files = parseV4APatch(patchText);
+  const results: { path: string; status: string; error?: string }[] = [];
+  for (const file of files) {
+    let content = await mem.readFile(file.path);
+    if (content === null) {
+      content = '';
+    }
+    const lines = content.split('\n');
+    let nextLines = lines;
+    try {
+      for (const hunk of file.hunks) {
+        nextLines = applyHunk(nextLines, hunk);
+      }
+      const newContent = nextLines.join('\n');
+      await mem.writeFile(file.path, newContent);
+      results.push({ path: file.path, status: 'patched' });
+    } catch (e) {
+      results.push({
+        path: file.path,
+        status: 'error',
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  return results;
+}
+
+const patch: Tool = {
+  name: 'patch',
+  description:
+    'Apply targeted edits to text files in the browser workspace (IndexedDB). Two modes: replace (find old_string and replace with new_string) or patch (apply a V4A multi-file patch block). For replace, old_string must be unique unless replace_all is true. For patch, use V4A format: *** Begin Patch / *** Update File: path / @@ context @@ / -old / +new / *** End Patch.',
+  parameters: {
+    type: 'object',
+    properties: {
+      mode: {
+        type: 'string',
+        enum: ['replace', 'patch'],
+        description: 'replace = single find/replace in one file; patch = multi-file V4A patch block',
+      },
+      path: {
+        type: 'string',
+        description: 'Relative path to the file for mode=replace (required for replace)',
+      },
+      old_string: {
+        type: 'string',
+        description: 'Exact text to find for mode=replace',
+      },
+      new_string: {
+        type: 'string',
+        description: 'Replacement text for mode=replace',
+      },
+      replace_all: {
+        type: 'boolean',
+        description: 'If true, replace all occurrences of old_string in mode=replace. Default false.',
+      },
+      patch: {
+        type: 'string',
+        description: 'V4A multi-file patch text for mode=patch',
+      },
+    },
+    required: ['mode'],
+  },
+  handler: async (args: Record<string, unknown>, ctx) => {
+    const mem = getMemoryStore(ctx);
+    const mode = asString(args.mode);
+    if (mode === 'replace') {
+      const path = asString(args.path);
+      const oldString = asString(args.old_string);
+      const newString = asString(args.new_string);
+      const replaceAll = asBoolean(args.replace_all);
+      if (!path) return 'Error: path is required for mode=replace';
+      if (!oldString) return 'Error: old_string is required for mode=replace';
+      const content = await mem.readFile(path);
+      if (content === null) return `File not found: ${path}`;
+      try {
+        const { content: updated, replacements } = applyReplace(content, oldString, newString, replaceAll);
+        const validation = tryValidateFileSyntax(path, updated);
+        if (!validation.ok) {
+          return `Error: ${validation.error}\nNo changes were written to ${path}.`;
+        }
+        await mem.writeFile(path, updated);
+        return `Replaced ${replacements} occurrence(s) in ${path}`;
+      } catch (e) {
+        return `Error: ${e instanceof Error ? e.message : String(e)}`;
+      }
+    }
+    if (mode === 'patch') {
+      const patchText = asString(args.patch);
+      if (!patchText) return 'Error: patch is required for mode=patch';
+      const results = await applyV4APatch(mem, patchText);
+      const lines = results.map((r) => {
+        if (r.status === 'patched') return `${r.path}: patched`;
+        return `${r.path}: error — ${r.error}`;
+      });
+      const ok = results.every((r) => r.status === 'patched');
+      return ok ? lines.join('\n') : `Some files failed:\n${lines.join('\n')}`;
+    }
+    return `Error: unknown mode ${mode}`;
+  },
+};
+
 // --- Execution Tools ---
 
 async function runInSandbox(
@@ -559,6 +800,7 @@ export function createDefaultTools(): Tool[] {
     read_pdf,
     write_file,
     search_files,
+    patch,
     run,
     run_code,
     run_app,
