@@ -297,21 +297,44 @@ export class Agent {
 
           this.emit('tool_call', { name: toolName, args });
 
+          // Audit log: record the tool call BEFORE execution, so if the tool
+          // crashes the tab, error_log shows exactly what was called with
+          // what args — even if the result is never written back.
+          logger.info('agent.tool.call', `→ ${toolName}`, {
+            sessionId: runSessionId,
+            tool: toolName,
+            args: JSON.stringify(args).slice(0, 500),
+          });
+
           // Checkpoint: save the session before executing the tool, so if the
           // tool crashes the browser tab (e.g. infinite loop in a Worker), the
           // conversation history is already persisted and can be resumed.
           await this.saveCurrentSession(history, runSessionId);
 
           let result: string;
+          const toolStart = Date.now();
           try {
             result = await this.dispatchToolByName(toolName, args, ctx);
           } catch (e) {
             result = `Tool error: ${e instanceof Error ? e.message : String(e)}`;
             logger.error('agent.tool.dispatch', `Tool ${toolName} failed`, {
               sessionId: runSessionId,
+              tool: toolName,
               error: e instanceof Error ? e.message : String(e),
+              stack: e instanceof Error ? e.stack : undefined,
             });
           }
+
+          // Audit log: record the tool result AFTER execution, with duration.
+          // Truncate to 500 chars to avoid flooding the log with large outputs.
+          const durationMs = Date.now() - toolStart;
+          logger.info('agent.tool.result', `← ${toolName} (${durationMs}ms)`, {
+            sessionId: runSessionId,
+            tool: toolName,
+            durationMs,
+            result: result.slice(0, 500),
+            ok: !result.startsWith('Tool error:'),
+          });
 
           this.emit('tool_result', { name: toolName, result });
 

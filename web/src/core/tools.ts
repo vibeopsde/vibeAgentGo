@@ -458,7 +458,7 @@ Use state_view first to see existing ids. Set delete_task or delete_issue to rem
 const error_log: Tool = {
   name: 'error_log',
   description:
-    'Read the local error log stored in the browser (IndexedDB). Use this to investigate unexpected crashes, failed LLM requests, or tool errors. Returns the most recent log entries with timestamps, levels, sources, and messages.',
+    'Read the local error log stored in the browser (IndexedDB). Use this to investigate unexpected crashes, failed LLM requests, or tool errors. Returns the most recent log entries with timestamps, levels, sources, and messages. Use level="info" to also see tool call audit logs (which tool was called with what args, and what it returned). Use level="debug" for full detail including turn-by-turn agent state.',
   parameters: {
     type: 'object',
     properties: {
