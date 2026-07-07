@@ -3,15 +3,38 @@
 // ============================================================
 
 import type { Message, MemoryEntry, Session } from '../types/index.js';
+import { logger } from './logger.js';
 
 const DB_NAME = 'vibeAgentGo-agent';
 const DB_VERSION = 2;
 
+// --- DB connection cache ---
+// Opening a new IDBDatabase connection on every tx() call causes connection
+// leaks: each connection stays open and holds a transaction lock, eventually
+// causing getSession() to silently fail (returning null), which makes the
+// agent lose all conversation context. We cache a single connection and
+// re-open only if it was closed (e.g. by a versionchange from another tab).
+
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onerror = () => reject(req.error);
-    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => {
+      dbPromise = null;
+      reject(req.error);
+    };
+    req.onsuccess = () => {
+      const db = req.result;
+      // If another tab triggers a versionchange, close our cached connection
+      // so the upgrade can proceed. Next tx() will re-open.
+      db.onversionchange = () => {
+        db.close();
+        dbPromise = null;
+      };
+      resolve(db);
+    };
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('memory')) {
@@ -37,6 +60,7 @@ function openDB(): Promise<IDBDatabase> {
       }
     };
   });
+  return dbPromise;
 }
 
 export function tx<T>(
@@ -190,7 +214,14 @@ export class MemoryStore {
     try {
       const result = await tx<Session>('sessions', 'readonly', (store) => store.get(id));
       return result || null;
-    } catch {
+    } catch (e) {
+      // Log the error so the agent can pick it up via error_log tool.
+      // Don't silently return null — that causes context loss.
+      console.error('[vibeAgentGo] getSession failed:', id, e);
+      logger.error('memory.getSession', `Failed to load session ${id}`, {
+        sessionId: id,
+        error: e instanceof Error ? e.message : String(e),
+      });
       return null;
     }
   }
@@ -389,5 +420,8 @@ export function resetLocalData(): void {
   localStorage.removeItem(CONFIG_KEY);
   localStorage.removeItem(ONBOARDING_KEY);
   localStorage.removeItem('vibeAgentGo-theme');
+  // Invalidate the cached DB connection before deleting the database.
+  // If we keep the stale connection, the delete is blocked by open connections.
+  dbPromise = null;
   indexedDB.deleteDatabase(DB_NAME);
 }

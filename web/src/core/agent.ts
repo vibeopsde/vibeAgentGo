@@ -75,6 +75,7 @@ export class Agent {
       emit: (event, data) => this.emit(event as keyof AgentEventMap, data as AgentEventMap[keyof AgentEventMap]),
       env: {
         memoryStore: this.memory,
+        isDark: document.documentElement.getAttribute('data-theme') !== 'light',
         ...this.extraEnv,
       },
     };
@@ -154,6 +155,10 @@ export class Agent {
         if (existing) {
           sessionMessages = existing.messages;
           logger.info('agent.resume', `Loaded ${existing.messages.length} messages`, {
+            sessionId: this.sessionId,
+          });
+        } else {
+          logger.warn('agent.resume', `Session ${this.sessionId} not found — starting with empty history`, {
             sessionId: this.sessionId,
           });
         }
