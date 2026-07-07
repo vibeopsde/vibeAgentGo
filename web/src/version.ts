@@ -3,4 +3,6 @@
 // Format: vYYMM.xyz (xyz resets on new month)
 // ============================================================
 
-export const VERSION = 'v2607.6.1';
+import pkg from '../../package.json' with { type: 'json' };
+
+export const VERSION = `v${pkg.version}`;

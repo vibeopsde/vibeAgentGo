@@ -2,10 +2,27 @@ import { defineConfig, Plugin } from 'vite';
 import { resolve } from 'path';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 
+function readVersion(): string {
+  const pkgPath = resolve(__dirname, 'package.json');
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+  return `v${pkg.version}`;
+}
+
+function injectHtmlVersion(): Plugin {
+  const version = readVersion();
+  return {
+    name: 'inject-html-version',
+    transformIndexHtml(html) {
+      return html.replace(
+        /<head>/i,
+        `<head>\n  <meta name="vibeagentgo-version" content="${version}" />`
+      );
+    },
+  };
+}
+
 function injectServiceWorkerVersion(): Plugin {
-  const versionPath = resolve(__dirname, 'web/src/version.ts');
-  const versionMatch = /VERSION = '([^']+)'/.exec(readFileSync(versionPath, 'utf-8'));
-  const version = versionMatch ? versionMatch[1] : 'unknown';
+  const version = readVersion();
 
   return {
     name: 'inject-service-worker-version',
@@ -38,7 +55,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
-  plugins: [injectServiceWorkerVersion()],
+  plugins: [injectHtmlVersion(), injectServiceWorkerVersion()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'web/src'),
