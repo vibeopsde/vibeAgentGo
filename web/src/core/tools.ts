@@ -5,20 +5,7 @@
 
 import type { Tool, ToolContext } from '../types/index.js';
 import { MemoryStore, loadConfig } from './memory.js';
-import { renderStateDashboard } from '../render/state_dashboard.js';
 import { readLogs, type LogLevel } from './logger.js';
-import {
-  loadState,
-  saveState,
-  updateState,
-  deleteTask,
-  deleteIssue,
-  formatStateSummary,
-  isValidTaskStatus,
-  isValidIssueSeverity,
-  isValidIssueStatus,
-  generateId,
-} from './state.js';
 
 import { validateArgs } from '../utils/schema_validate.js';
 
@@ -636,118 +623,6 @@ const memory_search: Tool = {
   },
 };
 
-// --- Project State (agent_state.json) ---
-
-const state_view: Tool = {
-  name: 'state_view',
-  description:
-    'Read and summarize the current project state from agent_state.json in the workspace. Use this at the start of a complex task or when the user refers to project status, roadmap, open issues, or lessons learned.',
-  parameters: {
-    type: 'object',
-    properties: {
-      render: {
-        type: 'boolean',
-        description: 'If true, also render an interactive dashboard view of the project state. Default: false',
-      },
-    },
-  },
-  handler: async (args: Record<string, unknown>, ctx) => {
-    const mem = getMemoryStore(ctx);
-    const state = await loadState(mem);
-    if (asBoolean(args.render)) {
-      const isDark = ctx.env.isDark ?? true;
-      const html = renderStateDashboard(state, isDark);
-      ctx.emit('render_view', { title: 'Project State', html });
-    }
-    return formatStateSummary(state);
-  },
-};
-
-const state_update: Tool = {
-  name: 'state_update',
-  description: `Update the project state in agent_state.json. This is the shared scratchpad for long-running projects. You can set the goal/phase, add or update tasks/issues, record lessons learned, and track files. Examples:
-- {"goal": "Build a task dashboard", "current_phase": "implementation"}
-- {"tasks": [{"id": "t1", "title": "Wire UI", "status": "done"}]}
-- {"open_issues": [{"id": "i1", "title": "CORS error on mobile", "severity": "high", "status": "open"}]}
-- {"lessons_learned": ["Service worker must cache index.html"]}
-- {"files": ["src/core/state.ts"]}
-Use state_view first to see existing ids. Set delete_task or delete_issue to remove entries.`,
-  parameters: {
-    type: 'object',
-    properties: {
-      goal: { type: 'string', description: 'Overall project goal' },
-      current_phase: { type: 'string', description: 'Current phase (e.g. planning, implementation, testing, review)' },
-      tasks: {
-        type: 'array',
-        description: 'Tasks to add or update. Each task must have a title; id is optional for new tasks.',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            title: { type: 'string' },
-            status: { type: 'string', enum: ['open', 'in_progress', 'blocked', 'done', 'cancelled'] },
-            depends_on: { type: 'array', items: { type: 'string' } },
-            notes: { type: 'string' },
-          },
-        },
-      },
-      open_issues: {
-        type: 'array',
-        description: 'Issues to add or update. Each issue must have a title; id is optional for new issues.',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            title: { type: 'string' },
-            severity: { type: 'string', enum: ['low', 'medium', 'high'] },
-            status: { type: 'string', enum: ['open', 'closed'] },
-            notes: { type: 'string' },
-          },
-        },
-      },
-      lessons_learned: { type: 'array', items: { type: 'string' }, description: 'New lessons learned to append' },
-      files: { type: 'array', items: { type: 'string' }, description: 'File paths to track in the project state' },
-      delete_task: { type: 'string', description: 'ID of a task to delete' },
-      delete_issue: { type: 'string', description: 'ID of an issue to delete' },
-      render: {
-        type: 'boolean',
-        description: 'If true, render the Project State dashboard after updating. Default: false',
-      },
-    },
-  },
-  handler: async (args: Record<string, unknown>, ctx) => {
-    const mem = getMemoryStore(ctx);
-    let state = await loadState(mem);
-
-    const updates: Record<string, unknown> = {};
-    if (typeof args.goal === 'string') updates.goal = args.goal;
-    if (typeof args.current_phase === 'string') updates.current_phase = args.current_phase;
-    if (Array.isArray(args.tasks)) updates.tasks = asRecordArray(args.tasks);
-    if (Array.isArray(args.open_issues)) updates.open_issues = asRecordArray(args.open_issues);
-    if (Array.isArray(args.lessons_learned)) updates.lessons_learned = asStringArray(args.lessons_learned);
-    if (Array.isArray(args.files)) updates.files = asStringArray(args.files);
-
-    state = updateState(state, updates);
-
-    if (typeof args.delete_task === 'string') {
-      state = deleteTask(state, args.delete_task);
-    }
-    if (typeof args.delete_issue === 'string') {
-      state = deleteIssue(state, args.delete_issue);
-    }
-
-    await saveState(mem, state);
-
-    if (asBoolean(args.render)) {
-      const isDark = ctx.env.isDark ?? true;
-      const html = renderStateDashboard(state, isDark);
-      ctx.emit('render_view', { title: 'Project State', html });
-    }
-
-    return `Updated agent_state.json.\n\n${formatStateSummary(state)}`;
-  },
-};
-
 // --- Error Log Analysis ---
 
 const error_log: Tool = {
@@ -807,8 +682,6 @@ export function createDefaultTools(): Tool[] {
     web_search,
     memory_save,
     memory_search,
-    state_view,
-    state_update,
     error_log,
   ];
 }

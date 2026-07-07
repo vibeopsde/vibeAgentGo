@@ -1,6 +1,6 @@
 # vibeAgentGo
 
-A fully client-side AI agent PWA. Memory, sessions, files, skills, and project state live in your browser. Only LLM API calls leave the device.
+A fully client-side AI agent PWA. Memory, sessions, files, and skills live in your browser. Only LLM API calls leave the device.
 
 ## What is this?
 
@@ -9,8 +9,7 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
-- **Project State** scratchpad (`agent_state.json`) for long-running tasks
-- **11 Tools** including file I/O, PDF extraction, web search, memory, project state, error log, and code execution
+- **9 Tools** including file I/O, PDF extraction, web search, memory, error log, and code execution
 - **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace
 - **Backup & Restore**: Export and import all data as a single ZIP file
@@ -57,7 +56,6 @@ web/
 │   │   ├── memory.ts       # IndexedDB memory, sessions, files, skills, config
 │   │   ├── prompt_builder.ts
 │   │   ├── tools.ts        # Browser tool implementations
-│   │   ├── state.ts        # Project state helpers (agent_state.json)
 │   │   ├── backup.ts       # ZIP export/import of all local data
 │   │   ├── presets.ts      # OpenAI-compatible provider presets
 │   │   ├── skill_parser.ts # Skill markdown + YAML frontmatter parsing
@@ -85,8 +83,6 @@ web/
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `memory_search` | Search existing memory entries by keyword |
-| `state_view` | Read the project state from `agent_state.json` |
-| `state_update` | Update project state: goal, phase, tasks, issues, lessons, files |
 
 ## Memory
 
@@ -102,18 +98,6 @@ After each assistant response, the agent also extracts new durable facts from th
 ## Skills
 
 Skills are Markdown files with optional YAML frontmatter (`name`, `description`, `triggers`). They are stored in IndexedDB and loaded into the system prompt on every run. When a user message contains a trigger word, the matching skill is automatically injected. The **Skills** panel lets you create, edit, and delete skills.
-
-## Agentic Project State
-
-For long-running projects the agent uses `agent_state.json` as a shared scratchpad:
-
-- `goal` and `current_phase`
-- `tasks[]` with status, dependencies, notes
-- `open_issues[]` with severity
-- `lessons_learned[]`
-- `files[]` relevant to the project
-
-Call `state_view` to load context and `state_update` to keep progress in sync. Use `render: true` to show an interactive dashboard in the render panel.
 
 ## Code Sandbox
 
