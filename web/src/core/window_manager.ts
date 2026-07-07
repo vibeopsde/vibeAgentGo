@@ -136,7 +136,8 @@ export class WindowManager {
         e.stopPropagation();
         this.minimizeWindow(id);
       });
-      bar.addEventListener('mousedown', (e) => this.startDrag(e, id));
+      bar.addEventListener('pointerdown', (e) => this.startDrag(e, id));
+      bar.style.touchAction = 'none';
 
       contentEl = document.createElement('div');
       contentEl.className = 'wm-window-content';
@@ -146,10 +147,11 @@ export class WindowManager {
       // Resize handle
       const resizeHandle = document.createElement('div');
       resizeHandle.className = 'wm-resize-handle';
-      resizeHandle.addEventListener('mousedown', (e) => this.startResize(e, id));
+      resizeHandle.addEventListener('pointerdown', (e) => this.startResize(e, id));
+      resizeHandle.style.touchAction = 'none';
       element.appendChild(resizeHandle);
 
-      element.addEventListener('mousedown', () => this.focusWindow(id));
+      element.addEventListener('pointerdown', () => this.focusWindow(id));
       this.desktop.appendChild(element);
     }
 
@@ -346,51 +348,59 @@ export class WindowManager {
     }
   }
 
-  private startDrag(e: MouseEvent, id: string) {
+  private startDrag(e: PointerEvent, id: string) {
     if (this.element.classList.contains('mobile')) return;
     const win = this.windows.get(id);
     if (!win) return;
     this.focusWindow(id);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const startX = e.clientX;
     const startY = e.clientY;
     const startLeft = win.element.offsetLeft;
     const startTop = win.element.offsetTop;
 
-    const onMouseMove = (ev: MouseEvent) => {
+    const onPointerMove = (ev: PointerEvent) => {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
       win.element.style.left = `${startLeft + dx}px`;
       win.element.style.top = `${startTop + dy}px`;
     };
-    const onMouseUp = () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+    const onPointerUp = (ev: PointerEvent) => {
+      (ev.target as HTMLElement).releasePointerCapture(e.pointerId);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   }
 
-  private startResize(e: MouseEvent, id: string) {
+  private startResize(e: PointerEvent, id: string) {
     if (this.element.classList.contains('mobile')) return;
     const win = this.windows.get(id);
     if (!win) return;
     e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const startX = e.clientX;
     const startY = e.clientY;
     const startWidth = win.element.offsetWidth;
     const startHeight = win.element.offsetHeight;
 
-    const onMouseMove = (ev: MouseEvent) => {
+    const onPointerMove = (ev: PointerEvent) => {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
       win.element.style.width = `${Math.max(160, startWidth + dx)}px`;
       win.element.style.height = `${Math.max(120, startHeight + dy)}px`;
     };
-    const onMouseUp = () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+    const onPointerUp = (ev: PointerEvent) => {
+      (ev.target as HTMLElement).releasePointerCapture(e.pointerId);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   }
 }
