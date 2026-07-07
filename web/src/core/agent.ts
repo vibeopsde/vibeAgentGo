@@ -297,6 +297,11 @@ export class Agent {
 
           this.emit('tool_call', { name: toolName, args });
 
+          // Checkpoint: save the session before executing the tool, so if the
+          // tool crashes the browser tab (e.g. infinite loop in a Worker), the
+          // conversation history is already persisted and can be resumed.
+          await this.saveCurrentSession(history, runSessionId);
+
           let result: string;
           try {
             result = await this.dispatchToolByName(toolName, args, ctx);

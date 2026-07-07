@@ -82,6 +82,34 @@ function render(title, html) {
 // (e.g., Python via Pyodide WASM) could be docked here by branching on a
 // `lang` field in the run message — see git history for a working prototype.
 
+// Guard against unhandled rejections inside the worker — without this, a
+// rejected promise from user code (e.g. a broken CDN import) kills the worker
+// silently without ever sending a `done` message, leaving the main thread
+// waiting until the timeout fires.
+
+let __finished = false;
+
+self.addEventListener('unhandledrejection', (event) => {
+  const e = event.reason;
+  finish(undefined, {
+    message: e instanceof Error ? e.message : String(e),
+    name: e instanceof Error ? e.name : 'UnhandledRejection',
+    stack: e instanceof Error ? e.stack : '',
+  });
+  event.preventDefault();
+});
+
+// Guard against uncaught errors — same reasoning.
+self.addEventListener('error', (event) => {
+  if (__finished) return;
+  finish(undefined, {
+    message: event.message || 'Uncaught error in worker',
+    name: 'UncaughtError',
+    stack: event.error instanceof Error ? event.error.stack : '',
+  });
+  event.preventDefault();
+});
+
 function runCode(code) {
   let result = undefined;
   let error = null;
@@ -111,6 +139,8 @@ function runCode(code) {
 }
 
 function finish(result, error) {
+  if (__finished) return; // Don't send duplicate results
+  __finished = true;
   let resultStr;
   if (result === undefined) {
     resultStr = 'undefined';

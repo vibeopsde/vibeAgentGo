@@ -17,21 +17,36 @@ export interface LogEntry {
 }
 
 const DB_NAME = 'vibeAgentGo-agent';
-const DB_VERSION = 2;
+// MUST match memory.ts DB_VERSION — both open the same DB.
+// If they differ, the lower version fails with a version error when the
+// higher version is already open, making error_log silently fail.
+const DB_VERSION = 3;
 const STORE = 'logs';
 
-let dbInstance: IDBDatabase | null = null;
+let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openLoggerDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onerror = () => reject(req.error);
-    req.onsuccess = () => {
-      dbInstance = req.result;
-      resolve(req.result);
+    req.onerror = () => {
+      dbPromise = null;
+      reject(req.error);
     };
-    req.onupgradeneeded = (event) => {
+    req.onsuccess = () => {
       const db = req.result;
+      // If another tab triggers a versionchange, close our cached connection
+      // so the upgrade can proceed. Next getDB() will re-open.
+      db.onversionchange = () => {
+        db.close();
+        dbPromise = null;
+      };
+      resolve(db);
+    };
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      // The logs store is also created by memory.ts's onupgradeneeded.
+      // Use `contains` guard so we don't try to create it twice.
       if (!db.objectStoreNames.contains(STORE)) {
         const store = db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
         store.createIndex('timestamp', 'timestamp', { unique: false });
@@ -40,10 +55,10 @@ function openLoggerDB(): Promise<IDBDatabase> {
       }
     };
   });
+  return dbPromise;
 }
 
 async function getDB(): Promise<IDBDatabase> {
-  if (dbInstance) return dbInstance;
   return openLoggerDB();
 }
 

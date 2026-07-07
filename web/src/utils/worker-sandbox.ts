@@ -127,15 +127,26 @@ export function runInWorkerSandbox(
       }
     };
 
-    worker.onerror = (e) => {
+    worker.onerror = (e: ErrorEvent) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       worker.terminate();
+      // Log the crash so error_log can find it even if the tab recovers
+      try {
+        import('../core/logger.js').then(({ logger }) => {
+          logger.error('worker.sandbox', `Worker crashed: ${e.message || 'unknown error'}`, {
+            filename: e.filename,
+            lineno: e.lineno,
+            colno: e.colno,
+            stack: e.error instanceof Error ? e.error.stack : undefined,
+          });
+        }).catch(() => {});
+      } catch { /* ignore */ }
       resolve({
         logs: [],
         result: '',
-        error: { message: e.message || 'Worker error', name: 'WorkerError', stack: undefined },
+        error: { message: e.message || 'Worker crashed', name: 'WorkerCrashError', stack: e.error instanceof Error ? e.error.stack : undefined },
       });
     };
 
