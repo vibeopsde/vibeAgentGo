@@ -486,21 +486,25 @@ const run: Tool = {
 const run_app: Tool = {
   name: 'run_app',
   description:
-    'Open an interactive HTML/CSS/JS view in its own dedicated window. Use for charts, dashboards, calculators, data visualizations, or any interactive UI. Each call opens a new independent window. The HTML runs in a sandboxed iframe; if you need dynamic data, generate it first with run_code or run and embed the values directly in the HTML. No file I/O, no CDN imports.',
+    'Open an interactive HTML/CSS/JS view in its own dedicated window. The HTML is read from a workspace file, not passed inline. Use for charts, dashboards, calculators, data visualizations, or any interactive UI. Each call opens a new independent window. Workflow: first write the HTML to a file with write_file, then call run_app with the file path. No CDN imports.',
   parameters: {
     type: 'object',
     properties: {
       title: { type: 'string', description: 'Title shown in the window title bar' },
-      html: { type: 'string', description: 'Self-contained HTML string. Inline CSS/JS are allowed; external resources are blocked by CSP.' },
+      file: { type: 'string', description: 'Path to an HTML file in the workspace (e.g. "app.html"). The file content is rendered in a sandboxed iframe.' },
     },
-    required: ['title', 'html'],
+    required: ['title', 'file'],
   },
   handler: async (args: Record<string, unknown>, ctx) => {
     const title = asString(args.title);
-    const html = asString(args.html);
-    if (!html.trim()) return 'No HTML provided.';
+    const file = asString(args.file);
+    if (!file.trim()) return 'No file path provided.';
+    const mem = getMemoryStore(ctx);
+    const html = await mem.readFile(file);
+    if (html === null) return `File not found: ${file}. Use write_file first to create the HTML file.`;
+    if (!html.trim()) return `File "${file}" is empty.`;
     ctx.emit('render_view', { title, html });
-    return `Opened "${title}" in a new window.`;
+    return `Opened "${title}" from ${file} in a new window.`;
   },
 };
 
