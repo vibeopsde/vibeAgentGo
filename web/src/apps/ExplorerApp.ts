@@ -20,6 +20,7 @@ export class ExplorerApp implements App {
   private listEl!: HTMLElement;
   private onBridgeRequest: ((req: BridgeRequest) => Promise<BridgeResponse>) | null = null;
   private onOpenFile: ((path: string) => void) | null = null;
+  private onRunApp: ((title: string, html: string) => void) | null = null;
   private files: FileEntry[] = [];
 
   constructor() {
@@ -53,6 +54,10 @@ export class ExplorerApp implements App {
     this.onOpenFile = handler;
   }
 
+  setOnRunApp(handler: (title: string, html: string) => void) {
+    this.onRunApp = handler;
+  }
+
   mount(container: HTMLElement) {
     container.innerHTML = '';
     container.appendChild(this.element);
@@ -75,21 +80,32 @@ export class ExplorerApp implements App {
     empty.style.display = 'none';
 
     for (const file of this.files) {
+      const isHtml = file.path.toLowerCase().endsWith('.html');
       const el = document.createElement('div');
       el.className = 'explorer-item';
       el.innerHTML = `
         <span class="explorer-icon">${this.iconFor(file.path)}</span>
         <span class="explorer-name" title="${escapeHtml(file.path)}">${escapeHtml(file.path)}</span>
-        <button class="explorer-delete" title="${t('common.delete') || 'Delete'}">×</button>
+        <div class="explorer-actions">
+          ${isHtml ? '<button class="explorer-play" title="Run">▶</button>' : ''}
+          <button class="explorer-delete" title="${t('common.delete') || 'Delete'}">×</button>
+        </div>
       `;
       el.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('.explorer-delete')) return;
+        if ((e.target as HTMLElement).closest('.explorer-play')) return;
         this.onOpenFile?.(file.path);
       });
       el.querySelector('.explorer-delete')?.addEventListener('click', (e) => {
         e.stopPropagation();
         this.deleteFile(file.path);
       });
+      if (isHtml) {
+        el.querySelector('.explorer-play')?.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          this.runHtml(file.path);
+        });
+      }
       this.listEl.appendChild(el);
     }
   }
@@ -125,5 +141,13 @@ export class ExplorerApp implements App {
     if (!window.confirm((t('explorer.confirmDelete') || 'Delete {path}?').replace('{path}', path))) return;
     await this.onBridgeRequest?.({ type: 'deleteFile', path });
     await this.refresh();
+  }
+
+  private async runHtml(path: string) {
+    const res = await this.onBridgeRequest?.({ type: 'readFile', path });
+    if (!res?.ok) return;
+    const html = String(res.data);
+    const title = path.split('/').pop() || path;
+    this.onRunApp?.(title, html);
   }
 }

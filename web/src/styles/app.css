@@ -2042,28 +2042,42 @@ select {
   font-size: 13px;
 }
 
-.explorer-item .explorer-delete {
+.explorer-item .explorer-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.explorer-item .explorer-delete,
+.explorer-item .explorer-play {
   width: 22px;
   height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
   border-radius: 4px;
   cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
   opacity: 0;
   font-size: 18px;
   line-height: 1;
+  padding: 0;
 }
 
-.explorer-item:hover .explorer-delete {
+.explorer-item:hover .explorer-delete,
+.explorer-item:hover .explorer-play {
   opacity: 1;
 }
 
 .explorer-item .explorer-delete:hover {
   color: var(--danger, #ef4444);
+  background: var(--bg-elev);
+}
+
+.explorer-item .explorer-play:hover {
+  color: var(--accent, #3b82f6);
   background: var(--bg-elev);
 }
 

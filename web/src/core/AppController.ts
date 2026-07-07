@@ -358,6 +358,9 @@ export class AppController {
         const editor = this.wm.getInstance(winId) as TextEditorApp | undefined;
         editor?.openFile(path);
       });
+      app.setOnRunApp((title, html) => {
+        this.openProgramView(title, html);
+      });
       return app;
     });
 
