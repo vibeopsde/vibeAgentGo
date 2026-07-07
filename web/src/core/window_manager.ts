@@ -173,6 +173,10 @@ export class WindowManager {
     return id;
   }
 
+  getInstance(windowId: string): App | undefined {
+    return this.instances.get(windowId);
+  }
+
   launchOrFocus(appId: string): string {
     // Find an existing window of this app
     for (const [id, win] of this.windows) {

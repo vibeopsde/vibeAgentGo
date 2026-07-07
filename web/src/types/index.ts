@@ -117,6 +117,7 @@ export interface RenderViewEvent {
 export type BridgeRequest =
   | { type: 'readFile'; path: string }
   | { type: 'writeFile'; path: string; content: string }
+  | { type: 'deleteFile'; path: string }
   | { type: 'listFiles' }
   | { type: 'getMemory'; query: string; category?: string; limit?: number }
   | { type: 'getConfig' }

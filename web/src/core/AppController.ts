@@ -7,6 +7,8 @@
 import { ChatApp } from '../apps/ChatApp.js';
 import { SettingsApp } from '../apps/SettingsApp.js';
 import { ProgramApp } from '../apps/ProgramApp.js';
+import { ExplorerApp } from '../apps/ExplorerApp.js';
+import { TextEditorApp } from '../apps/TextEditorApp.js';
 import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { Agent } from './agent.js';
 import { registerGlobalErrorHandlers, captureFunctionError } from './global_errors.js';
@@ -105,6 +107,10 @@ export class AppController {
         case 'writeFile': {
           await this.memory.writeFile(req.path, req.content);
           return { ok: true, data: null };
+        }
+        case 'deleteFile': {
+          const ok = await this.memory.deleteFile(req.path);
+          return { ok, data: null };
         }
         case 'listFiles': {
           const files = await this.memory.listFiles();
@@ -327,6 +333,23 @@ export class AppController {
     });
 
     this.wm.registerApp('program', () => new ProgramApp(this.handleBridgeRequest));
+
+    this.wm.registerApp('explorer', () => {
+      const app = new ExplorerApp();
+      app.setBridgeHandler(this.handleBridgeRequest);
+      app.setOnOpenFile((path) => {
+        const winId = this.wm.launchOrFocus('editor');
+        const editor = this.wm.getInstance(winId) as TextEditorApp | undefined;
+        editor?.openFile(path);
+      });
+      return app;
+    });
+
+    this.wm.registerApp('editor', () => {
+      const app = new TextEditorApp();
+      app.setBridgeHandler(this.handleBridgeRequest);
+      return app;
+    });
   }
 
   // --- Layout ---
