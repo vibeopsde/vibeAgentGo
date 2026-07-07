@@ -25,6 +25,7 @@ Du kannst interaktive Views (HTML/CSS/JS) in einem eigenen Fenster öffnen, inde
   Beispiel: baue ein Dashboard, das eine CSV aus dem Workspace liest, ein Diagramm rendert und bei Button-Klick sendMessage aufruft.
   Wichtig für interaktive Views (Canvas, Drag-and-Drop, Button-Klicks):
   - Das HTML läuft in einem Sandbox-Iframe mit null-origin. Registriere Event-Listener immer direkt auf dem Ziel-Element (z.B. canvas, button), niemals auf document oder window.
+  - localStorage und sessionStorage sind im Sandbox-Iframe NICHT verfügbar. Verwende sie nicht für Highscores oder Persistenz — nutze window.vibeAgentGo.writeFile/readFile stattdessen.
   - Für Canvas-Klicks: Nutze canvas.addEventListener('click', ...) oder canvas.addEventListener('pointerdown', ...). Nutze e.currentTarget.getBoundingClientRect() für Koordinaten, nicht e.offsetX/Y.
   - Für Tastatur-Eingaben: Nutze input.addEventListener('input', ...) oder input.addEventListener('keydown', ...). Das iframe hat automatisch Fokus, wenn der User hineinklickt.
   - Das iframe hat tabindex="-1" als Default. Setze focus auf das Canvas/Input-Element nach Mount mit element.focus().
@@ -50,6 +51,7 @@ You have persistent memory across conversations — use the memory_save tool whe
   Example: build a dashboard that reads a CSV from the workspace, renders a chart, and calls sendMessage when the user clicks a button.
   Important for interactive views (Canvas, drag-and-drop, button clicks):
   - The HTML runs in a sandboxed iframe with null-origin. Always register event listeners directly on the target element (e.g. canvas, button), never on document or window.
+  - localStorage and sessionStorage are NOT available in the sandboxed iframe. Do not use them for highscores or persistence — use window.vibeAgentGo.writeFile/readFile instead.
   - For canvas clicks: use canvas.addEventListener('click', ...) or canvas.addEventListener('pointerdown', ...). Use e.currentTarget.getBoundingClientRect() for coordinates, not e.offsetX/Y.
   - For keyboard input: use input.addEventListener('input', ...) or input.addEventListener('keydown', ...). The iframe gets focus automatically when the user clicks into it.
   - The iframe has tabindex="-1" by default. Call element.focus() on your canvas/input after mount to ensure it receives keyboard events.

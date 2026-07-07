@@ -96,6 +96,21 @@ export class ProgramApp implements App {
 ${html}
 <script>
 (function() {
+  // Safe shims: sandboxed iframes (null origin) block localStorage/sessionStorage.
+  // Without this shim, any access throws SecurityError and crashes the entire app
+  // before event listeners are registered — the #1 cause of "app doesn't respond to input".
+  try { localStorage.getItem('__test'); } catch (e) {
+    const noop = () => null;
+    const noopSet = () => {};
+    Object.defineProperty(window, 'localStorage', { value: { getItem: noop, setItem: noopSet, removeItem: noopSet, clear: noopSet, key: noop, length: 0 } });
+  }
+  try { sessionStorage.getItem('__test'); } catch (e) {
+    const noop = () => null;
+    const noopSet = () => {};
+    Object.defineProperty(window, 'sessionStorage', { value: { getItem: noop, setItem: noopSet, removeItem: noopSet, clear: noopSet, key: noop, length: 0 } });
+  }
+})();
+(function() {
   const bridge = {
     request: (type, payload) => {
       const id = Math.random().toString(36).slice(2);
