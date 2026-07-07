@@ -109,6 +109,8 @@ export function renderLLMConfigSection(
   if (savedModel) {
     modelSelect.innerHTML = `<option value="${escapeHtml(savedModel)}" selected>${escapeHtml(savedModel)}</option>`;
     modelSelect.disabled = false;
+    modelSelect.value = savedModel;
+    modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   providerSelect.addEventListener('change', () => applyProviderPreset(providerSelect.value));

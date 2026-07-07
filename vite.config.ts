@@ -21,7 +21,7 @@ function injectHtmlVersion(): Plugin {
   };
 }
 
-function injectServiceWorkerVersion(): Plugin {
+function injectServiceWorkerVersion(outDirName: string): Plugin {
   const version = readVersion();
 
   return {
@@ -40,32 +40,37 @@ function injectServiceWorkerVersion(): Plugin {
       if (check !== count) {
         throw new Error(`SW version replacement mismatch: expected ${count}, got ${check}.`);
       }
-      const outPath = resolve(__dirname, 'web/dist/sw.js');
-      const outDir = resolve(__dirname, 'web/dist');
+      const outDir = resolve(__dirname, 'web', outDirName);
+      const outPath = resolve(outDir, 'sw.js');
       if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
       writeFileSync(outPath, sw);
     },
   };
 }
 
-export default defineConfig({
-  root: 'web',
-  base: './',
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-  },
-  plugins: [injectHtmlVersion(), injectServiceWorkerVersion()],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'web/src'),
-      '@types': resolve(__dirname, 'web/src/types'),
+export default defineConfig(({ mode }) => {
+  const isDevDeploy = mode === 'dev-deploy' || process.env.DEPLOY_TARGET === 'dev';
+  const outDir = isDevDeploy ? 'dist-dev' : 'dist';
+
+  return {
+    root: 'web',
+    base: './',
+    build: {
+      outDir,
+      emptyOutDir: true,
     },
-  },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    include: ['tests/**/*.test.ts'],
-    setupFiles: ['./tests/setup.ts'],
-  },
+    plugins: [injectHtmlVersion(), injectServiceWorkerVersion(outDir)],
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, 'web/src'),
+        '@types': resolve(__dirname, 'web/src/types'),
+      },
+    },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      include: ['tests/**/*.test.ts'],
+      setupFiles: ['./tests/setup.ts'],
+    },
+  };
 });

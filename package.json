@@ -1,13 +1,15 @@
 {
   "name": "vibeagentgo",
-  "version": "2607.6.2",
+  "version": "2607.7.0",
   "description": "vibeAgentGo — Fully client-side AI agent PWA with memory, skills, and Web Worker code sandbox",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc -p web/tsconfig.json --noEmit",
+    "build:dev": "DEPLOY_TARGET=dev vite build --mode dev-deploy && tsc -p web/tsconfig.json --noEmit",
     "preview": "vite preview",
+    "preview:dev": "vite preview --outDir web/dist-dev",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint web/src --ext .ts,.js",

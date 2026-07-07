@@ -21,38 +21,17 @@ Add project-specific facts, rules, tone, or shortcuts here.
 
 export class SkillsPanel {
   element: HTMLElement;
-  private overlay: HTMLElement;
-  private modal: HTMLElement;
   private skillStore: SkillStore;
   private editingId: string | null = null;
 
   constructor() {
     this.element = document.createElement('div');
-    this.element.style.display = 'contents';
+    this.element.className = 'panel-app skills-panel';
     this.skillStore = new SkillStore();
-
-    this.overlay = document.createElement('div');
-    this.overlay.className = 'modal-overlay';
-
-    this.modal = document.createElement('div');
-    this.modal.className = 'modal modal-wide';
-
-    this.overlay.appendChild(this.modal);
-    this.element.appendChild(this.overlay);
-
-    this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.close();
-    });
   }
 
   open() {
     this.renderList();
-    if (!this.element.isConnected) document.body.appendChild(this.element);
-    this.overlay.classList.add('open');
-  }
-
-  close() {
-    this.overlay.classList.remove('open');
   }
 
   private async renderList() {
@@ -77,22 +56,20 @@ export class SkillsPanel {
       )
       .join('');
 
-    this.modal.innerHTML = `
+    this.element.innerHTML = `
       <h2>🛠️ ${t('skills.title')}</h2>
       <p class="field-hint">${t('skills.hint')}</p>
       <div class="skills-list">${rows || `<p class="empty">${t('skills.empty')}</p>`}</div>
       <div class="form-actions">
         <button id="skills-new" class="btn btn-primary">${t('skills.new')}</button>
-        <button id="skills-close" class="btn btn-secondary">${t('common.close')}</button>
       </div>
     `;
 
-    this.modal.querySelector('#skills-close')?.addEventListener('click', () => this.close());
-    this.modal.querySelector('#skills-new')?.addEventListener('click', () => this.renderEditor());
-    this.modal.querySelectorAll('.skill-edit').forEach((btn) => {
+    this.element.querySelector('#skills-new')?.addEventListener('click', () => this.renderEditor());
+    this.element.querySelectorAll('.skill-edit').forEach((btn) => {
       btn.addEventListener('click', () => this.renderEditor((btn as HTMLElement).dataset.id || ''));
     });
-    this.modal.querySelectorAll('.skill-delete').forEach((btn) => {
+    this.element.querySelectorAll('.skill-delete').forEach((btn) => {
       btn.addEventListener('click', () => this.deleteSkill((btn as HTMLElement).dataset.id || ''));
     });
   }
@@ -111,7 +88,7 @@ export class SkillsPanel {
     const trigger = (record?.trigger || []).join(', ');
     const body = record?.content || DEFAULT_SKILL_BODY;
 
-    this.modal.innerHTML = `
+    this.element.innerHTML = `
       <h2>${id ? t('skills.edit') : t('skills.new')}</h2>
       <div class="form-group">
         <label for="skill-name">${t('skills.name')}</label>
@@ -136,15 +113,15 @@ export class SkillsPanel {
       </div>
     `;
 
-    this.modal.querySelector('#skill-cancel')?.addEventListener('click', () => this.renderList());
-    this.modal.querySelector('#skill-save')?.addEventListener('click', () => this.saveFromEditor());
+    this.element.querySelector('#skill-cancel')?.addEventListener('click', () => this.renderList());
+    this.element.querySelector('#skill-save')?.addEventListener('click', () => this.saveFromEditor());
   }
 
   private async saveFromEditor() {
-    const nameInput = this.modal.querySelector('#skill-name') as HTMLInputElement;
-    const descInput = this.modal.querySelector('#skill-description') as HTMLInputElement;
-    const triggersInput = this.modal.querySelector('#skill-triggers') as HTMLInputElement;
-    const bodyInput = this.modal.querySelector('#skill-body') as HTMLTextAreaElement;
+    const nameInput = this.element.querySelector('#skill-name') as HTMLInputElement;
+    const descInput = this.element.querySelector('#skill-description') as HTMLInputElement;
+    const triggersInput = this.element.querySelector('#skill-triggers') as HTMLInputElement;
+    const bodyInput = this.element.querySelector('#skill-body') as HTMLTextAreaElement;
 
     const name = nameInput.value.trim() || 'Unnamed Skill';
     const description = descInput.value.trim();

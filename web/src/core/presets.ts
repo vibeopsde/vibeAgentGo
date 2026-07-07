@@ -14,6 +14,12 @@ export interface ProviderPreset {
   apiKeyRequired: boolean;
 }
 
+/** Resolve proxy paths relative to the current host so dev-vag and vag both work. */
+function proxyPath(path: string): string {
+  const host = typeof location !== 'undefined' ? location.host : 'vag.vibeops.de';
+  return `https://${host}${path}`;
+}
+
 export const PROVIDER_PRESETS: ProviderPreset[] = [
   {
     key: 'ki-vibeops',
@@ -27,7 +33,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     key: 'kimi-code',
     label: 'Kimi Code',
     model: 'kimi-k2.7-code',
-    baseUrl: 'https://vag.vibeops.de/api/kimi',
+    baseUrl: proxyPath('/api/kimi'),
     apiKeyPlaceholder: 'sk-...',
     apiKeyRequired: true,
   },
@@ -35,7 +41,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     key: 'ollama-cloud',
     label: 'Ollama Cloud',
     model: 'llama3.2',
-    baseUrl: 'https://vag.vibeops.de/api/ollama/v1',
+    baseUrl: proxyPath('/api/ollama/v1'),
     apiKeyPlaceholder: 'ollama cloud key',
     apiKeyRequired: true,
   },
@@ -43,7 +49,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     key: 'opencode-go',
     label: 'OpenCode Go/Zen',
     model: 'kimi-k2.7-code',
-    baseUrl: 'https://vag.vibeops.de/api/opencode',
+    baseUrl: proxyPath('/api/opencode'),
     apiKeyPlaceholder: 'oc-...',
     apiKeyRequired: true,
   },

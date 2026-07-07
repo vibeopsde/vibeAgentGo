@@ -112,6 +112,74 @@ export interface RenderViewEvent {
   html: string;
 }
 
+// --- Bridge (ProgramApp iframe) ---
+
+export type BridgeRequest =
+  | { type: 'readFile'; path: string }
+  | { type: 'writeFile'; path: string; content: string }
+  | { type: 'listFiles' }
+  | { type: 'getMemory'; query: string; category?: string; limit?: number }
+  | { type: 'getConfig' }
+  | { type: 'sendMessage'; text: string };
+
+export interface BridgeResponse {
+  ok: boolean;
+  data?: unknown;
+  error?: string;
+}
+
+// --- App / Window Manager ---
+
+export interface App {
+  id: string;
+  title: string;
+  icon: string;
+  /** Root element of the app; will be moved into a window/space by the WM. */
+  element: HTMLElement;
+  /** Called when the app is mounted into a new window/space. */
+  mount(container: HTMLElement): void;
+  /** Optional: called when the app's window receives focus. */
+  onFocus?(): void;
+  /** Optional: called when the app's window loses focus. */
+  onBlur?(): void;
+  /** Optional: called when the window is closed. Return false to prevent closing. */
+  onClose?(): boolean | Promise<boolean>;
+}
+
+export interface AppWindow {
+  id: string;
+  appId: string;
+  title: string;
+  icon: string;
+  element: HTMLElement; // the window card / space element
+  contentEl: HTMLElement; // the area where the app.element lives
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zIndex: number;
+  minimized: boolean;
+}
+
+export type AppFactory = () => App;
+
+export interface OpenWindowOptions {
+  appId: string;
+  title?: string;
+  data?: Record<string, unknown>;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
+export interface WindowManagerEventMap {
+  'window_opened': { windowId: string; appId: string };
+  'window_closed': { windowId: string; appId: string };
+  'window_focused': { windowId: string; appId: string };
+  'app_launched': { appId: string; windowId: string };
+}
+
 // --- Session ---
 
 export interface Session {
