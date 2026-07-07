@@ -170,7 +170,7 @@ export class WindowManager {
       element,
       contentEl,
       x: opts.x ?? 40,
-      y: opts.y ?? 40,
+      y: opts.y ?? this.chromeBounds().desktopTop,
       width: opts.width ?? 400,
       height: opts.height ?? 300,
       zIndex: this.zCounter,
@@ -377,42 +377,54 @@ export class WindowManager {
     document.addEventListener('pointercancel', onPointerUp);
   }
 
+  // Returns the bounding rectangle of the fixed app chrome that limits the desktop area.
+  // Windows are positioned absolutely within .wm-desktop, which already sits below the
+  // app header. So we must NOT subtract headerHeight — that would cause a double offset.
+  // The dock is position:absolute inside .wm-root (the same offset container as .wm-desktop),
+  // so its top edge marks the bottom limit for snapped windows.
+  private chromeBounds() {
+    const dockBottom = 12; // CSS bottom of .wm-dock
+    const dockGap = 8;    // visual clearance above the dock
+    const dockTop = window.innerHeight - dockBottom - this.dock.offsetHeight;
+    // .wm-desktop top edge in viewport coords = header height, so the usable height
+    // inside .wm-desktop is dockTop - desktopTop - dockGap.
+    const header = document.querySelector('.app-header') as HTMLElement | null;
+    const desktopTop = header ? header.offsetHeight : 48;
+    const availableHeight = dockTop - desktopTop - dockGap;
+    return { desktopTop, availableHeight };
+  }
+
   private snapWindow(id: string, clientX: number, clientY: number) {
     const win = this.windows.get(id);
     if (!win) return;
     const vw = window.innerWidth;
-    const vh = window.innerHeight;
     const snapThreshold = 40;
-    const headerHeight = 48;
-    const dockBottom = 12;
-    const dockGap = 8;
-    const dockOffset = this.dock.offsetHeight + dockBottom + dockGap;
-    const maxHeight = vh - dockOffset - headerHeight;
+    const { desktopTop, availableHeight } = this.chromeBounds();
 
-    // Top edge => full screen below header, keeping dock visible
+    // Windows are children of .wm-desktop, which starts at desktopTop in viewport coords.
+    // So top: 0 inside .wm-desktop == desktopTop in viewport coords — no header offset needed.
+    const applySnap = (left: number, width: number) => {
+      win!.element.style.left = `${left}px`;
+      win!.element.style.top = '0px';
+      win!.element.style.width = `${width}px`;
+      win!.element.style.height = `${Math.max(availableHeight, 200)}px`;
+    };
+
+    // Top edge => full area below header, keeping dock visible
     if (clientY <= snapThreshold) {
-      win.element.style.left = '0px';
-      win.element.style.top = `${headerHeight}px`;
-      win.element.style.width = `${vw}px`;
-      win.element.style.height = `${maxHeight}px`;
+      applySnap(0, vw);
       return;
     }
 
     // Left half
     if (clientX <= snapThreshold) {
-      win.element.style.left = '0px';
-      win.element.style.top = `${headerHeight}px`;
-      win.element.style.width = `${Math.floor(vw / 2)}px`;
-      win.element.style.height = `${maxHeight}px`;
+      applySnap(0, Math.floor(vw / 2));
       return;
     }
 
     // Right half
     if (clientX >= vw - snapThreshold) {
-      win.element.style.left = `${Math.floor(vw / 2)}px`;
-      win.element.style.top = `${headerHeight}px`;
-      win.element.style.width = `${Math.ceil(vw / 2)}px`;
-      win.element.style.height = `${maxHeight}px`;
+      applySnap(Math.floor(vw / 2), Math.ceil(vw / 2));
       return;
     }
   }
