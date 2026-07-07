@@ -20,10 +20,9 @@ import {
 } from './memory.js';
 import { isTextContentPart } from '../types/index.js';
 import { createDefaultTools } from './tools.js';
-import { initTheme, toggleTheme } from './theme.js';
+import { initTheme } from './theme.js';
 import { setLanguage, t } from '../i18n/index.js';
 import { WindowManager } from './window_manager.js';
-import { VERSION } from '../version.js';
 import type { BridgeRequest, BridgeResponse, ChatAttachment, App } from '../types/index.js';
 
 export class AppController {
@@ -311,6 +310,7 @@ export class AppController {
     this.wm.registerApp('chat', () => {
       const chatApp = new ChatApp();
       chatApp.setOnResumeSession((sessionId) => this.resumeSession(sessionId));
+      chatApp.setOnNewChat(() => this.newChat());
       chatApp.setOnSubmit(async (text: string, attachments: ChatAttachment[]) => {
         const config = loadConfig();
         if (!config.apiKey) {
@@ -379,28 +379,9 @@ export class AppController {
 
   // --- Layout ---
 
-  private buildHeader(): HTMLElement {
-    const header = document.createElement('header');
-    header.className = 'app-header';
-    header.innerHTML = `
-      <div class="header-left">
-        <img class="logo" src="./logo-192.png" alt="vibeAgentGo" width="32" height="32" />
-        <span class="version-tag">${VERSION}</span>
-      </div>
-      <div class="header-right">
-        <button id="btn-theme" class="icon-btn" title="${t('header.theme')}">🌓</button>
-        <button id="btn-new" class="icon-btn" title="${t('header.newChat')}">✨</button>
-      </div>
-    `;
-    header.querySelector('#btn-theme')!.addEventListener('click', () => toggleTheme());
-    header.querySelector('#btn-new')!.addEventListener('click', () => this.newChat());
-    return header;
-  }
-
   private buildLayout() {
     const app = document.getElementById('app')!;
     app.innerHTML = '';
-    app.appendChild(this.buildHeader());
     app.appendChild(this.wm.element);
     // Open the chat window with a usable default size; launchOrFocus uses tiny defaults.
     if (this.wm.getWindowsByApp('chat').length === 0) {

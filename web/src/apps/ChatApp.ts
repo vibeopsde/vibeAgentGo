@@ -17,6 +17,7 @@ export class ChatApp implements App {
 
   onSubmit: ((text: string, attachments: ChatAttachment[]) => void) | null = null;
   onResumeSession: ((sessionId: string) => void) | null = null;
+  onNewChat: (() => void) | null = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -47,6 +48,7 @@ export class ChatApp implements App {
     this.element.appendChild(main);
 
     this.panel.onToggleSessions = () => this.toggleSessions();
+    this.panel.onNewChat = () => this.onNewChat?.();
   }
 
   private toggleSessions(force?: boolean) {
@@ -79,6 +81,10 @@ export class ChatApp implements App {
 
   setOnResumeSession(handler: (sessionId: string) => void) {
     this.onResumeSession = handler;
+  }
+
+  setOnNewChat(handler: () => void) {
+    this.onNewChat = handler;
   }
 
   appendUser(text: string, attachments?: ChatAttachment[]) {

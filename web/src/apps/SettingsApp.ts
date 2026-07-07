@@ -65,10 +65,10 @@ export class SettingsApp implements App {
     container.innerHTML = `
       <aside class="settings-sidebar">
         <div class="settings-brand">
-          <span class="settings-brand-icon">⚙️</span>
+          <img class="settings-brand-logo" src="./logo-192.png" alt="vibeAgentGo" width="36" height="36" />
           <div>
-            <h2>${t('settings.title')}</h2>
-            <span class="settings-version">v${VERSION}</span>
+            <h2>vibeAgentGo</h2>
+            <span class="settings-version">${VERSION}</span>
           </div>
         </div>
         <nav class="settings-tabs" role="tablist">

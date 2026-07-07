@@ -392,10 +392,8 @@ export class WindowManager {
     const dockBottom = 12; // CSS bottom of .wm-dock
     const dockGap = 8;    // visual clearance above the dock
     const dockTop = window.innerHeight - dockBottom - this.dock.offsetHeight;
-    // .wm-desktop top edge in viewport coords = header height, so the usable height
-    // inside .wm-desktop is dockTop - desktopTop - dockGap.
-    const header = document.querySelector('.app-header') as HTMLElement | null;
-    const desktopTop = header ? header.offsetHeight : 48;
+    // No more app header — desktop starts at top of viewport.
+    const desktopTop = 0;
     const availableHeight = dockTop - desktopTop - dockGap;
     return { desktopTop, availableHeight };
   }
