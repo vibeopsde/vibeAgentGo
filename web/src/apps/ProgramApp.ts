@@ -88,9 +88,11 @@ export class ProgramApp implements App {
 <style>
   html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
   body { color: #e6edf3; background: #0d1117; }
+  canvas, input, textarea, button { outline: none; }
+  canvas:focus, input:focus, textarea:focus, button:focus { outline: 2px solid #3b82f6; outline-offset: 2px; }
 </style>
 </head>
-<body>
+<body tabindex="-1">
 ${html}
 <script>
 (function() {
