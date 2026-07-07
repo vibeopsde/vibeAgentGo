@@ -39,7 +39,7 @@ export function renderLLMConfigSection(
     </div>
     <div class="form-group" id="cfg-apikey-group">
       <label for="cfg-apikey">${t('settings.apiKey')}</label>
-      <input id="cfg-apikey" type="password" value="" placeholder="sk-..." />
+      <input id="cfg-apikey" type="password" value="${escapeHtml(config.apiKey)}" placeholder="sk-..." />
       <p class="field-hint" id="cfg-apikey-hint">${t('onboarding.apiKeyHint')}</p>
     </div>
     <div class="form-group">
@@ -80,12 +80,15 @@ export function renderLLMConfigSection(
     }
   };
 
-  const applyProviderPreset = (key: string) => {
+  const applyProviderPreset = (key: string, isInitial = false) => {
     const preset = findPresetByKey(key);
     if (!preset) return;
     currentBaseUrl = preset.baseUrl;
     apiKeyInput.placeholder = preset.apiKeyPlaceholder;
-    apiKeyInput.value = '';
+    // Beim Initial-Render gespeicherten API-Key behalten; beim Wechsel des Providers Feld leeren.
+    if (!isInitial) {
+      apiKeyInput.value = '';
+    }
     apiKeyGroup.style.display = preset.apiKeyRequired ? 'block' : 'none';
     apiKeyHint.textContent = preset.apiKeyRequired
       ? t('onboarding.apiKeyRequired')
@@ -99,8 +102,14 @@ export function renderLLMConfigSection(
     updateVerifyButton();
   };
 
-  // Initialise with the current preset
-  applyProviderPreset(initialPreset.key);
+  // Initialise with the current preset — keep saved apiKey + model.
+  applyProviderPreset(initialPreset.key, true);
+
+  // Wenn ein gespeichertes Modell existiert, es direkt im Dropdown anzeigen (ohne Verify).
+  if (savedModel) {
+    modelSelect.innerHTML = `<option value="${escapeHtml(savedModel)}" selected>${escapeHtml(savedModel)}</option>`;
+    modelSelect.disabled = false;
+  }
 
   providerSelect.addEventListener('change', () => applyProviderPreset(providerSelect.value));
   apiKeyInput.addEventListener('input', updateVerifyButton);

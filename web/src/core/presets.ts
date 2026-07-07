@@ -49,12 +49,8 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
   },
 ];
 
-export function findPresetByUrlAndModel(baseUrl: string, model: string): ProviderPreset | undefined {
-  return PROVIDER_PRESETS.find((p) => {
-    if (p.baseUrl !== baseUrl) return false;
-    if (p.model === '') return true;
-    return p.model === model;
-  });
+export function findPresetByUrlAndModel(baseUrl: string, _model?: string): ProviderPreset | undefined {
+  return PROVIDER_PRESETS.find((p) => p.baseUrl === baseUrl);
 }
 
 export function findPresetByKey(key: string): ProviderPreset | undefined {
