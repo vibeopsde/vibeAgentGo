@@ -21,9 +21,15 @@ export class SessionPanel {
     this.loadSessions();
   }
 
+  private loadToken = 0;
+
   private async loadSessions() {
+    this.loadToken++;
+    const token = this.loadToken;
     try {
       const sessions = await this.memory.listSessions();
+      // If a newer loadSessions() call was started, abandon this render.
+      if (token !== this.loadToken) return;
 
       if (sessions.length === 0) {
         this.element.innerHTML = `
@@ -65,7 +71,7 @@ export class SessionPanel {
       this.element.querySelectorAll('.session-resume').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const id = (e.target as HTMLElement).dataset.id!;
+          const id = (e.currentTarget as HTMLElement).dataset.id!;
           if (this.onResume) this.onResume(id);
         });
       });
@@ -73,14 +79,15 @@ export class SessionPanel {
       this.element.querySelectorAll('.session-delete').forEach((btn) => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
-          const id = (e.target as HTMLElement).dataset.id!;
+          const id = (e.currentTarget as HTMLElement).dataset.id!;
           await this.memory.deleteSession(id);
           this.loadSessions();
         });
       });
 
       this.element.querySelectorAll('.session-item').forEach((item) => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+          if ((e.target as HTMLElement).closest('.session-actions')) return;
           const id = (item as HTMLElement).dataset.id!;
           if (this.onResume) this.onResume(id);
         });
