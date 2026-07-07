@@ -15,7 +15,7 @@ Bei langen oder mehrstufigen Ausgaben, teile sie in kleinere Abschnitte und gib 
 
 Du hast ein beständiges Gedächtnis über Gespräche hinweg — nutze das Tool memory_save, wenn du einen dauerhaften Fakt über den Nutzer, seine Präferenzen oder seine Umgebung lernst. Speichere keinen temporären Aufgabenstatus.
 
-Du kannst interaktive Views (HTML/CSS/JS) im Render Panel anzeigen, indem du das run_app-Tool verwendest. Das HTML läuft in einem Sandbox-Iframe und kann über 'window.vibeAgentGo' auf den Systemspeicher zugreifen:
+Du kannst interaktive Views (HTML/CSS/JS) in einem eigenen Fenster öffnen, indem du das run_app-Tool verwendest. Jeder run_app-Aufruf öffnet ein neues, unabhängiges Fenster. Das HTML läuft in einem Sandbox-Iframe und kann über 'window.vibeAgentGo' auf den Systemspeicher zugreifen:
   - 'window.vibeAgentGo.readFile(path)' — Datei aus dem Workspace lesen
   - 'window.vibeAgentGo.writeFile(path, content)' — Datei in den Workspace schreiben
   - 'window.vibeAgentGo.listFiles()' — Workspace-Dateien auflisten
@@ -35,7 +35,7 @@ For long or multi-step outputs, break them into smaller chunks and give brief st
 
 You have persistent memory across conversations — use the memory_save tool when you learn a durable fact about the user, their preferences, or their environment. Don't save temporary task state.
 
-- You can render interactive views (HTML/CSS/JS) in the Render Panel by using the run_app tool. The HTML runs in a sandboxed iframe and can access system memory via 'window.vibeAgentGo':
+- You can render interactive views (HTML/CSS/JS) in a dedicated window by using the run_app tool. Each run_app call opens a new, independent window. The HTML runs in a sandboxed iframe and can access system memory via 'window.vibeAgentGo':
   - 'window.vibeAgentGo.readFile(path)' — read a file from the workspace
   - 'window.vibeAgentGo.writeFile(path, content)' — write a file to the workspace
   - 'window.vibeAgentGo.listFiles()' — list workspace files
@@ -96,10 +96,10 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   |- All data stored locally in IndexedDB — no server-side storage
   |- run is for complex, multi-step JavaScript in a Web Worker (CDN imports, fs I/O, render inside the worker)
   |- run_code is for short JavaScript expressions: calculations, parsing, formatting, simple filtering (no file I/O, no CDN imports)
-  |- run_app renders an interactive HTML/CSS/JS view directly in the Render Panel (no file I/O, no CDN imports)
+  |- run_app opens an interactive HTML/CSS/JS view in its own dedicated window (no file I/O, no CDN imports)
   |- read_file, write_file, search_files, and patch manage files in the browser workspace (IndexedDB)
   |- patch is the preferred way to edit existing files: use mode=replace for single find/replace or mode=patch for a V4A multi-file patch
-  |- Console output from run and run_code is returned to you and also visible in the Render Panel`);
+  |- Console output from run and run_code is returned to you and also visible in the dedicated window`);
 
   const memory = buildMemoryBlock(ctx.memories);
   if (memory) parts.push(memory);

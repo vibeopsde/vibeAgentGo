@@ -36,6 +36,13 @@ export class ProgramApp implements App {
     this.render(container);
   }
 
+  /** Called by WindowManager.updateWindowData — re-renders the iframe. */
+  setData(data: Record<string, unknown>) {
+    const title = typeof data.title === 'string' ? data.title : this.state.title;
+    const html = typeof data.html === 'string' ? data.html : this.state.html;
+    this.setContent(title, html);
+  }
+
   setContent(title: string, html: string) {
     this.state = { title, html };
     if (this.container) {

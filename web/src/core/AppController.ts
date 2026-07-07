@@ -35,7 +35,6 @@ export class AppController {
   private agent: Agent | null = null;
   private isRunning = false;
   private activeChatWindowId: string | null = null;
-  private programWindowId: string | null = null;
 
   private readonly LAST_SESSION_KEY = 'vibeAgentGo-lastSession';
 
@@ -240,11 +239,14 @@ export class AppController {
   }
 
   private openProgramView(title: string, html: string) {
-    if (!this.programWindowId) {
-      this.programWindowId = this.wm.openWindow({ appId: 'program', title, width: 480, height: 360 });
-    }
-    this.wm.updateWindowData(this.programWindowId, { title, html });
-    this.wm.focusWindow(this.programWindowId);
+    // Each run_app call opens a new independent window — no singleton.
+    this.wm.openWindow({
+      appId: 'program',
+      title,
+      data: { title, html },
+      width: 480,
+      height: 360,
+    });
   }
 
   // --- Session resume ---
@@ -345,7 +347,8 @@ export class AppController {
       return app;
     });
 
-    this.wm.registerApp('program', () => new ProgramApp(this.handleBridgeRequest));
+    // Program windows are opened by run_app/render — no dock icon.
+    this.wm.registerApp('program', () => new ProgramApp(this.handleBridgeRequest), false);
 
     this.wm.registerApp('explorer', () => {
       const app = new ExplorerApp();
@@ -412,7 +415,6 @@ export class AppController {
     this.currentSessionId = null;
     this.persistLastSession(null);
     this.getChatApp()?.clear();
-    this.programWindowId = null;
     for (const id of this.wm.getWindowsByApp('program')) {
       this.wm.closeWindow(id);
     }

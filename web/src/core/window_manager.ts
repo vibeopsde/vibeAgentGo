@@ -15,7 +15,7 @@ export class WindowManager {
   private desktop: HTMLElement;
   private spaces: HTMLElement;
   private dock: HTMLElement;
-  private apps = new Map<string, AppFactory>();
+  private apps = new Map<string, { factory: AppFactory; showInDock: boolean }>();
   private windows = new Map<string, AppWindow>();
   private windowData = new Map<string, WindowData>();
   private instances = new Map<string, App>(); // windowId -> app instance
@@ -79,14 +79,15 @@ export class WindowManager {
     this.listeners[event]?.forEach((h) => h(ev as any));
   }
 
-  registerApp(appId: string, factory: AppFactory) {
-    this.apps.set(appId, factory);
+  registerApp(appId: string, factory: AppFactory, showInDock = true) {
+    this.apps.set(appId, { factory, showInDock });
     this.updateDock();
   }
 
   openWindow(opts: OpenWindowOptions): string {
-    const factory = this.apps.get(opts.appId);
-    if (!factory) throw new Error(`Unknown app: ${opts.appId}`);
+    const entry = this.apps.get(opts.appId);
+    if (!entry) throw new Error(`Unknown app: ${opts.appId}`);
+    const factory = entry.factory;
 
     const id = `win-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const app = factory();
@@ -180,6 +181,12 @@ export class WindowManager {
     this.windows.set(id, win);
     this.instances.set(id, app);
     this.windowData.set(id, { data: opts.data });
+
+    // If initial data was passed and the app has setData(), push it now so the
+    // app can render its content immediately after mount.
+    if (opts.data && (app as any).setData) {
+      (app as any).setData(opts.data);
+    }
 
     this.focusWindow(id);
     this.emit('window_opened', { windowId: id, appId: opts.appId });
@@ -303,10 +310,9 @@ export class WindowManager {
 
   private updateDock() {
     this.dock.innerHTML = '';
-    for (const [appId, factory] of this.apps) {
-      // Instantiate a temporary app just to read metadata is expensive/fragile.
-      // Better: apps store metadata separately; but for now, get the first
-      // running instance of this app to read its title/icon, or create a dummy.
+    for (const [appId, entry] of this.apps) {
+      if (!entry.showInDock) continue;
+      const factory = entry.factory;
       const instance = Array.from(this.instances.values()).find((a) => a.id === appId);
       const app = instance ?? factory();
       const btn = document.createElement('button');

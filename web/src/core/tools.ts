@@ -464,7 +464,7 @@ const run_code: Tool = {
 const run: Tool = {
   name: 'run',
   description:
-    'Execute JavaScript in the Web Worker sandbox for complex, multi-step tasks. Capabilities: importScripts() for CDN libraries (sql.js, SQLite, CSV parsers, charting libs, etc.), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in the Render Panel, async/await. Use for multi-step data processing, CSV→SQLite queries, file transformations, and long-running calculations. For simple calculations use run_code; for pure UI views use run_app. 30s timeout, no DOM access. Use console.log() for output.',
+    'Execute JavaScript in the Web Worker sandbox for complex, multi-step tasks. Capabilities: importScripts() for CDN libraries (sql.js, SQLite, CSV parsers, charting libs, etc.), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in a dedicated window, async/await. Use for multi-step data processing, CSV→SQLite queries, file transformations, and long-running calculations. For simple calculations use run_code; for pure UI views use run_app. 30s timeout, no DOM access. Use console.log() for output.',
   parameters: {
     type: 'object',
     properties: {
@@ -486,11 +486,11 @@ const run: Tool = {
 const run_app: Tool = {
   name: 'run_app',
   description:
-    'Render an interactive HTML/CSS/JS view in the Render Panel. Use for charts, dashboards, calculators, data visualizations, or any interactive UI. The HTML is injected into the Render Panel; if you need dynamic data, generate it first with run_code or run and embed the values directly in the HTML. No file I/O, no CDN imports.',
+    'Open an interactive HTML/CSS/JS view in its own dedicated window. Use for charts, dashboards, calculators, data visualizations, or any interactive UI. Each call opens a new independent window. The HTML runs in a sandboxed iframe; if you need dynamic data, generate it first with run_code or run and embed the values directly in the HTML. No file I/O, no CDN imports.',
   parameters: {
     type: 'object',
     properties: {
-      title: { type: 'string', description: 'Title shown in the Render Panel tab' },
+      title: { type: 'string', description: 'Title shown in the window title bar' },
       html: { type: 'string', description: 'Self-contained HTML string. Inline CSS/JS are allowed; external resources are blocked by CSP.' },
     },
     required: ['title', 'html'],
@@ -500,7 +500,7 @@ const run_app: Tool = {
     const html = asString(args.html);
     if (!html.trim()) return 'No HTML provided.';
     ctx.emit('render_view', { title, html });
-    return `Rendered "${title}" in the Render Panel.`;
+    return `Opened "${title}" in a new window.`;
   },
 };
 
