@@ -84,14 +84,11 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   parts.push(`## Environment
 - Platform: Browser (PWA, mobile-first)
 - All data stored locally in IndexedDB — no server-side storage
-- run is the single gateway to the execution sandbox (Web Worker):
-  - importScripts() for CDN libraries (sql.js, csv parsers, etc.)
-  - fs.readFile/writeFile/listFiles for workspace I/O (IndexedDB)
-  - render(title, html) to display interactive HTML/CSS/JS views in the Render Panel
-  - async/await, 30s timeout, no DOM access
-  - Use for ALL code execution: calculations, data processing, building interactive views
-- You can read and write files in the browser workspace (IndexedDB) via read_file, write_file, search_files
-- Console output from run is returned to you and also visible in the Render Panel`);
++ - run is for complex, multi-step JavaScript in a Web Worker (CDN imports, fs I/O, render inside the worker)
++ - run_code is for short JavaScript expressions: calculations, parsing, formatting, simple filtering (no file I/O, no CDN imports)
++ - run_app renders an interactive HTML/CSS/JS view directly in the Render Panel (no file I/O, no CDN imports)
++ - You can read and write files in the browser workspace (IndexedDB) via read_file, write_file, search_files
++ - Console output from run and run_code is returned to you and also visible in the Render Panel`);
 
   const memory = buildMemoryBlock(ctx.memories);
   if (memory) parts.push(memory);

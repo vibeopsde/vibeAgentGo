@@ -170,12 +170,73 @@ const search_files: Tool = {
   },
 };
 
-// --- Execution Gateway (Web Worker with CDN imports + workspace I/O + render) ---
+// --- Execution Tools ---
+
+async function runInSandbox(
+  code: string,
+  ctx: ToolContext,
+  timeoutMs: number
+): Promise<{ result: string; error?: string; logsText: string }> {
+  const { runInWorkerSandbox } = await import('../utils/worker-sandbox.js');
+  const mem = getMemoryStore(ctx);
+  const { logs, result, error, files } = await runInWorkerSandbox(code, {
+    readFile: async (path) => mem.readFile(path),
+    writeFile: async (path, content) => mem.writeFile(path, content),
+    listFiles: async () => mem.listFiles(),
+    onRender: (title, html) => {
+      ctx.emit('render_view', { title, html });
+    },
+    timeoutMs,
+  });
+
+  // Persist any files the worker wrote via the bridge
+  if (files && files.length > 0) {
+    for (const f of files) {
+      await mem.writeFile(f.path, f.content);
+    }
+  }
+
+  const logsText =
+    logs.length > 0
+      ? logs.map((l) => `[${l.level.toUpperCase()}] ${l.message}`).join('\n')
+      : 'No logs';
+
+  if (error) {
+    return {
+      result,
+      error: `Worker error: ${error.name}: ${error.message}\n${error.stack || ''}`,
+      logsText,
+    };
+  }
+  return { result, logsText };
+}
+
+const run_code: Tool = {
+  name: 'run_code',
+  description:
+    'Execute a short JavaScript expression or small function in the Web Worker sandbox. Use for quick calculations, date formatting, parsing, filtering, or simple transformations. Returns the evaluated result or console logs. For complex multi-step tasks, file I/O, CDN imports, or interactive views use run instead.',
+  parameters: {
+    type: 'object',
+    properties: {
+      code: { type: 'string', description: 'JavaScript expression or small function to evaluate. Available globals: console, async/await. No DOM, no fs, no CDN imports.' },
+      timeout: { type: 'number', description: 'Timeout in milliseconds (default: 10000, max: 30000)' },
+    },
+    required: ['code'],
+  },
+  handler: async (args: Record<string, unknown>, ctx) => {
+    const timeoutMs = Math.max(1000, Math.min(asNumber(args.timeout, 10000), 30000));
+    const { result, error, logsText } = await runInSandbox(asString(args.code), ctx, timeoutMs);
+    if (error) {
+      return `${error}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
+    }
+    return logsText !== 'No logs' ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
+  },
+};
 
 const run: Tool = {
   name: 'run',
   description:
-    'Execute JavaScript in the sandbox — the single gateway to the execution environment. Runs in a Web Worker. Capabilities: importScripts() for CDN libraries (sql.js for SQLite, csv parsers, charting libs, etc.), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in the Render Panel, async/await. Use for ALL code execution: data processing, CSV→SQLite queries, file transformations, calculations, and building interactive HTML/CSS/JS mini-apps. 30s timeout, no DOM access. Use console.log() for output.',
+    'Execute JavaScript in the Web Worker sandbox for complex, multi-step tasks. Capabilities: importScripts() for CDN libraries (sql.js, SQLite, CSV parsers, charting libs, etc.), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in the Render Panel, async/await. Use for multi-step data processing, CSV→SQLite queries, file transformations, and long-running calculations. For simple calculations use run_code; for pure UI views use run_app. 30s timeout, no DOM access. Use console.log() for output.',
   parameters: {
     type: 'object',
     properties: {
@@ -185,40 +246,33 @@ const run: Tool = {
     required: ['code'],
   },
   handler: async (args: Record<string, unknown>, ctx) => {
-    const { runInWorkerSandbox } = await import('../utils/worker-sandbox.js');
-    const mem = getMemoryStore(ctx);
     const timeoutMs = Math.max(1000, Math.min(asNumber(args.timeout, 30000), 60000));
-
-    try {
-      const { logs, result, error, files } = await runInWorkerSandbox(asString(args.code), {
-        readFile: async (path) => mem.readFile(path),
-        writeFile: async (path, content) => mem.writeFile(path, content),
-        listFiles: async () => mem.listFiles(),
-        onRender: (title, html) => {
-          ctx.emit('render_view', { title, html });
-        },
-        timeoutMs,
-      });
-
-      // Persist any files the worker wrote via the bridge
-      if (files && files.length > 0) {
-        for (const f of files) {
-          await mem.writeFile(f.path, f.content);
-        }
-      }
-
-      const logsText =
-        logs.length > 0
-          ? logs.map((l) => `[${l.level.toUpperCase()}] ${l.message}`).join('\n')
-          : 'No logs';
-
-      if (error) {
-        return `Worker error: ${error.name}: ${error.message}\n${error.stack || ''}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
-      }
-      return logs.length > 0 ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
-    } catch (e) {
-      return `Worker error: ${e instanceof Error ? e.message : String(e)}`;
+    const { result, error, logsText } = await runInSandbox(asString(args.code), ctx, timeoutMs);
+    if (error) {
+      return `${error}\n\nLogs:\n${logsText}\n\nResult: ${result}`;
     }
+    return logsText !== 'No logs' ? `Logs:\n${logsText}\n\nResult: ${result}` : `Result: ${result}`;
+  },
+};
+
+const run_app: Tool = {
+  name: 'run_app',
+  description:
+    'Render an interactive HTML/CSS/JS view in the Render Panel. Use for charts, dashboards, calculators, data visualizations, or any interactive UI. The HTML is injected into the Render Panel; if you need dynamic data, generate it first with run_code or run and embed the values directly in the HTML. No file I/O, no CDN imports.',
+  parameters: {
+    type: 'object',
+    properties: {
+      title: { type: 'string', description: 'Title shown in the Render Panel tab' },
+      html: { type: 'string', description: 'Self-contained HTML string. Inline CSS/JS are allowed; external resources are blocked by CSP.' },
+    },
+    required: ['title', 'html'],
+  },
+  handler: async (args: Record<string, unknown>, ctx) => {
+    const title = asString(args.title);
+    const html = asString(args.html);
+    if (!html.trim()) return 'No HTML provided.';
+    ctx.emit('render_view', { title, html });
+    return `Rendered "${title}" in the Render Panel.`;
   },
 };
 
@@ -506,6 +560,8 @@ export function createDefaultTools(): Tool[] {
     write_file,
     search_files,
     run,
+    run_code,
+    run_app,
     web_search,
     memory_save,
     memory_search,
