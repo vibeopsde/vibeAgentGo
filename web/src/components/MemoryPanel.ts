@@ -8,39 +8,16 @@ import { t } from '../i18n/index.js';
 
 export class MemoryPanel {
   element: HTMLElement;
-  private overlay: HTMLElement;
-  private modal: HTMLElement;
   private memory: MemoryStore;
 
   constructor() {
     this.element = document.createElement('div');
-    this.element.style.display = 'contents';
+    this.element.className = 'panel-app memory-panel';
     this.memory = new MemoryStore();
-
-    this.overlay = document.createElement('div');
-    this.overlay.className = 'modal-overlay';
-
-    this.modal = document.createElement('div');
-    this.modal.className = 'modal modal-wide';
-
-    this.overlay.appendChild(this.modal);
-    this.element.appendChild(this.overlay);
-
-    this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.close();
-    });
   }
 
   open() {
     this.loadMemory();
-    if (!this.element.isConnected) {
-      document.body.appendChild(this.element);
-    }
-    this.overlay.classList.add('open');
-  }
-
-  close() {
-    this.overlay.classList.remove('open');
   }
 
   private async loadMemory() {
@@ -71,7 +48,7 @@ export class MemoryPanel {
         )
         .join('');
 
-      this.modal.innerHTML = `
+      this.element.innerHTML = `
         <h2>🧠 ${t('memory.title')} <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
         <div class="memory-section">
           <h3>${t('memory.userProfile')} (${data.profile.length})</h3>
@@ -81,14 +58,9 @@ export class MemoryPanel {
           <h3>${t('memory.memories')} (${data.memories.length})</h3>
           <div class="memory-list">${memoriesHtml || `<p class="empty">${t('memory.empty')}</p>`}</div>
         </div>
-        <div class="form-actions">
-          <button id="mem-close" class="btn btn-primary">${t('common.close')}</button>
-        </div>
       `;
 
-      this.modal.querySelector('#mem-close')!.addEventListener('click', () => this.close());
-
-      this.modal.querySelectorAll('.memory-delete').forEach((btn) => {
+      this.element.querySelectorAll('.memory-delete').forEach((btn) => {
         btn.addEventListener('click', async (e) => {
           const id = parseInt((e.target as HTMLElement).dataset.id!);
           await this.memory.deleteMemory(id);
@@ -96,7 +68,7 @@ export class MemoryPanel {
         });
       });
     } catch (e) {
-      this.modal.innerHTML = `<p>${t('common.error')}: ${escapeHtml(String(e))}</p>`;
+      this.element.innerHTML = `<p>${t('common.error')}: ${escapeHtml(String(e))}</p>`;
     }
   }
 }

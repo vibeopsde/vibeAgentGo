@@ -28,18 +28,28 @@ export interface AgentEventMap {
 
 type EventHandler<K extends keyof AgentEventMap> = (data: AgentEventMap[K]) => void;
 
+export interface AgentOptions {
+  onRenderView?: (event: { title: string; html: string }) => void;
+  extraEnv?: Record<string, unknown>;
+}
+
 export class Agent {
   private tools: Tool[];
   private memory: MemoryStore;
   private extraEnv: Record<string, any>;
+  private onRenderView?: (event: { title: string; html: string }) => void;
   private sessionId: string | null = null;
   private listeners: Partial<Record<keyof AgentEventMap, ((data: unknown) => void)[]>> = {};
   private abortController: AbortController | null = null;
 
-  constructor(tools: Tool[], memory: MemoryStore, extraEnv: Record<string, unknown> = {}) {
+  constructor(tools: Tool[], memory: MemoryStore, opts: AgentOptions = {}) {
     this.tools = tools;
     this.memory = memory;
-    this.extraEnv = extraEnv;
+    this.extraEnv = opts.extraEnv ?? {};
+    this.onRenderView = opts.onRenderView;
+    if (this.onRenderView) {
+      this.on('render_view', (event) => this.onRenderView!(event));
+    }
   }
 
   on<K extends keyof AgentEventMap>(event: K, handler: EventHandler<K>): void {
@@ -394,7 +404,10 @@ export class Agent {
 
   private async saveCurrentSession(history: Message[], runSessionId: string | null): Promise<void> {
     try {
-      const id = runSessionId || randomUUID().slice(0, 8);
+      // runSessionId is a const from run() and stays null on the first run.
+      // this.sessionId is set after the first save — reuse it so repeated
+      // checkpoints within the same run don't create duplicate sessions.
+      const id = runSessionId || this.sessionId || randomUUID().slice(0, 8);
       this.sessionId = id;
       const existing = await this.memory.getSession(id);
       const existingTitle = existing?.title;

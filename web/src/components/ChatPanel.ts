@@ -17,6 +17,8 @@ export class ChatPanel {
   private attachments: ChatAttachment[] = [];
   private attachmentsEl: HTMLElement;
   onSubmit: ((text: string, attachments: ChatAttachment[]) => void) | null = null;
+  onToggleSessions: (() => void) | null = null;
+  onNewChat: (() => void) | null = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -44,6 +46,18 @@ export class ChatPanel {
     this.sendBtn.textContent = '➤';
     this.sendBtn.addEventListener('click', () => this.send());
 
+    const sessionsBtn = document.createElement('button');
+    sessionsBtn.className = 'sessions-btn';
+    sessionsBtn.title = t('chat.sessions') || 'Sessions';
+    sessionsBtn.textContent = '💬';
+    sessionsBtn.addEventListener('click', () => this.onToggleSessions?.());
+
+    const newChatBtn = document.createElement('button');
+    newChatBtn.className = 'new-chat-btn';
+    newChatBtn.title = t('header.newChat') || 'New chat';
+    newChatBtn.textContent = '✨';
+    newChatBtn.addEventListener('click', () => this.onNewChat?.());
+
     const attachBtn = document.createElement('button');
     attachBtn.className = 'attach-btn';
     attachBtn.title = t('chat.attachFile');
@@ -64,6 +78,8 @@ export class ChatPanel {
     this.statusEl.className = 'status-bar';
     this.statusEl.textContent = t('common.idle');
 
+    inputArea.appendChild(newChatBtn);
+    inputArea.appendChild(sessionsBtn);
     inputArea.appendChild(attachBtn);
     inputArea.appendChild(this.inputEl);
     inputArea.appendChild(this.sendBtn);

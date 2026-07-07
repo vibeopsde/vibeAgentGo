@@ -1,5 +1,6 @@
 # Build output
 web/dist/
+web/dist-dev/
 dist/
 android/
 *.keystore

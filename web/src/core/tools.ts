@@ -8,6 +8,9 @@ import { MemoryStore, loadConfig } from './memory.js';
 import { readLogs, type LogLevel } from './logger.js';
 
 import { validateArgs } from '../utils/schema_validate.js';
+import sandboxRef from './refs/sandbox.md?raw';
+import uiRef from './refs/ui.md?raw';
+import toolsRef from './refs/tools.md?raw';
 
 // --- Helpers ---
 
@@ -464,7 +467,7 @@ const run_code: Tool = {
 const run: Tool = {
   name: 'run',
   description:
-    'Execute JavaScript in the Web Worker sandbox for complex, multi-step tasks. Capabilities: importScripts() for CDN libraries (sql.js, SQLite, CSV parsers, charting libs, etc.), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in the Render Panel, async/await. Use for multi-step data processing, CSV→SQLite queries, file transformations, and long-running calculations. For simple calculations use run_code; for pure UI views use run_app. 30s timeout, no DOM access. Use console.log() for output.',
+    'Execute JavaScript in the Web Worker sandbox for complex, multi-step tasks. Capabilities: importScripts() for CDN libraries (sql.js, SQLite, CSV parsers, charting libs, etc.), fs.readFile/writeFile/listFiles for workspace I/O, render(title, html) to display interactive views in a dedicated window, async/await. Use for multi-step data processing, CSV→SQLite queries, file transformations, and long-running calculations. For simple calculations use run_code; for pure UI views use run_app. 30s timeout, no DOM access. Use console.log() for output.',
   parameters: {
     type: 'object',
     properties: {
@@ -486,25 +489,69 @@ const run: Tool = {
 const run_app: Tool = {
   name: 'run_app',
   description:
-    'Render an interactive HTML/CSS/JS view in the Render Panel. Use for charts, dashboards, calculators, data visualizations, or any interactive UI. The HTML is injected into the Render Panel; if you need dynamic data, generate it first with run_code or run and embed the values directly in the HTML. No file I/O, no CDN imports.',
+    'Open an interactive HTML/CSS/JS view in its own dedicated window. The HTML is read from a workspace file, not passed inline. Use for charts, dashboards, calculators, data visualizations, or any interactive UI. Each call opens a new independent window. Workflow: first write the HTML to a file with write_file, then call run_app with the file path. No CDN imports.',
   parameters: {
     type: 'object',
     properties: {
-      title: { type: 'string', description: 'Title shown in the Render Panel tab' },
-      html: { type: 'string', description: 'Self-contained HTML string. Inline CSS/JS are allowed; external resources are blocked by CSP.' },
+      title: { type: 'string', description: 'Title shown in the window title bar' },
+      file: { type: 'string', description: 'Path to an HTML file in the workspace (e.g. "app.html"). The file content is rendered in a sandboxed iframe.' },
     },
-    required: ['title', 'html'],
+    required: ['title', 'file'],
   },
   handler: async (args: Record<string, unknown>, ctx) => {
     const title = asString(args.title);
-    const html = asString(args.html);
-    if (!html.trim()) return 'No HTML provided.';
+    const file = asString(args.file);
+    if (!file.trim()) return 'No file path provided.';
+    const mem = getMemoryStore(ctx);
+    const html = await mem.readFile(file);
+    if (html === null) return `File not found: ${file}. Use write_file first to create the HTML file.`;
+    if (!html.trim()) return `File "${file}" is empty.`;
     ctx.emit('render_view', { title, html });
-    return `Rendered "${title}" in the Render Panel.`;
+    return `Opened "${title}" from ${file} in a new window.`;
   },
 };
 
-// --- Web Search (Tavily) ---
+// --- Help / Reference ---
+
+const HELP_TOPICS: Record<string, string> = {
+  sandbox: 'Sandbox-Iframe: run_app, Event-Listener, Canvas, localStorage, Bridge-API (window.vibeAgentGo)',
+  ui: 'UI/CSS: Theme-Variablen, Window-Manager-Struktur, App-Factory-Muster',
+  tools: 'Tools: alle verfügbaren Tools mit Parametern und typischen Workflows',
+};
+
+const HELP_BUILTINS: Record<string, string> = {
+  sandbox: sandboxRef,
+  ui: uiRef,
+  tools: toolsRef,
+};
+
+const help: Tool = {
+  name: 'help',
+  description:
+    'Read built-in reference documentation. Available topics: "sandbox" (iframe, events, canvas, bridge API), "ui" (CSS variables, window-manager structure, app pattern), "tools" (all tool parameters and workflows). Call without arguments to list topics. Call with a topic to get the full reference.',
+  parameters: {
+    type: 'object',
+    properties: {
+      topic: {
+        type: 'string',
+        description: 'Topic to read: "sandbox", "ui", or "tools". Omit to list all topics.',
+      },
+    },
+  },
+  handler: async (args: Record<string, unknown>) => {
+    const topic = asString(args.topic);
+    if (!topic) {
+      return 'Available help topics:\n' +
+        Object.entries(HELP_TOPICS).map(([k, v]) => `  - ${k}: ${v}`).join('\n') +
+        '\n\nCall help({ topic: "..." }) to read a topic.';
+    }
+    // Try built-in references first
+    const builtIn = HELP_BUILTINS[topic];
+    if (builtIn) return builtIn;
+    // Try workspace file (e.g. help({ topic: "custom.md" }) reads ./custom.md)
+    return `Unknown topic: "${topic}". Available topics: ${Object.keys(HELP_TOPICS).join(', ')}`;
+  },
+};
 
 const web_search: Tool = {
   name: 'web_search',
@@ -671,6 +718,7 @@ const error_log: Tool = {
 
 export function createDefaultTools(): Tool[] {
   return [
+    help,
     read_file,
     read_pdf,
     write_file,

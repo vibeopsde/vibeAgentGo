@@ -51,6 +51,13 @@ const de: Translations = {
   'settings.searchNone': 'Deaktiviert',
   'settings.searchTavily': 'Tavily',
   'settings.searchApiKey': 'Search API Key',
+  'settings.tabLLM': 'LLM',
+  'settings.tabSearch': 'Suche',
+  'settings.tabAppearance': 'Erscheinungsbild',
+  'settings.tabMemory': 'Memory',
+  'settings.tabSkills': 'Skills',
+  'settings.tabBackup': 'Backup',
+  'settings.tabDanger': 'Gefahrenzone',
   'settings.testConnection': 'Verbindung testen',
   'settings.connectionSuccess': 'Verbindung OK',
   'settings.connectionError': 'Verbindung fehlgeschlagen',
@@ -117,6 +124,24 @@ const de: Translations = {
   // Render
   'render.title': 'Render View',
   'render.emptyHint': 'Der Agent kann hier HTML-Mini-Apps anzeigen.',
+
+  // Explorer
+  'explorer.title': 'Explorer',
+  'explorer.newFile': 'Neue Datei',
+  'explorer.newFilePrompt': 'Name der neuen Datei (z. B. notes.md):',
+  'explorer.fileExists': 'Datei existiert bereits.',
+  'explorer.confirmDelete': '{path} löschen?',
+  'explorer.empty': 'Noch keine Dateien.',
+  'explorer.refresh': 'Aktualisieren',
+
+  // Editor
+  'editor.title': 'Editor',
+  'editor.untitled': 'Unbenannt',
+  'editor.save': 'Speichern',
+  'editor.saved': 'Gespeichert',
+  'editor.saveError': 'Speichern fehlgeschlagen',
+  'editor.loaded': 'Geladen',
+  'editor.unsavedChanges': 'Ungespeicherte Änderungen verwerfen?',
 
   // Skills
   'skills.title': 'Skills',
@@ -186,6 +211,13 @@ const en: Translations = {
   'settings.searchNone': 'Disabled',
   'settings.searchTavily': 'Tavily',
   'settings.searchApiKey': 'Search API Key',
+  'settings.tabLLM': 'LLM',
+  'settings.tabSearch': 'Search',
+  'settings.tabAppearance': 'Appearance',
+  'settings.tabMemory': 'Memory',
+  'settings.tabSkills': 'Skills',
+  'settings.tabBackup': 'Backup',
+  'settings.tabDanger': 'Danger Zone',
   'settings.testConnection': 'Test Connection',
   'settings.connectionSuccess': 'Connection OK',
   'settings.connectionError': 'Connection failed',
@@ -250,6 +282,24 @@ const en: Translations = {
   // Render
   'render.title': 'Render View',
   'render.emptyHint': 'The agent can render HTML mini-apps here.',
+
+  // Explorer
+  'explorer.title': 'Explorer',
+  'explorer.newFile': 'New File',
+  'explorer.newFilePrompt': 'New file name (e.g. notes.md):',
+  'explorer.fileExists': 'File already exists.',
+  'explorer.confirmDelete': 'Delete {path}?',
+  'explorer.empty': 'No files yet.',
+  'explorer.refresh': 'Refresh',
+
+  // Editor
+  'editor.title': 'Editor',
+  'editor.untitled': 'Untitled',
+  'editor.save': 'Save',
+  'editor.saved': 'Saved',
+  'editor.saveError': 'Save failed',
+  'editor.loaded': 'Loaded',
+  'editor.unsavedChanges': 'Discard unsaved changes?',
 
   // Skills
   'skills.title': 'Skills',
