@@ -7,7 +7,6 @@
 import { ChatApp } from '../apps/ChatApp.js';
 import { SettingsApp } from '../apps/SettingsApp.js';
 import { ProgramApp } from '../apps/ProgramApp.js';
-import { SessionApp } from '../apps/SessionApp.js';
 import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { Agent } from './agent.js';
 import { registerGlobalErrorHandlers, captureFunctionError } from './global_errors.js';
@@ -290,6 +289,7 @@ export class AppController {
   private registerApps() {
     this.wm.registerApp('chat', () => {
       this.chatApp = new ChatApp();
+      this.chatApp.setOnResumeSession((sessionId) => this.resumeSession(sessionId));
       this.chatApp.setOnSubmit(async (text: string, attachments: ChatAttachment[]) => {
         const config = loadConfig();
         if (!config.apiKey) {
@@ -327,12 +327,6 @@ export class AppController {
     });
 
     this.wm.registerApp('program', () => new ProgramApp(this.handleBridgeRequest));
-
-    this.wm.registerApp('sessions', () => {
-      const app = new SessionApp();
-      app.onResume = (sessionId) => this.resumeSession(sessionId);
-      return app;
-    });
   }
 
   // --- Layout ---

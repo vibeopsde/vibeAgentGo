@@ -1,9 +1,10 @@
 // ============================================================
 // vibeAgentGo — ChatApp
-// Wraps ChatPanel into the App interface and connects to the agent.
+// Wraps ChatPanel and adds an integrated session drawer.
 // ============================================================
 
 import { ChatPanel } from '../components/ChatPanel.js';
+import { SessionPanel } from '../components/SessionPanel.js';
 import type { ChatAttachment, App } from '../types/index.js';
 
 export class ChatApp implements App {
@@ -12,20 +13,63 @@ export class ChatApp implements App {
   icon = '💬';
   element: HTMLElement;
   private panel: ChatPanel;
+  private sessionPanel: SessionPanel;
+
   onSubmit: ((text: string, attachments: ChatAttachment[]) => void) | null = null;
+  onResumeSession: ((sessionId: string) => void) | null = null;
 
   constructor() {
+    this.element = document.createElement('div');
+    this.element.className = 'chat-app';
+
     this.panel = new ChatPanel();
-    this.element = this.panel.element;
+    this.sessionPanel = new SessionPanel();
+    this.sessionPanel.onResume = (sessionId) => {
+      this.toggleSessions(false);
+      this.onResumeSession?.(sessionId);
+    };
+
+    this.buildLayout();
+  }
+
+  private buildLayout() {
+    this.element.innerHTML = '';
+
+    const sidebar = document.createElement('aside');
+    sidebar.className = 'chat-session-drawer';
+    sidebar.appendChild(this.sessionPanel.element);
+
+    const main = document.createElement('div');
+    main.className = 'chat-main';
+    main.appendChild(this.panel.element);
+
+    this.element.appendChild(sidebar);
+    this.element.appendChild(main);
+
+    this.panel.onToggleSessions = () => this.toggleSessions();
+  }
+
+  private toggleSessions(force?: boolean) {
+    const drawer = this.element.querySelector('.chat-session-drawer') as HTMLElement;
+    if (!drawer) return;
+    const next = force !== undefined ? force : !drawer.classList.contains('open');
+    drawer.classList.toggle('open', next);
+    if (next) {
+      this.sessionPanel.open();
+    }
   }
 
   mount(container: HTMLElement) {
     container.innerHTML = '';
-    container.appendChild(this.panel.element);
+    container.appendChild(this.element);
   }
 
   setOnSubmit(handler: (text: string, attachments: ChatAttachment[]) => void) {
     this.panel.onSubmit = handler;
+  }
+
+  setOnResumeSession(handler: (sessionId: string) => void) {
+    this.onResumeSession = handler;
   }
 
   appendUser(text: string, attachments?: ChatAttachment[]) {
