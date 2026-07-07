@@ -22,6 +22,7 @@ export interface AgentEventMap {
   error: { message: string };
   turn: { turn: number; total: number };
   done: { sessionId: string };
+  session_saved: { sessionId: string };
   abort: Record<string, never>;
 }
 
@@ -394,6 +395,9 @@ export class Agent {
       logger.info('agent.session', `Saved session ${id} (${history.length} messages)`, {
         sessionId: id,
       });
+      // Notify main.ts immediately so currentSessionId is set before done,
+      // preventing a new agent/session from being created on error/abort.
+      this.emit('session_saved', { sessionId: id });
     } catch (e) {
       logger.error('agent.session', 'Failed to save session', {
         sessionId: runSessionId,

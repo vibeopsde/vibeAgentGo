@@ -67,11 +67,26 @@ export function tx<T>(
   return openDB().then(
     (db) =>
       new Promise<T>((resolve, reject) => {
+        let settled = false;
         const transaction = db.transaction(storeName, mode);
         const store = transaction.objectStore(storeName);
         const req = fn(store);
-        req.onsuccess = () => resolve(req.result as T);
-        req.onerror = () => reject(req.error);
+
+        const settle = (fn: () => void) => {
+          if (!settled) { settled = true; fn(); }
+        };
+
+        req.onsuccess = () => settle(() => resolve(req.result as T));
+        req.onerror = () => settle(() => reject(req.error));
+
+        // If the transaction is aborted (quota, browser GC, versionchange from
+        // another tab), the request's onsuccess/onerror may never fire.
+        // Without these handlers, the Promise hangs forever — the agent stalls,
+        // the user reloads, currentSessionId is lost, and a new session starts.
+        transaction.onabort = () =>
+          settle(() => reject(transaction.error || new Error('Transaction aborted')));
+        transaction.oncomplete = () =>
+          settle(() => resolve(req.result as T));
       })
   );
 }

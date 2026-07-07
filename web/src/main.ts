@@ -79,6 +79,20 @@ function setMobileTab(tab: MobileTab) {
   mobileNav?.setActive(tab);
 }
 
+const LAST_SESSION_KEY = 'vibeAgentGo-lastSession';
+
+function persistLastSession(id: string | null): void {
+  if (id) {
+    localStorage.setItem(LAST_SESSION_KEY, id);
+  } else {
+    localStorage.removeItem(LAST_SESSION_KEY);
+  }
+}
+
+function loadLastSession(): string | null {
+  return localStorage.getItem(LAST_SESSION_KEY);
+}
+
 // --- Agent lifecycle ---
 
 function createAgent(): Agent {
@@ -123,6 +137,13 @@ function setupAgent(a: Agent) {
     chatPanel.setStatus('idle');
     isRunning = false;
   });
+  a.on('session_saved', ({ sessionId }) => {
+    // Set currentSessionId as soon as the agent saves — not only on 'done'.
+    // This prevents a new agent/session from being created if the run fails
+    // or is aborted after the first save (e.g. after a tool checkpoint).
+    currentSessionId = sessionId;
+    persistLastSession(sessionId);
+  });
   a.on('turn', ({ turn, total }) => {
     if (turn > 1) {
       chatPanel.startStream();
@@ -133,6 +154,7 @@ function setupAgent(a: Agent) {
     chatPanel.finalizeStream();
     chatPanel.setStatus('idle');
     currentSessionId = sessionId;
+    persistLastSession(sessionId);
     isRunning = false;
   });
   a.on('abort', () => {
@@ -164,6 +186,7 @@ async function resumeSession(sessionId: string) {
     agent.abort();
   }
   currentSessionId = sessionId;
+  persistLastSession(sessionId);
   chatPanel.clear();
   views.length = 0;
   activeView = null;
@@ -324,6 +347,7 @@ function newChat() {
   }
   agent = null;
   currentSessionId = null;
+  persistLastSession(null);
   chatPanel.clear();
   views.length = 0;
   activeView = null;
@@ -379,6 +403,12 @@ function startApp() {
   const app = document.getElementById('app')!;
   app.innerHTML = '';
   buildLayout();
+
+  // Restore last session after layout is built (async, non-blocking).
+  const lastId = loadLastSession();
+  if (lastId) {
+    resumeSession(lastId);
+  }
 }
 
 function startOnboarding() {
@@ -403,8 +433,23 @@ if (hasCompletedOnboarding() || isDevMode) {
 
 // Force the PWA to activate a new service worker immediately and reload so
 // updates (e.g. new JS/CSS hashes) are never hidden behind a stale SW.
+// But do NOT reload while the agent is mid-run — that would kill the session.
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
+    if (isRunning) {
+      // Defer reload until the current run finishes. The next idle moment
+      // (or a manual page interaction) will trigger the reload.
+      const checkInterval = setInterval(() => {
+        if (!isRunning) {
+          clearInterval(checkInterval);
+          window.location.reload();
+        }
+      }, 1000);
+      // Safety: reload after 60s regardless, so a stuck agent doesn't
+      // block updates forever.
+      setTimeout(() => window.location.reload(), 60000);
+    } else {
+      window.location.reload();
+    }
   });
 }
