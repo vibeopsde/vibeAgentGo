@@ -1699,13 +1699,185 @@ select {
   display: none;
 }
 
-/* Settings App */
+/* ============================================================
+   Settings App — tabbed sidebar layout
+   ============================================================ */
+
 .settings-app {
-  padding: 16px;
-  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 220px 1fr;
   height: 100%;
+  overflow: hidden;
+  background: var(--bg-elev);
 }
 
+.settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.settings-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-brand-icon {
+  font-size: 22px;
+}
+
+.settings-brand h2 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.settings-version {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+}
+
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.settings-tab.active {
+  background: var(--bg-elev);
+  color: var(--accent);
+  font-weight: 500;
+  box-shadow: inset 2px 0 0 0 var(--accent);
+}
+
+.settings-tab .tab-icon {
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+}
+
+.settings-tab .tab-label {
+  flex: 1;
+}
+
+.settings-content {
+  padding: 24px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.settings-panel {
+  max-width: 720px;
+}
+
+.settings-panel-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.settings-panel-hint {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-form .form-group {
+  margin-bottom: 4px;
+}
+
+.settings-form .form-actions {
+  margin-top: 12px;
+}
+
+.settings-content .memory-panel,
+.settings-content .skills-panel {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .settings-app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .settings-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 8px;
+  }
+
+  .settings-brand {
+    display: none;
+  }
+
+  .settings-tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .settings-tab {
+    width: auto;
+    flex: 1 1 80px;
+    justify-content: center;
+    padding: 8px 6px;
+  }
+
+  .settings-tab .tab-label {
+    display: none;
+  }
+
+  .settings-tab.active {
+    box-shadow: none;
+    background: var(--bg-elev);
+  }
+
+  .settings-content {
+    padding: 16px;
+  }
+}
+
+/* Settings App (legacy fallback) */
 .settings-app h2 {
   margin-bottom: 12px;
 }
