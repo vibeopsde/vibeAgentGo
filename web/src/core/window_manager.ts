@@ -383,31 +383,36 @@ export class WindowManager {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const snapThreshold = 40;
+    const headerHeight = 48;
+    const dockBottom = 12;
+    const dockGap = 8;
+    const dockOffset = this.dock.offsetHeight + dockBottom + dockGap;
+    const maxHeight = vh - dockOffset - headerHeight;
 
-    // Top edge => full screen
+    // Top edge => full screen below header, keeping dock visible
     if (clientY <= snapThreshold) {
       win.element.style.left = '0px';
-      win.element.style.top = '0px';
+      win.element.style.top = `${headerHeight}px`;
       win.element.style.width = `${vw}px`;
-      win.element.style.height = `${vh}px`;
+      win.element.style.height = `${maxHeight}px`;
       return;
     }
 
     // Left half
     if (clientX <= snapThreshold) {
       win.element.style.left = '0px';
-      win.element.style.top = '0px';
+      win.element.style.top = `${headerHeight}px`;
       win.element.style.width = `${Math.floor(vw / 2)}px`;
-      win.element.style.height = `${vh}px`;
+      win.element.style.height = `${maxHeight}px`;
       return;
     }
 
     // Right half
     if (clientX >= vw - snapThreshold) {
       win.element.style.left = `${Math.floor(vw / 2)}px`;
-      win.element.style.top = '0px';
+      win.element.style.top = `${headerHeight}px`;
       win.element.style.width = `${Math.ceil(vw / 2)}px`;
-      win.element.style.height = `${vh}px`;
+      win.element.style.height = `${maxHeight}px`;
       return;
     }
   }
