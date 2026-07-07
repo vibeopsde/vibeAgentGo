@@ -60,7 +60,29 @@ export interface AgentConfig {
 export interface ToolContext {
   workspace: string;
   emit: (event: string, data: Record<string, unknown>) => void;
-  env: Record<string, unknown>;
+  env: {
+    memoryStore?: MemoryStore;
+    isDark?: boolean;
+    [key: string]: unknown;
+  };
+}
+
+export interface MemoryStore {
+  saveMemory(content: string, category?: string): Promise<number>;
+  getMemories(limit?: number): Promise<MemoryEntry[]>;
+  getUserProfile(): Promise<MemoryEntry[]>;
+  getAllMemory(limit?: number): Promise<{ memories: MemoryEntry[]; profile: MemoryEntry[] }>;
+  searchAllMemory(limit?: number): Promise<MemoryEntry[]>;
+  deleteMemory(id: number): Promise<boolean>;
+  saveSession(session: Session): Promise<void>;
+  getSession(id: string): Promise<Session | null>;
+  listSessions(): Promise<{ id: string; title: string; created_at: string; updated_at: string }[]>;
+  deleteSession(id: string): Promise<boolean>;
+  writeFile(path: string, content: string): Promise<void>;
+  readFile(path: string): Promise<string | null>;
+  listFiles(): Promise<{ path: string; content: string }[]>;
+  deleteFile(path: string): Promise<boolean>;
+  searchFiles(pattern: string, target?: 'files' | 'content'): Promise<string[]>;
 }
 
 export interface Tool {
