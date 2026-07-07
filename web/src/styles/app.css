@@ -1509,6 +1509,7 @@ select {
   height: 100%;
   display: none;
   overflow: auto;
+  position: relative;
 }
 
 .wm-space.active {
@@ -1951,7 +1952,7 @@ select {
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 50;
+    z-index: 2000;
     width: 85vw;
     box-shadow: 2px 0 12px rgba(0, 0, 0, 0.4);
   }

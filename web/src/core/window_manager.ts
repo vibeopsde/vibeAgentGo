@@ -41,6 +41,7 @@ export class WindowManager {
     this.element.appendChild(this.spaces);
     this.element.appendChild(this.dock);
 
+    this.spaces.addEventListener('scroll', () => this.updateActiveSpaceOnScroll());
     this.updateModeClass();
     window.addEventListener('resize', () => this.updateModeClass());
   }
@@ -50,6 +51,18 @@ export class WindowManager {
     this.element.classList.toggle('mobile', isMobile);
     this.desktop.classList.toggle('hidden', isMobile);
     this.spaces.classList.toggle('hidden', !isMobile);
+    // When switching to mobile, ensure the active space is marked visible
+    if (isMobile && this.activeWindowId) {
+      this.syncActiveSpace(this.activeWindowId);
+    }
+  }
+
+  private syncActiveSpace(activeId: string) {
+    const spaces = Array.from(this.spaces.querySelectorAll('.wm-space')) as HTMLElement[];
+    for (const space of spaces) {
+      const isActive = space.dataset.windowId === activeId;
+      space.classList.toggle('active', isActive);
+    }
   }
 
   on<K extends keyof WindowManagerEventMap>(event: K, handler: (ev: WindowManagerEventMap[K]) => void) {
@@ -94,7 +107,6 @@ export class WindowManager {
       element.dataset.windowId = id;
       contentEl = element; // app mounts directly in the space
       this.spaces.appendChild(element);
-      this.spaces.addEventListener('scroll', () => this.updateActiveSpaceOnScroll());
     } else {
       // Desktop: floating window
       element = document.createElement('div');
@@ -250,6 +262,7 @@ export class WindowManager {
     this.emit('window_focused', { windowId: id, appId: win.appId });
 
     if (this.element.classList.contains('mobile')) {
+      this.syncActiveSpace(id);
       this.scrollToSpace(id);
     }
     this.updateDock();

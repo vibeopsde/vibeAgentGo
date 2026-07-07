@@ -62,6 +62,15 @@ export class ChatApp implements App {
   mount(container: HTMLElement) {
     container.innerHTML = '';
     container.appendChild(this.element);
+    this.sessionPanel.open();
+    // On desktop, keep the session drawer visible by default; on mobile it starts hidden.
+    if (window.innerWidth > 640) {
+      this.toggleSessions(true);
+    }
+  }
+
+  onFocus() {
+    this.sessionPanel.open();
   }
 
   setOnSubmit(handler: (text: string, attachments: ChatAttachment[]) => void) {

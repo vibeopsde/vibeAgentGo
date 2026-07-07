@@ -34,7 +34,7 @@ export class AppController {
   private currentSessionId: string | null = null;
   private agent: Agent | null = null;
   private isRunning = false;
-  private chatApp: ChatApp | null = null;
+  private activeChatWindowId: string | null = null;
   private programWindowId: string | null = null;
 
   private readonly LAST_SESSION_KEY = 'vibeAgentGo-lastSession';
@@ -95,6 +95,14 @@ export class AppController {
     return localStorage.getItem(this.LAST_SESSION_KEY);
   }
 
+  // --- Chat window helper ---
+
+  private getChatApp(): ChatApp | undefined {
+    return this.activeChatWindowId
+      ? (this.wm.getInstance(this.activeChatWindowId) as ChatApp | undefined)
+      : undefined;
+  }
+
   // --- View bridge (ProgramApp iframe) ---
 
   private handleBridgeRequest = async (req: BridgeRequest): Promise<BridgeResponse> => {
@@ -139,13 +147,17 @@ export class AppController {
           if (!config.apiKey) {
             return { ok: false, error: 'No API key configured' };
           }
-          this.chatApp?.appendUser(req.text);
-          this.chatApp?.setStatus('thinking');
-          this.chatApp?.startStream();
+          if (!this.activeChatWindowId) {
+            this.wm.openWindow({ appId: 'chat', width: 720, height: 520, x: 40, y: 40 });
+          }
+          const chat = this.getChatApp();
+          chat?.appendUser(req.text);
+          chat?.setStatus('thinking');
+          chat?.startStream();
           this.isRunning = true;
           this.agent.run(req.text, config, this.currentSessionId || undefined).catch((e) => {
-            this.chatApp?.appendError(e instanceof Error ? e.message : String(e));
-            this.chatApp?.setStatus('idle');
+            chat?.appendError(e instanceof Error ? e.message : String(e));
+            chat?.setStatus('idle');
             this.isRunning = false;
           });
           return { ok: true, data: null };
@@ -181,26 +193,27 @@ export class AppController {
 
   private setupAgent(a: Agent) {
     a.on('message', ({ role, content }) => {
-      if (role === 'assistant' && content && this.chatApp) {
-        if (this.chatApp.isStreaming()) {
-          this.chatApp.finalizeStream();
+      if (role === 'assistant' && content) {
+        const chat = this.getChatApp();
+        if (chat?.isStreaming()) {
+          chat.finalizeStream();
         } else {
-          this.chatApp.appendAssistant(content);
+          chat?.appendAssistant(content);
         }
       }
     });
     a.on('stream_delta', ({ delta }) => {
-      this.chatApp?.appendStreamDelta(delta);
+      this.getChatApp()?.appendStreamDelta(delta);
     });
     a.on('tool_call', ({ name, args }) => {
-      this.chatApp?.appendToolCall(name, args);
+      this.getChatApp()?.appendToolCall(name, args);
     });
     a.on('tool_result', ({ name, result }) => {
-      this.chatApp?.appendToolResult(name, result);
+      this.getChatApp()?.appendToolResult(name, result);
     });
     a.on('error', ({ message }) => {
-      this.chatApp?.appendError(message);
-      this.chatApp?.setStatus('idle');
+      this.getChatApp()?.appendError(message);
+      this.getChatApp()?.setStatus('idle');
       this.isRunning = false;
     });
     a.on('session_saved', ({ sessionId }) => {
@@ -209,19 +222,19 @@ export class AppController {
     });
     a.on('turn', ({ turn, total }) => {
       if (turn > 1) {
-        this.chatApp?.startStream();
+        this.getChatApp()?.startStream();
       }
-      this.chatApp?.setTurn(turn, total);
+      this.getChatApp()?.setTurn(turn, total);
     });
     a.on('done', ({ sessionId }) => {
-      this.chatApp?.finalizeStream();
-      this.chatApp?.setStatus('idle');
+      this.getChatApp()?.finalizeStream();
+      this.getChatApp()?.setStatus('idle');
       this.currentSessionId = sessionId;
       this.persistLastSession(sessionId);
       this.isRunning = false;
     });
     a.on('abort', () => {
-      this.chatApp?.setStatus('idle');
+      this.getChatApp()?.setStatus('idle');
       this.isRunning = false;
     });
   }
@@ -242,7 +255,7 @@ export class AppController {
     }
     this.currentSessionId = sessionId;
     this.persistLastSession(sessionId);
-    this.chatApp?.clear();
+    this.getChatApp()?.clear();
 
     this.agent = this.createAgent();
 
@@ -258,7 +271,7 @@ export class AppController {
                     .filter((c) => c.type === 'text')
                     .map((c) => (isTextContentPart(c) ? c.text : ''))
                     .join('\n');
-            this.chatApp?.appendUser(userText as string);
+            this.getChatApp()?.appendUser(userText as string);
           } else if (msg.role === 'assistant') {
             if (msg.tool_calls && msg.tool_calls.length > 0) {
               for (const tc of msg.tool_calls) {
@@ -268,7 +281,7 @@ export class AppController {
                 } catch {
                   /* ignore */
                 }
-                this.chatApp?.appendToolCall(tc.function.name, args);
+                this.getChatApp()?.appendToolCall(tc.function.name, args);
               }
             } else if (msg.content) {
               const assistantText =
@@ -278,15 +291,15 @@ export class AppController {
                       .filter((c) => c.type === 'text')
                       .map((c) => (isTextContentPart(c) ? c.text : ''))
                       .join('');
-              this.chatApp?.appendAssistant(assistantText as string);
+              this.getChatApp()?.appendAssistant(assistantText as string);
             }
           } else if (msg.role === 'tool') {
-            this.chatApp?.appendToolMessage(msg.tool_call_id || '', String(msg.content));
+            this.getChatApp()?.appendToolMessage(msg.tool_call_id || '', String(msg.content));
           }
         }
       }
     } catch (e) {
-      this.chatApp?.appendError(`${t('error.loadSession')} ${e instanceof Error ? e.message : String(e)}`);
+      this.getChatApp()?.appendError(`${t('error.loadSession')} ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -294,22 +307,22 @@ export class AppController {
 
   private registerApps() {
     this.wm.registerApp('chat', () => {
-      this.chatApp = new ChatApp();
-      this.chatApp.setOnResumeSession((sessionId) => this.resumeSession(sessionId));
-      this.chatApp.setOnSubmit(async (text: string, attachments: ChatAttachment[]) => {
+      const chatApp = new ChatApp();
+      chatApp.setOnResumeSession((sessionId) => this.resumeSession(sessionId));
+      chatApp.setOnSubmit(async (text: string, attachments: ChatAttachment[]) => {
         const config = loadConfig();
         if (!config.apiKey) {
-          this.chatApp?.appendError(t('error.noApiKey'));
+          chatApp.appendError(t('error.noApiKey'));
           this.wm.launchOrFocus('settings');
           return;
         }
         if (this.isRunning && this.agent) {
-          this.chatApp?.appendError(t('common.thinking'));
+          chatApp.appendError(t('common.thinking'));
           return;
         }
-        this.chatApp?.appendUser(text, attachments);
-        this.chatApp?.setStatus('thinking');
-        this.chatApp?.startStream();
+        chatApp.appendUser(text, attachments);
+        chatApp.setStatus('thinking');
+        chatApp.startStream();
         this.isRunning = true;
         if (!this.agent || this.agent.getLastSessionId() !== this.currentSessionId) {
           this.agent = this.createAgent();
@@ -318,12 +331,12 @@ export class AppController {
           await this.agent.run(text, config, this.currentSessionId || undefined, attachments);
         } catch (e) {
           captureFunctionError('AppController.onSubmit', e, { sessionId: this.currentSessionId });
-          this.chatApp?.appendError(e instanceof Error ? e.message : String(e));
-          this.chatApp?.setStatus('idle');
+          chatApp.appendError(e instanceof Error ? e.message : String(e));
+          chatApp.setStatus('idle');
           this.isRunning = false;
         }
       });
-      return this.chatApp;
+      return chatApp;
     });
 
     this.wm.registerApp('settings', () => {
@@ -349,6 +362,12 @@ export class AppController {
       const app = new TextEditorApp();
       app.setBridgeHandler(this.handleBridgeRequest);
       return app;
+    });
+
+    this.wm.on('window_focused', ({ windowId, appId }) => {
+      if (appId === 'chat') {
+        this.activeChatWindowId = windowId;
+      }
     });
   }
 
@@ -377,7 +396,12 @@ export class AppController {
     app.innerHTML = '';
     app.appendChild(this.buildHeader());
     app.appendChild(this.wm.element);
-    this.wm.launchOrFocus('chat');
+    // Open the chat window with a usable default size; launchOrFocus uses tiny defaults.
+    if (this.wm.getWindowsByApp('chat').length === 0) {
+      this.wm.openWindow({ appId: 'chat', width: 720, height: 520, x: 40, y: 40 });
+    } else {
+      this.wm.launchOrFocus('chat');
+    }
   }
 
   private newChat() {
@@ -387,12 +411,12 @@ export class AppController {
     this.agent = null;
     this.currentSessionId = null;
     this.persistLastSession(null);
-    this.chatApp?.clear();
+    this.getChatApp()?.clear();
     this.programWindowId = null;
     for (const id of this.wm.getWindowsByApp('program')) {
       this.wm.closeWindow(id);
     }
-    this.chatApp?.setStatus('idle');
+    this.getChatApp()?.setStatus('idle');
     this.isRunning = false;
   }
 
