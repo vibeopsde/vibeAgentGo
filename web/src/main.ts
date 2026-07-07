@@ -8,6 +8,7 @@ import { initTheme, toggleTheme } from './core/theme.js';
 import { ChatPanel } from './components/ChatPanel.js';
 import type { ChatAttachment } from './types/index.js';
 import { RenderPanel } from './components/RenderPanel.js';
+import type { BridgeRequest, BridgeResponse } from './components/RenderPanel.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { MemoryPanel } from './components/MemoryPanel.js';
 import { SessionPanel } from './components/SessionPanel.js';
@@ -59,10 +60,72 @@ let isRunning = false;
 const memory = new MemoryStore();
 const tools = createDefaultTools();
 
+// --- View iframe bridge to system memory ---
+
+async function handleBridgeRequest(req: BridgeRequest): Promise<BridgeResponse> {
+  try {
+    switch (req.type) {
+      case 'readFile': {
+        const content = await memory.readFile(req.path);
+        return { ok: true, data: content };
+      }
+      case 'writeFile': {
+        await memory.writeFile(req.path, req.content);
+        return { ok: true, data: null };
+      }
+      case 'listFiles': {
+        const files = await memory.listFiles();
+        return { ok: true, data: files };
+      }
+      case 'getMemory': {
+        const all = await memory.searchAllMemory(1000);
+        const query = req.query.toLowerCase();
+        const filtered = all
+          .filter((m) => (req.category ? m.category === req.category : true))
+          .filter((m) => m.content.toLowerCase().includes(query))
+          .slice(0, req.limit ?? 50);
+        return { ok: true, data: filtered };
+      }
+      case 'getConfig': {
+        const config = loadConfig();
+        // Never expose the API key to the sandboxed view.
+        const safe = { ...config, apiKey: config.apiKey ? '***' : '' };
+        return { ok: true, data: safe };
+      }
+      case 'sendMessage': {
+        // Inject a user message into the current chat and trigger the agent.
+        if (!agent || isRunning) {
+          return { ok: false, error: 'Agent is busy or not ready' };
+        }
+        const config = loadConfig();
+        if (!config.apiKey) {
+          return { ok: false, error: 'No API key configured' };
+        }
+        chatPanel.appendUser(req.text);
+        chatPanel.setStatus('thinking');
+        chatPanel.startStream();
+        isRunning = true;
+        agent.run(req.text, config, currentSessionId || undefined).catch((e) => {
+          chatPanel.appendError(e instanceof Error ? e.message : String(e));
+          chatPanel.setStatus('idle');
+          isRunning = false;
+        });
+        return { ok: true, data: null };
+      }
+      default: {
+        const _exhaustive: never = req;
+        return { ok: false, error: `Unknown bridge request: ${_exhaustive}` };
+      }
+    }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 // --- Components ---
 
 const chatPanel = new ChatPanel();
-const renderPanel = new RenderPanel();
+const renderPanel = new RenderPanel({ onBridgeRequest: handleBridgeRequest });
 const settingsModal = new SettingsModal();
 const memoryPanel = new MemoryPanel();
 const sessionPanel = new SessionPanel();

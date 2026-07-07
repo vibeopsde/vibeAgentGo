@@ -1,13 +1,29 @@
 // ============================================================
-// vibeAgentGo — RenderPanel Component (iframe + tabs)
+// vibeAgentGo — RenderPanel Component (iframe + tabs + bridge)
 // ============================================================
 
 import { t } from '../i18n/index.js';
 
-interface ViewTab {
+export interface ViewTab {
   title: string;
   html: string;
   logs?: LogEntry[];
+}
+
+export type BridgeRequest =
+  | { type: 'readFile'; path: string }
+  | { type: 'writeFile'; path: string; content: string }
+  | { type: 'listFiles' }
+  | { type: 'getMemory'; query: string; category?: 'memory' | 'user'; limit?: number }
+  | { type: 'getConfig' }
+  | { type: 'sendMessage'; text: string };
+
+export type BridgeResponse = { ok: true; data: unknown } | { ok: false; error: string };
+
+export type BridgeHandler = (req: BridgeRequest) => Promise<BridgeResponse>;
+
+export interface RenderPanelOptions {
+  onBridgeRequest?: BridgeHandler;
 }
 
 export interface LogEntry {
@@ -25,8 +41,11 @@ export class RenderPanel {
   private emptyEl: HTMLElement;
   private views: ViewTab[] = [];
   private activeTitle: string | null = null;
+  private onBridgeRequest?: BridgeHandler;
 
-  constructor() {
+  constructor(options: RenderPanelOptions = {}) {
+    this.onBridgeRequest = options.onBridgeRequest;
+
     this.element = document.createElement('div');
     this.element.className = 'render-panel';
 
@@ -61,16 +80,86 @@ export class RenderPanel {
   private attachMessageListener() {
     window.addEventListener('message', (event: MessageEvent) => {
       const data = event.data;
-      if (!data || data.vibeAgentGoViewLog !== true) return;
-      if (data.title && typeof data.title === 'string') {
-        this.appendLog(data.title, {
-          level: data.level || 'log',
-          message: data.message || '',
-          stack: data.stack,
-          timestamp: data.timestamp || new Date().toISOString(),
-        });
+      if (!data || typeof data !== 'object') return;
+
+      // Log capture from the iframe
+      if (data.vibeAgentGoViewLog === true) {
+        if (data.title && typeof data.title === 'string') {
+          this.appendLog(data.title, {
+            level: data.level || 'log',
+            message: data.message || '',
+            stack: data.stack,
+            timestamp: data.timestamp || new Date().toISOString(),
+          });
+        }
+        return;
+      }
+
+      // Bridge request from the iframe
+      if (data.vibeAgentGoBridgeRequest === true) {
+        this.handleBridgeRequest(data.id as number, data.request as BridgeRequest, event.source as WindowProxy);
       }
     });
+  }
+
+  private async handleBridgeRequest(id: number, request: BridgeRequest, source: WindowProxy) {
+    if (!this.onBridgeRequest) {
+      source.postMessage({ vibeAgentGoBridgeResponse: true, id, response: { ok: false, error: 'Bridge not configured' } }, '*');
+      return;
+    }
+    try {
+      const response = await this.onBridgeRequest(request);
+      source.postMessage({ vibeAgentGoBridgeResponse: true, id, response }, '*');
+    } catch (e) {
+      source.postMessage({ vibeAgentGoBridgeResponse: true, id, response: { ok: false, error: e instanceof Error ? e.message : String(e) } }, '*');
+    }
+  }
+
+  private bridgeProxyScript(): string {
+    return `
+<script>
+(function() {
+  let counter = 0;
+  const pending = new Map();
+
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data || data.vibeAgentGoBridgeResponse !== true) return;
+    const pendingReq = pending.get(data.id);
+    if (!pendingReq) return;
+    pending.delete(data.id);
+    if (data.response && data.response.ok) {
+      pendingReq.resolve(data.response.data);
+    } else {
+      pendingReq.reject(new Error((data.response && data.response.error) || 'Bridge request failed'));
+    }
+  });
+
+  function sendRequest(type, payload) {
+    return new Promise((resolve, reject) => {
+      const id = ++counter;
+      pending.set(id, { resolve, reject });
+      const request = { type, ...payload };
+      window.parent.postMessage({ vibeAgentGoBridgeRequest: true, id, request }, '*');
+      setTimeout(() => {
+        if (!pending.has(id)) return;
+        pending.delete(id);
+        reject(new Error('Bridge request timed out'));
+      }, 30000);
+    });
+  }
+
+  window.vibeAgentGo = {
+    readFile: (path) => sendRequest('readFile', { path }),
+    writeFile: (path, content) => sendRequest('writeFile', { path, content }),
+    listFiles: () => sendRequest('listFiles', {}),
+    getMemory: (query, category, limit) => sendRequest('getMemory', { query, category, limit }),
+    getConfig: () => sendRequest('getConfig', {}),
+    sendMessage: (text) => sendRequest('sendMessage', { text }),
+  };
+})();
+</script>
+    `.trim();
   }
 
   render(views: ViewTab[], activeTitle: string | null) {
@@ -98,6 +187,7 @@ export class RenderPanel {
   }
 
   private setupLogCapture(html: string, title: string): string {
+    const bridgeScript = this.bridgeProxyScript();
     const captureScript = `
 <script>
 (function() {
@@ -124,13 +214,14 @@ export class RenderPanel {
 })();
 </script>
     `.trim();
+    const scripts = bridgeScript + '\n' + captureScript;
     if (html.includes('<head>')) {
-      return html.replace('<head>', '<head>' + captureScript);
+      return html.replace('<head>', '<head>' + scripts);
     }
     if (html.includes('<body>')) {
-      return html.replace('<body>', '<body>' + captureScript);
+      return html.replace('<body>', '<body>' + scripts);
     }
-    return captureScript + html;
+    return scripts + html;
   }
 
   private renderTabs() {
@@ -188,7 +279,7 @@ export class RenderPanel {
     this.emptyEl.style.display = 'none';
     this.iframe.style.display = 'block';
 
-    // Inject log/error capture and render via srcdoc (sandboxed)
+    // Inject bridge, log/error capture and render via srcdoc (sandboxed)
     this.iframe.srcdoc = this.setupLogCapture(view.html, view.title);
   }
 }
