@@ -275,14 +275,35 @@ export class Agent {
 
       // Tool calls
       if (response.tool_calls && response.tool_calls.length > 0) {
+        // Sanitize tool_call arguments before pushing to history.
+        // Some models (e.g. Ollama Minimax M3) generate non-JSON arguments
+        // (e.g. bare strings like "path" or empty strings). If we push those
+        // into history as-is, the provider rejects its own history on the
+        // next turn with HTTP 400 "invalid tool call arguments".
+        const sanitizedToolCalls = response.tool_calls.map((tc) => {
+          let args: Record<string, unknown>;
+          try {
+            args = JSON.parse(tc.function.arguments) as Record<string, unknown>;
+          } catch {
+            args = {};
+          }
+          return {
+            ...tc,
+            function: {
+              ...tc.function,
+              arguments: JSON.stringify(args), // always valid JSON in history
+            },
+          };
+        });
+
         const assistantMsg: Message = {
           role: 'assistant',
           content: response.content || '',
-          tool_calls: response.tool_calls,
+          tool_calls: sanitizedToolCalls,
         };
         history.push(assistantMsg);
 
-        for (const tc of response.tool_calls) {
+        for (const tc of sanitizedToolCalls) {
           const toolName = tc.function.name;
           let args: Record<string, unknown>;
           try {

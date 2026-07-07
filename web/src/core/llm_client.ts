@@ -286,11 +286,27 @@ export async function llmChatStream(opts: {
     toolCallMap.size > 0
       ? Array.from(toolCallMap.entries())
           .sort(([a], [b]) => a - b)
-          .map(([_, tc]) => ({
-            id: tc.id,
-            type: 'function' as const,
-            function: tc.function,
-          }))
+          .map(([_, tc]) => {
+            // Ensure arguments is always valid JSON. Some providers (Ollama
+            // with smaller models) emit bare strings or empty arguments.
+            let args = tc.function.arguments || '';
+            try {
+              JSON.parse(args);
+            } catch {
+              // Try to salvage: if it's a bare string, wrap it as {"value": "..."}
+              // Otherwise default to empty object.
+              if (args.trim() && !args.startsWith('{') && !args.startsWith('[')) {
+                args = JSON.stringify({ value: args.trim() });
+              } else {
+                args = '{}';
+              }
+            }
+            return {
+              id: tc.id,
+              type: 'function' as const,
+              function: { name: tc.function.name, arguments: args },
+            };
+          })
       : undefined;
 
   return {
