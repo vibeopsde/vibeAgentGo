@@ -35,8 +35,8 @@ export function renderDangerZoneSection(modal: HTMLElement, onReload: () => void
     resetBtn.style.display = 'block';
   });
 
-  resetConfirmBtn.addEventListener('click', () => {
-    resetLocalData();
+  resetConfirmBtn.addEventListener('click', async () => {
+    await resetLocalData();
     onReload();
   });
 }

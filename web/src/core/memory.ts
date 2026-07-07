@@ -6,7 +6,7 @@ import type { Message, MemoryEntry, Session } from '../types/index.js';
 import { logger } from './logger.js';
 
 const DB_NAME = 'vibeAgentGo-agent';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 // --- DB connection cache ---
 // Opening a new IDBDatabase connection on every tx() call causes connection
@@ -35,8 +35,11 @@ function openDB(): Promise<IDBDatabase> {
       };
       resolve(db);
     };
-    req.onupgradeneeded = () => {
+    req.onupgradeneeded = (event) => {
       const db = req.result;
+      const oldVersion = event.oldVersion;
+      // Create any stores that are missing — handles both fresh DBs and
+      // upgrades from older versions where stores were added later.
       if (!db.objectStoreNames.contains('memory')) {
         const memStore = db.createObjectStore('memory', { keyPath: 'id', autoIncrement: true });
         memStore.createIndex('category', 'category', { unique: false });
@@ -58,6 +61,10 @@ function openDB(): Promise<IDBDatabase> {
         logStore.createIndex('level', 'level', { unique: false });
         logStore.createIndex('source', 'source', { unique: false });
       }
+      logger.info('memory.openDB', `DB upgraded from v${oldVersion} to v${req.result.version}`, {
+        oldVersion,
+        newVersion: req.result.version,
+      });
     };
   });
   return dbPromise;
@@ -416,12 +423,25 @@ export function completeOnboarding(): void {
   localStorage.setItem(ONBOARDING_KEY, JSON.stringify(state));
 }
 
-export function resetLocalData(): void {
+export async function resetLocalData(): Promise<void> {
   localStorage.removeItem(CONFIG_KEY);
   localStorage.removeItem(ONBOARDING_KEY);
   localStorage.removeItem('vibeAgentGo-theme');
-  // Invalidate the cached DB connection before deleting the database.
-  // If we keep the stale connection, the delete is blocked by open connections.
-  dbPromise = null;
-  indexedDB.deleteDatabase(DB_NAME);
+  // Close the cached DB connection before deleting — otherwise deleteDatabase()
+  // is blocked by the open connection and never completes.
+  if (dbPromise) {
+    try {
+      const db = await dbPromise;
+      db.close();
+    } catch {
+      /* ignore — might already be closed */
+    }
+    dbPromise = null;
+  }
+  return new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = () => resolve();
+    req.onerror = () => resolve(); // resolve anyway — don't block reset
+    req.onblocked = () => resolve(); // resolve even if blocked by another tab
+  });
 }
