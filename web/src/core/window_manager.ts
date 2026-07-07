@@ -367,13 +367,49 @@ export class WindowManager {
     };
     const onPointerUp = (ev: PointerEvent) => {
       (ev.target as HTMLElement).releasePointerCapture(e.pointerId);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      document.removeEventListener('pointercancel', onPointerUp);
+      this.snapWindow(id, ev.clientX, ev.clientY);
     };
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerUp);
+  }
+
+  private snapWindow(id: string, clientX: number, clientY: number) {
+    const win = this.windows.get(id);
+    if (!win) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const snapThreshold = 40;
+
+    // Top edge => full screen
+    if (clientY <= snapThreshold) {
+      win.element.style.left = '0px';
+      win.element.style.top = '0px';
+      win.element.style.width = `${vw}px`;
+      win.element.style.height = `${vh}px`;
+      return;
+    }
+
+    // Left half
+    if (clientX <= snapThreshold) {
+      win.element.style.left = '0px';
+      win.element.style.top = '0px';
+      win.element.style.width = `${Math.floor(vw / 2)}px`;
+      win.element.style.height = `${vh}px`;
+      return;
+    }
+
+    // Right half
+    if (clientX >= vw - snapThreshold) {
+      win.element.style.left = `${Math.floor(vw / 2)}px`;
+      win.element.style.top = '0px';
+      win.element.style.width = `${Math.ceil(vw / 2)}px`;
+      win.element.style.height = `${vh}px`;
+      return;
+    }
   }
 
   private startResize(e: PointerEvent, id: string) {
@@ -395,12 +431,12 @@ export class WindowManager {
     };
     const onPointerUp = (ev: PointerEvent) => {
       (ev.target as HTMLElement).releasePointerCapture(e.pointerId);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      document.removeEventListener('pointercancel', onPointerUp);
     };
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerUp);
   }
 }
