@@ -17,6 +17,7 @@ import {
   saveConfig,
   hasCompletedOnboarding,
   MemoryStore,
+  SkillStore,
 } from './memory.js';
 import { isTextContentPart } from '../types/index.js';
 import { createDefaultTools } from './tools.js';
@@ -353,6 +354,7 @@ export class AppController {
       chatApp.setOnSubmit(async (text: string, attachments: ChatAttachment[]) => {
         // Slash commands bypass the LLM entirely.
         if (isSlashCommand(text) && attachments.length === 0) {
+          const skillStore = new SkillStore();
           const handled = await handleSlashCommand({
             text,
             args: text.trim().split(/\s+/).slice(1),
@@ -364,6 +366,15 @@ export class AppController {
             memoryStore: this.memory,
             workspace: '/workspace',
             onNewChat: () => this.newChat(),
+            onStopAgent: () => {
+              this.agent?.abort();
+              this.isRunning = false;
+            },
+            getAgentStatus: () => (this.isRunning ? 'thinking' : 'idle'),
+            listSkills: async () => {
+              const skills = await skillStore.listSkills().catch(() => []);
+              return skills.map((s) => ({ name: s.name, description: s.description }));
+            },
           });
           if (handled) return;
           chatApp.appendSystem(t('chat.unknownSlashCommand') || `Unknown slash command. Type /help for available commands.`);

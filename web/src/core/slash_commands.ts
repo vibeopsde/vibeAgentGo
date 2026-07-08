@@ -1,4 +1,5 @@
 import type { Tool, ToolContext, MemoryStore } from '../types/index.js';
+import { loadConfig } from './memory.js';
 
 export interface SlashCommandContext {
   text: string;
@@ -11,6 +12,9 @@ export interface SlashCommandContext {
   memoryStore: MemoryStore;
   workspace: string;
   onNewChat(): void;
+  onStopAgent(): void;
+  getAgentStatus(): 'idle' | 'thinking';
+  listSkills(): Promise<{ name: string; description: string }[]>;
 }
 
 type SlashCommand = {
@@ -34,6 +38,39 @@ const COMMANDS: SlashCommand[] = [
     handler(ctx) {
       ctx.onNewChat();
       ctx.appendSystem('New chat started.');
+    },
+  },
+  {
+    name: 'status',
+    description: 'Show local app status (model, memory, sessions, files)',
+    async handler(ctx) {
+      const config = loadConfig();
+      const [sessions, memories, files, skills] = await Promise.all([
+        ctx.memoryStore.listSessions().catch(() => []),
+        ctx.memoryStore.getAllMemory(1000).catch(() => ({ memories: [], profile: [] })),
+        ctx.memoryStore.listFiles().catch(() => []),
+        ctx.listSkills().catch(() => []),
+      ]);
+      const allMemory = [...memories.memories, ...memories.profile];
+      const lines: string[] = [
+        `Model: ${config.model || '(not set)'}`,
+        `Base URL: ${config.baseUrl || '(not set)'}`,
+        `Language: ${config.language}`,
+        `Agent: ${ctx.getAgentStatus()}`,
+        `Sessions: ${sessions.length}`,
+        `Memory entries: ${allMemory.length}`,
+        `Skills: ${skills.length}`,
+        `Workspace files: ${files.length}`,
+      ];
+      ctx.appendSystem(`**Status**\n\n${lines.join('\n')}`);
+    },
+  },
+  {
+    name: 'stop',
+    description: 'Stop the currently running agent',
+    handler(ctx) {
+      ctx.onStopAgent();
+      ctx.appendSystem('Agent stopped.');
     },
   },
   {
