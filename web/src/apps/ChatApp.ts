@@ -44,8 +44,13 @@ export class ChatApp implements App {
     main.className = 'chat-main';
     main.appendChild(this.panel.element);
 
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chat-session-backdrop';
+    backdrop.addEventListener('click', () => this.toggleSessions(false));
+
     this.element.appendChild(sidebar);
     this.element.appendChild(main);
+    this.element.appendChild(backdrop);
 
     this.panel.onToggleSessions = () => this.toggleSessions();
     this.panel.onNewChat = () => this.onNewChat?.();
@@ -53,9 +58,11 @@ export class ChatApp implements App {
 
   private toggleSessions(force?: boolean) {
     const drawer = this.element.querySelector('.chat-session-drawer') as HTMLElement;
+    const backdrop = this.element.querySelector('.chat-session-backdrop') as HTMLElement;
     if (!drawer) return;
     const next = force !== undefined ? force : !drawer.classList.contains('open');
     drawer.classList.toggle('open', next);
+    if (backdrop) backdrop.classList.toggle('open', next);
     if (next) {
       this.sessionPanel.open();
     }
