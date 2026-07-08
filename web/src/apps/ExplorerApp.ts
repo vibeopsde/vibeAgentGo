@@ -31,6 +31,7 @@ export class ExplorerApp implements App {
   private files: FileEntry[] = [];
   private expandedFolders = new Set<string>();
   private activePath: string | null = null;
+  private contextMenu: HTMLElement | null = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -47,7 +48,7 @@ export class ExplorerApp implements App {
         <button class="explorer-upload" title="${t('explorer.upload') || 'Upload files'}">⬆</button>
         <button class="explorer-refresh" title="${t('explorer.refresh') || 'Refresh'}">↻</button>
       </div>
-      <div class="explorer-list"></div>
+      <div class="explorer-list" tabindex="0"></div>
       <div class="explorer-empty">${t('explorer.empty') || 'No files yet'}</div>
       <input type="file" class="explorer-upload-input" multiple style="display: none;">
     `;
@@ -60,6 +61,29 @@ export class ExplorerApp implements App {
     this.element.querySelector('.explorer-refresh')?.addEventListener('click', () => this.refresh());
     this.element.querySelector('.explorer-upload')?.addEventListener('click', () => uploadInput.click());
     uploadInput.addEventListener('change', () => this.handleUpload(uploadInput.files));
+
+    this.setupDragDrop();
+    document.addEventListener('click', () => this.closeContextMenu());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.closeContextMenu();
+    });
+  }
+
+  private setupDragDrop() {
+    this.listEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      this.listEl.classList.add('drag-over');
+    });
+    this.listEl.addEventListener('dragleave', () => {
+      this.listEl.classList.remove('drag-over');
+    });
+    this.listEl.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      this.listEl.classList.remove('drag-over');
+      if (e.dataTransfer?.files.length) {
+        await this.handleUpload(e.dataTransfer.files);
+      }
+    });
   }
 
   setBridgeHandler(handler: (req: BridgeRequest) => Promise<BridgeResponse>) {
@@ -92,6 +116,7 @@ export class ExplorerApp implements App {
   }
 
   private render() {
+    this.closeContextMenu();
     this.listEl.innerHTML = '';
     const empty = this.element.querySelector('.explorer-empty') as HTMLElement;
     if (this.files.length === 0) {
@@ -136,7 +161,6 @@ export class ExplorerApp implements App {
   }
 
   private renderNode(container: HTMLElement, node: TreeNode, depth: number) {
-    // Hide placeholder .keep files from the tree; they only exist to keep empty folders visible
     if (node.name === '.keep' && node.isFolder) return;
 
     const el = document.createElement('div');
@@ -145,6 +169,9 @@ export class ExplorerApp implements App {
       el.classList.add('active');
     }
     el.style.paddingLeft = `${depth * 16 + 8}px`;
+    el.draggable = !node.isFolder;
+    el.dataset.path = node.path;
+    el.dataset.type = node.isFolder ? 'folder' : 'file';
 
     if (node.isFolder) {
       const expanded = this.expandedFolders.has(node.path);
@@ -169,6 +196,7 @@ export class ExplorerApp implements App {
         e.stopPropagation();
         this.renameFolder(node.path);
       });
+      this.attachFolderDragDrop(el, node.path);
       container.appendChild(el);
       if (expanded) {
         const childrenContainer = document.createElement('div');
@@ -199,6 +227,17 @@ export class ExplorerApp implements App {
       this.onOpenFile?.(node.path);
       this.render();
     });
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.showContextMenu(e.clientX, e.clientY, node.path, false);
+    });
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer?.setData('text/plain', node.path);
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+    });
     el.querySelector('.explorer-delete')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.deleteFile(node.path);
@@ -222,6 +261,83 @@ export class ExplorerApp implements App {
       });
     }
     container.appendChild(el);
+  }
+
+  private attachFolderDragDrop(el: HTMLElement, folderPath: string) {
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      el.classList.add('drop-target');
+    });
+    el.addEventListener('dragleave', () => {
+      el.classList.remove('drop-target');
+    });
+    el.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove('drop-target');
+      const path = e.dataTransfer?.getData('text/plain');
+      if (!path || path === folderPath) return;
+      if (path.startsWith(`${folderPath}/`)) return;
+      await this.moveFileIntoFolder(path, folderPath);
+    });
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.showContextMenu(e.clientX, e.clientY, folderPath, true);
+    });
+  }
+
+  private async moveFileIntoFolder(filePath: string, folderPath: string) {
+    const file = this.files.find((f) => f.path === filePath);
+    if (!file) return;
+    const name = filePath.split('/').pop() || filePath;
+    const newPath = `${folderPath}/${name}`;
+    if (this.files.some((f) => f.path === newPath)) {
+      window.alert(t('explorer.fileExists') || 'A file already exists in that folder');
+      return;
+    }
+    await this.onBridgeRequest?.({ type: 'writeFile', path: newPath, content: file.content });
+    await this.onBridgeRequest?.({ type: 'deleteFile', path: filePath });
+    if (this.activePath === filePath) this.activePath = newPath;
+    this.expandedFolders.add(folderPath);
+    await this.refresh();
+  }
+
+  private showContextMenu(x: number, y: number, path: string, isFolder: boolean) {
+    this.closeContextMenu();
+    const menu = document.createElement('div');
+    menu.className = 'explorer-context-menu';
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.innerHTML = `
+      <button data-action="rename">${t('common.rename') || 'Rename'}</button>
+      <button data-action="duplicate">${t('explorer.duplicate') || 'Duplicate'}</button>
+      ${!isFolder ? `<button data-action="download">${t('explorer.download') || 'Download'}</button>` : ''}
+      <button data-action="delete" class="danger">${t('common.delete') || 'Delete'}</button>
+    `;
+    menu.addEventListener('click', (e) => {
+      const action = (e.target as HTMLElement).closest('button')?.dataset.action;
+      if (!action) return;
+      this.closeContextMenu();
+      if (action === 'rename') {
+        isFolder ? this.renameFolder(path) : this.renameFile(path);
+      } else if (action === 'duplicate') {
+        isFolder ? this.duplicateFolder(path) : this.duplicateFile(path);
+      } else if (action === 'download' && !isFolder) {
+        this.downloadFile(path);
+      } else if (action === 'delete') {
+        isFolder ? this.deleteFolder(path) : this.deleteFile(path);
+      }
+    });
+    document.body.appendChild(menu);
+    this.contextMenu = menu;
+    const rect = menu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) menu.style.left = `${window.innerWidth - rect.width - 8}px`;
+    if (rect.bottom > window.innerHeight) menu.style.top = `${window.innerHeight - rect.height - 8}px`;
+  }
+
+  private closeContextMenu() {
+    this.contextMenu?.remove();
+    this.contextMenu = null;
   }
 
   private toggleFolder(path: string) {
@@ -372,6 +488,27 @@ export class ExplorerApp implements App {
     await this.refresh();
     this.activePath = newPath;
     this.onOpenFile?.(newPath);
+  }
+
+  private async duplicateFolder(path: string) {
+    const children = this.files.filter((f) => f.path === path || f.path.startsWith(`${path}/`));
+    if (children.length === 0) return;
+    const parent = path.split('/').slice(0, -1).join('/');
+    const oldName = path.split('/').pop() || path;
+    const base = oldName;
+    const generateName = (n: number): string => {
+      const candidate = `${base} copy${n === 1 ? '' : ` ${n}`}`;
+      return parent ? `${parent}/${candidate}` : candidate;
+    };
+    let n = 1;
+    while (this.files.some((f) => f.path === generateName(n) || f.path.startsWith(`${generateName(n)}/`))) n++;
+    const newPath = generateName(n);
+    for (const file of children) {
+      const newFilePath = file.path.replace(path, newPath);
+      await this.onBridgeRequest?.({ type: 'writeFile', path: newFilePath, content: file.content });
+    }
+    this.expandedFolders.add(newPath);
+    await this.refresh();
   }
 
   private async downloadFile(path: string) {

@@ -2052,6 +2052,54 @@ select {
   padding: 8px;
 }
 
+.explorer-list.drag-over {
+  background: var(--accent-light, rgba(59, 130, 246, 0.1));
+  outline: 2px dashed var(--accent, #3b82f6);
+  outline-offset: -4px;
+  border-radius: 6px;
+}
+
+.explorer-folder.drop-target,
+.explorer-item.dragging {
+  background: var(--accent-light, rgba(59, 130, 246, 0.1));
+  outline: 1px dashed var(--accent, #3b82f6);
+}
+
+.explorer-context-menu {
+  position: fixed;
+  z-index: 9999;
+  background: var(--bg-elev, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  min-width: 140px;
+}
+
+.explorer-context-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  font-size: 14px;
+  color: var(--text-color, #1e293b);
+  cursor: pointer;
+}
+
+.explorer-context-menu button:hover {
+  background: var(--bg-hover, #f1f5f9);
+}
+
+.explorer-context-menu button.danger {
+  color: var(--danger, #ef4444);
+}
+
+.explorer-context-menu button.danger:hover {
+  background: var(--danger-light, rgba(239, 68, 68, 0.1));
+}
+
 .explorer-empty {
   padding: 24px;
   color: var(--text-muted);
