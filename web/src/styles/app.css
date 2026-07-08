@@ -1644,6 +1644,10 @@ select {
   background: var(--bg-hover);
 }
 
+.wm-dock-icon.active {
+  background: var(--bg-hover);
+}
+
 .wm-dock-icon-emoji {
   font-size: 18px;
   line-height: 1;

@@ -323,19 +323,40 @@ export class WindowManager {
 
   private updateDock() {
     this.dock.innerHTML = '';
+    const staticAppIds = new Set<string>();
+
+    // 1) Registered apps that have a static dock icon.
     for (const [appId, entry] of this.apps) {
       if (!entry.showInDock) continue;
+      staticAppIds.add(appId);
       const factory = entry.factory;
       const instance = Array.from(this.instances.values()).find((a) => a.id === appId);
       const app = instance ?? factory();
-      const btn = document.createElement('button');
-      btn.className = 'wm-dock-icon';
-      btn.innerHTML = `<span class="wm-dock-icon-emoji">${app.icon}</span><span class="wm-dock-icon-label">${app.title}</span>`;
+      const btn = this.createDockIcon(app.icon, app.title, () => this.launchOrFocus(appId));
       const hasOpen = Array.from(this.windows.values()).some((w) => w.appId === appId);
       btn.style.opacity = hasOpen ? '1' : '0.7';
-      btn.addEventListener('click', () => this.launchOrFocus(appId));
       this.dock.appendChild(btn);
     }
+
+    // 2) Open windows for apps that are NOT in the static dock.
+    // Each window gets its own icon so run_app / KI / Explorer windows are reachable.
+    for (const win of this.windows.values()) {
+      if (staticAppIds.has(win.appId)) continue;
+      const isActive = win.id === this.activeWindowId;
+      const btn = this.createDockIcon(win.icon, win.title, () => this.focusWindow(win.id));
+      btn.dataset.windowId = win.id;
+      btn.classList.toggle('active', isActive);
+      btn.style.opacity = isActive ? '1' : '0.85';
+      this.dock.appendChild(btn);
+    }
+  }
+
+  private createDockIcon(icon: string, title: string, onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.className = 'wm-dock-icon';
+    btn.innerHTML = `<span class="wm-dock-icon-emoji">${icon}</span><span class="wm-dock-icon-label">${title}</span>`;
+    btn.addEventListener('click', onClick);
+    return btn;
   }
 
   private scrollToSpace(id: string) {
