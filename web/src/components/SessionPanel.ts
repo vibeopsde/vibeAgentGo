@@ -33,7 +33,7 @@ export class SessionPanel {
 
       if (sessions.length === 0) {
         this.element.innerHTML = `
-          <h2>💬 ${t('sessions.title')} <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
+          <h2>💬 ${t('sessions.title')}</h2>
           <p class="empty">${t('sessions.empty')}</p>
         `;
         return;
@@ -64,7 +64,7 @@ export class SessionPanel {
         .join('');
 
       this.element.innerHTML = `
-        <h2>💬 ${t('sessions.title')} (${sessions.length}) <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
+        <h2>💬 ${t('sessions.title')}</h2>
         <div class="session-list">${sessionsHtml}</div>
       `;
 
