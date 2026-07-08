@@ -72,10 +72,7 @@ export class ChatApp implements App {
     container.innerHTML = '';
     container.appendChild(this.element);
     this.sessionPanel.open();
-    // On desktop, keep the session drawer visible by default; on mobile it starts hidden.
-    if (window.innerWidth > 640) {
-      this.toggleSessions(true);
-    }
+    // Session drawer starts collapsed on all screen sizes; user toggles via menu.
   }
 
   onFocus() {

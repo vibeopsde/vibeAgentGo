@@ -1991,8 +1991,10 @@ select {
   z-index: 1999;
 }
 
-.chat-session-backdrop.open {
-  display: block;
+@media (max-width: 640px) {
+  .chat-session-backdrop.open {
+    display: block;
+  }
 }
 
 @media (max-width: 640px) {
