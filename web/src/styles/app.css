@@ -1510,6 +1510,18 @@ select {
   display: none;
 }
 
+/* Snap preview overlay — shown while dragging a window near screen edges */
+.wm-snap-preview {
+  position: absolute;
+  z-index: 9999;
+  pointer-events: none;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 25%, transparent);
+  transition: left 80ms ease, top 80ms ease, width 80ms ease, height 80ms ease;
+}
+
 .wm-window-bar {
   height: 36px;
   display: flex;

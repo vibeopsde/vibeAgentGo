@@ -23,6 +23,7 @@ export class WindowManager {
   private zCounter = 100;
   private isProgrammaticScroll = false;
   private scrollTimer: ReturnType<typeof setTimeout> | null = null;
+  private snapPreview: HTMLElement;
   private listeners: {
     [K in keyof WindowManagerEventMap]?: Array<(ev: WindowManagerEventMap[K]) => void>;
   } = {};
@@ -39,9 +40,14 @@ export class WindowManager {
     this.dock = document.createElement('div');
     this.dock.className = 'wm-dock';
 
+    this.snapPreview = document.createElement('div');
+    this.snapPreview.className = 'wm-snap-preview';
+    this.snapPreview.style.display = 'none';
+
     this.element.appendChild(this.desktop);
     this.element.appendChild(this.spaces);
     this.element.appendChild(this.dock);
+    this.desktop.appendChild(this.snapPreview);
 
     this.spaces.addEventListener('scroll', () => {
       // Ignore scroll events that we triggered via scrollToSpace().
@@ -380,12 +386,15 @@ export class WindowManager {
       const dy = ev.clientY - startY;
       win.element.style.left = `${startLeft + dx}px`;
       win.element.style.top = `${startTop + dy}px`;
+      // Live snap-zone preview
+      this.updateSnapPreview(ev.clientX, ev.clientY);
     };
     const onPointerUp = (ev: PointerEvent) => {
       (ev.target as HTMLElement).releasePointerCapture(e.pointerId);
       document.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('pointerup', onPointerUp);
       document.removeEventListener('pointercancel', onPointerUp);
+      this.hideSnapPreview();
       this.snapWindow(id, ev.clientX, ev.clientY);
     };
     document.addEventListener('pointermove', onPointerMove);
@@ -411,36 +420,51 @@ export class WindowManager {
   private snapWindow(id: string, clientX: number, clientY: number) {
     const win = this.windows.get(id);
     if (!win) return;
+    const zone = this.getSnapZone(clientX, clientY);
+    if (!zone) return;
+    win.element.style.left = `${zone.left}px`;
+    win.element.style.top = `${zone.top}px`;
+    win.element.style.width = `${zone.width}px`;
+    win.element.style.height = `${zone.height}px`;
+  }
+
+  /** Returns the snap rectangle for the given pointer position, or null if no snap zone is active. */
+  private getSnapZone(clientX: number, clientY: number): { left: number; top: number; width: number; height: number } | null {
     const vw = window.innerWidth;
     const snapThreshold = 40;
-    const { desktopTop, availableHeight } = this.chromeBounds();
+    const { availableHeight } = this.chromeBounds();
 
-    // Windows are children of .wm-desktop, which starts at desktopTop in viewport coords.
-    // So top: 0 inside .wm-desktop == desktopTop in viewport coords — no header offset needed.
-    const applySnap = (left: number, width: number) => {
-      win!.element.style.left = `${left}px`;
-      win!.element.style.top = '0px';
-      win!.element.style.width = `${width}px`;
-      win!.element.style.height = `${Math.max(availableHeight, 200)}px`;
-    };
-
-    // Top edge => full area below header, keeping dock visible
+    // Top edge => full width, full usable height (dock stays visible)
     if (clientY <= snapThreshold) {
-      applySnap(0, vw);
-      return;
+      return { left: 0, top: 0, width: vw, height: Math.max(availableHeight, 200) };
     }
-
     // Left half
     if (clientX <= snapThreshold) {
-      applySnap(0, Math.floor(vw / 2));
-      return;
+      return { left: 0, top: 0, width: Math.floor(vw / 2), height: Math.max(availableHeight, 200) };
     }
-
     // Right half
     if (clientX >= vw - snapThreshold) {
-      applySnap(Math.floor(vw / 2), Math.ceil(vw / 2));
+      return { left: Math.floor(vw / 2), top: 0, width: Math.ceil(vw / 2), height: Math.max(availableHeight, 200) };
+    }
+    return null;
+  }
+
+  /** Shows or updates the snap preview overlay based on the current pointer position. */
+  private updateSnapPreview(clientX: number, clientY: number) {
+    const zone = this.getSnapZone(clientX, clientY);
+    if (!zone) {
+      this.hideSnapPreview();
       return;
     }
+    this.snapPreview.style.display = 'block';
+    this.snapPreview.style.left = `${zone.left}px`;
+    this.snapPreview.style.top = `${zone.top}px`;
+    this.snapPreview.style.width = `${zone.width}px`;
+    this.snapPreview.style.height = `${zone.height}px`;
+  }
+
+  private hideSnapPreview() {
+    this.snapPreview.style.display = 'none';
   }
 
   private startResize(e: PointerEvent, id: string) {
