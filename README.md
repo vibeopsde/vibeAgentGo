@@ -9,7 +9,8 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
-- **9 Tools** including file I/O, PDF extraction, web search, memory, error log, and code execution
+- **10 Tools** including file I/O, PDF extraction, web search, memory, error log, system check, and code execution
+- **Slash Commands** in the chat input that run locally without an LLM round-trip (`/sys_check`, `/new`, `/clear`, `/help`)
 - **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace
 - **Backup & Restore**: Export and import all data as a single ZIP file
@@ -54,6 +55,7 @@ web/
 │   │   ├── agent.ts        # Multi-turn browser agent loop
 │   │   ├── llm_client.ts   # SSE streaming fetch client + connection test
 │   │   ├── memory.ts       # IndexedDB memory, sessions, files, skills, config
+│   │   ├── slash_commands.ts # Local slash-command registry
 │   │   ├── prompt_builder.ts
 │   │   ├── tools.ts        # Browser tool implementations
 │   │   ├── backup.ts       # ZIP export/import of all local data
@@ -80,9 +82,24 @@ web/
 | `write_file` | Write a file to the IndexedDB workspace |
 | `search_files` | Search filenames or contents in the workspace |
 | `run` | Execute JavaScript in a Web Worker sandbox with CDN imports, workspace I/O, and `render(title, html)` for interactive views |
+| `sys_check` | Deterministic health check for IndexedDB, files, worker sandbox, and config (supports `repair` mode) |
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `memory_search` | Search existing memory entries by keyword |
+
+## Slash Commands
+
+Type any of these directly in the chat input. They run locally in the browser without contacting the LLM:
+
+| Command | Action |
+|---------|--------|
+| `/sys_check` | Run the deterministic system health check |
+| `/sys_check repair` | Run the check and repair recoverable IndexedDB connection errors |
+| `/new` | Start a new empty chat session |
+| `/clear` | Clear the current chat view (keeps the session) |
+| `/help` | Show the available slash commands |
+
+New commands are added by extending `web/src/core/slash_commands.ts`.
 
 ## Memory
 

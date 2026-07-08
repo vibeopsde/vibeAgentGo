@@ -20,6 +20,7 @@ import {
 } from './memory.js';
 import { isTextContentPart } from '../types/index.js';
 import { createDefaultTools } from './tools.js';
+import { isSlashCommand, handleSlashCommand } from './slash_commands.js';
 import { initTheme } from './theme.js';
 import { setLanguage, t } from '../i18n/index.js';
 import { WindowManager } from './window_manager.js';
@@ -350,6 +351,25 @@ export class AppController {
       chatApp.setOnResumeSession((sessionId) => this.resumeSession(sessionId));
       chatApp.setOnNewChat(() => this.newChat());
       chatApp.setOnSubmit(async (text: string, attachments: ChatAttachment[]) => {
+        // Slash commands bypass the LLM entirely.
+        if (isSlashCommand(text) && attachments.length === 0) {
+          const handled = await handleSlashCommand({
+            text,
+            args: text.trim().split(/\s+/).slice(1),
+            appendSystem: (msg) => chatApp.appendSystem(msg),
+            appendError: (msg) => chatApp.appendError(msg),
+            setStatus: (status) => chatApp.setStatus(status),
+            clear: () => chatApp.clear(),
+            tools: this.tools,
+            memoryStore: this.memory,
+            workspace: '/workspace',
+            onNewChat: () => this.newChat(),
+          });
+          if (handled) return;
+          chatApp.appendSystem(t('chat.unknownSlashCommand') || `Unknown slash command. Type /help for available commands.`);
+          return;
+        }
+
         const config = loadConfig();
         if (!config.apiKey) {
           chatApp.appendError(t('error.noApiKey'));

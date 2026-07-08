@@ -194,6 +194,15 @@ export class ChatPanel {
     this.scrollToBottom();
   }
 
+  appendSystem(text: string) {
+    this.finalizeStream();
+    const el = document.createElement('div');
+    el.className = 'msg msg-system';
+    el.innerHTML = `<div class="msg-content" data-raw="${escapeHtml(text)}">${renderMarkdown(text)}</div>`;
+    this.messagesEl.appendChild(el);
+    this.scrollToBottom();
+  }
+
   appendToolMessage(toolCallId: string, content: string) {
     this.finalizeStream();
     const el = document.createElement('details');

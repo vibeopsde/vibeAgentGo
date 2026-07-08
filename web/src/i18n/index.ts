@@ -162,6 +162,9 @@ const de: Translations = {
   'error.noApiKey': 'Bitte API Key eingeben.',
   'error.noBaseUrl': 'Bitte Base URL eingeben.',
   'error.loadSession': 'Fehler beim Laden der Session:',
+
+  // Chat
+  'chat.unknownSlashCommand': 'Unbekannter Slash-Befehl. Tippe `/help` für verfügbare Befehle.',
 };
 
 const en: Translations = {
@@ -320,6 +323,9 @@ const en: Translations = {
   'error.noApiKey': 'Please provide an API key.',
   'error.noBaseUrl': 'Please provide a base URL.',
   'error.loadSession': 'Failed to load session:',
+
+  // Chat
+  'chat.unknownSlashCommand': 'Unknown slash command. Type `/help` for available commands.',
 };
 
 const translations: Record<Language, Translations> = { de, en };

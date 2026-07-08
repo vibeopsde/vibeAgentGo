@@ -119,6 +119,10 @@ export class ChatApp implements App {
     this.panel.appendError(message);
   }
 
+  appendSystem(message: string) {
+    this.panel.appendSystem(message);
+  }
+
   setStatus(status: 'idle' | 'thinking') {
     this.panel.setStatus(status);
   }
