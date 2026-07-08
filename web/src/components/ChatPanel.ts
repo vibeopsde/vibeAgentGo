@@ -46,23 +46,45 @@ export class ChatPanel {
     this.sendBtn.textContent = '➤';
     this.sendBtn.addEventListener('click', () => this.send());
 
-    const sessionsBtn = document.createElement('button');
-    sessionsBtn.className = 'sessions-btn';
-    sessionsBtn.title = t('chat.sessions') || 'Sessions';
-    sessionsBtn.textContent = '💬';
-    sessionsBtn.addEventListener('click', () => this.onToggleSessions?.());
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'menu-btn';
+    menuBtn.title = t('chat.menu') || 'Menu';
+    menuBtn.textContent = '☰';
 
-    const newChatBtn = document.createElement('button');
-    newChatBtn.className = 'new-chat-btn';
-    newChatBtn.title = t('header.newChat') || 'New chat';
-    newChatBtn.textContent = '✨';
-    newChatBtn.addEventListener('click', () => this.onNewChat?.());
+    const menuEl = document.createElement('div');
+    menuEl.className = 'chat-menu';
+    menuEl.style.display = 'none';
+    menuEl.innerHTML = `
+      <button class="chat-menu-item" data-action="new-chat">
+        <span class="chat-menu-icon">✨</span>
+        <span>${t('header.newChat') || 'New chat'}</span>
+      </button>
+      <button class="chat-menu-item" data-action="sessions">
+        <span class="chat-menu-icon">💬</span>
+        <span>${t('chat.sessions') || 'Sessions'}</span>
+      </button>
+      <button class="chat-menu-item" data-action="attach">
+        <span class="chat-menu-icon">📎</span>
+        <span>${t('chat.attachFile') || 'Attach file'}</span>
+      </button>
+    `;
 
-    const attachBtn = document.createElement('button');
-    attachBtn.className = 'attach-btn';
-    attachBtn.title = t('chat.attachFile');
-    attachBtn.textContent = '📎';
-    attachBtn.addEventListener('click', () => fileInput.click());
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = menuEl.style.display === 'block';
+      this.closeMenu();
+      if (!isOpen) this.openMenu(menuBtn, menuEl);
+    });
+
+    menuEl.addEventListener('click', (e) => {
+      const item = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
+      if (!item) return;
+      const action = item.dataset.action;
+      this.closeMenu();
+      if (action === 'new-chat') this.onNewChat?.();
+      if (action === 'sessions') this.onToggleSessions?.();
+      if (action === 'attach') fileInput.click();
+    });
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -78,9 +100,7 @@ export class ChatPanel {
     this.statusEl.className = 'status-bar';
     this.statusEl.textContent = t('common.idle');
 
-    inputArea.appendChild(newChatBtn);
-    inputArea.appendChild(sessionsBtn);
-    inputArea.appendChild(attachBtn);
+    inputArea.appendChild(menuBtn);
     inputArea.appendChild(this.inputEl);
     inputArea.appendChild(this.sendBtn);
     inputArea.appendChild(fileInput);
@@ -90,7 +110,32 @@ export class ChatPanel {
     this.element.appendChild(this.attachmentsEl);
     this.element.appendChild(inputArea);
 
+    // Fixed-positioned menu, aligned to the hamburger button via JS.
+    this.element.appendChild(menuEl);
+
     this.setStatus('idle');
+  }
+
+  private openMenu(trigger: HTMLElement, menu: HTMLElement) {
+    const rect = trigger.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.left = `${rect.left}px`;
+    menu.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+    menu.style.display = 'block';
+    menu.style.zIndex = '10000';
+
+    const onDocClick = (e: MouseEvent) => {
+      if (menu.contains(e.target as Node)) return;
+      this.closeMenu();
+      document.removeEventListener('click', onDocClick);
+    };
+    document.addEventListener('click', onDocClick);
+  }
+
+  private closeMenu() {
+    this.element.querySelectorAll('.chat-menu').forEach((el) => {
+      (el as HTMLElement).style.display = 'none';
+    });
   }
 
   private autoResize() {
