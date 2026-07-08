@@ -9,7 +9,7 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
-- **10 Tools** including file I/O, PDF extraction, web search, memory, error log, system check, and code execution
+- **15 Tools** including file I/O, PDF extraction, patch editing, web search, YouTube transcripts, memory, error log, system check, and code execution in a Web Worker sandbox
 - **Slash Commands** in the chat input that run locally without an LLM round-trip (`/sys_check`, `/new`, `/clear`, `/help`)
 - **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace
@@ -81,11 +81,17 @@ web/
 | `read_pdf` | Extract text from a PDF in the workspace using `pdfjs-dist` |
 | `write_file` | Write a file to the IndexedDB workspace |
 | `search_files` | Search filenames or contents in the workspace |
-| `run` | Execute JavaScript in a Web Worker sandbox with CDN imports, workspace I/O, and `render(title, html)` for interactive views |
-| `sys_check` | Deterministic health check for IndexedDB, files, worker sandbox, and config (supports `repair` mode) |
+| `patch` | Apply targeted edits (replace or V4A patch) to workspace files |
+| `run` | Execute complex JavaScript in a Web Worker sandbox with CDN imports, workspace I/O, and `render(title, html)` for interactive views |
+| `run_code` | Run a short JavaScript expression in the Web Worker sandbox |
+| `run_app` | Open an HTML/CSS/JS file from the workspace as a sandboxed app window |
+| `help` | Read built-in reference docs (`sandbox`, `ui`, `tools`) |
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
+| `youtube_transcript` | Fetch and summarize YouTube transcripts via your own proxy |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `memory_search` | Search existing memory entries by keyword |
+| `sys_check` | Deterministic health check for IndexedDB, files, worker sandbox, and config (supports `repair` mode) |
+| `error_log` | Read the local browser-side error and audit log |
 
 ## Slash Commands
 

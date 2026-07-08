@@ -50,6 +50,31 @@ function injectServiceWorkerVersion(outDirName: string): Plugin {
       const outDir = resolve(__dirname, 'web', outDirName);
       const outPath = resolve(outDir, 'sw.js');
       if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+
+      // Pre-cache hashed assets referenced by index.html so the app is fully offline after install.
+      const htmlPath = resolve(outDir, 'index.html');
+      if (existsSync(htmlPath)) {
+        const html = readFileSync(htmlPath, 'utf-8');
+        // Start with the ASSETS already declared in the SW template (static icons + entry files).
+        const assetPaths = new Set<string>();
+        const existingMatch = sw.match(/const ASSETS = \[([\s\S]*?)\];/);
+        if (existingMatch) {
+          for (const m of existingMatch[1].matchAll(/'([^']+)'/g)) {
+            assetPaths.add(m[1]);
+          }
+        }
+        // Add script/link tags with relative paths to hashed chunks.
+        for (const m of html.matchAll(/(?:src|href)=["'](\.\/assets\/[^"']+)["']/g)) {
+          assetPaths.add(m[1]);
+        }
+        // Add any other JS referenced directly from the HTML (e.g. PDF worker, agent-worker).
+        for (const m of html.matchAll(/(?:src|href)=["'](\.\/[^"']+\.js)["']/g)) {
+          assetPaths.add(m[1]);
+        }
+        const assetArray = JSON.stringify(Array.from(assetPaths).sort(), null, 2).replace(/\n/g, '\n  ');
+        sw = sw.replace(/const ASSETS = \[.*?\];/s, `const ASSETS = ${assetArray};`);
+      }
+
       writeFileSync(outPath, sw);
     },
   };

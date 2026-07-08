@@ -5,6 +5,8 @@
 // No DOM, no localStorage, no IndexedDB — fully isolated.
 // ============================================================
 
+import { logger } from '../core/logger.js';
+
 export interface WorkerSandboxResult {
   logs: { level: string; message: string }[];
   result: string;
@@ -134,14 +136,12 @@ export function runInWorkerSandbox(
       worker.terminate();
       // Log the crash so error_log can find it even if the tab recovers
       try {
-        import('../core/logger.js').then(({ logger }) => {
-          logger.error('worker.sandbox', `Worker crashed: ${e.message || 'unknown error'}`, {
-            filename: e.filename,
-            lineno: e.lineno,
-            colno: e.colno,
-            stack: e.error instanceof Error ? e.error.stack : undefined,
-          });
-        }).catch(() => {});
+        logger.error('worker.sandbox', `Worker crashed: ${e.message || 'unknown error'}`, {
+          filename: e.filename,
+          lineno: e.lineno,
+          colno: e.colno,
+          stack: e.error instanceof Error ? e.error.stack : undefined,
+        });
       } catch { /* ignore */ }
       resolve({
         logs: [],
@@ -157,9 +157,7 @@ export function runInWorkerSandbox(
       clearTimeout(timer);
       worker.terminate();
       try {
-        import('../core/logger.js').then(({ logger }) => {
-          logger.error('worker.sandbox', `Worker message error: ${e.data ? String(e.data) : 'uncloneable message'}`, {});
-        }).catch(() => {});
+        logger.error('worker.sandbox', `Worker message error: ${e.data ? String(e.data) : 'uncloneable message'}`, {});
       } catch { /* ignore */ }
       resolve({
         logs: [],

@@ -6,6 +6,7 @@
 import type { Tool, ToolContext } from '../types/index.js';
 import { MemoryStore, loadConfig } from './memory.js';
 import { readLogs, type LogLevel } from './logger.js';
+import { openDB, resetDBConnection } from './db.js';
 
 import { validateArgs } from '../utils/schema_validate.js';
 import sandboxRef from './refs/sandbox.md?raw';
@@ -858,7 +859,6 @@ const sys_check: Tool = {
 
     // 1. Open DB and inspect schema
     try {
-      const { openDB, resetDBConnection } = await import('./db.js');
       if (repair) {
         await resetDBConnection();
       }
@@ -934,7 +934,6 @@ const sys_check: Tool = {
 
     // 5. Logs readable
     try {
-      const { readLogs } = await import('./logger.js');
       const logs = await readLogs({ limit: 1 });
       add('logs_read', 'ok', { count: logs.length });
     } catch (e) {
