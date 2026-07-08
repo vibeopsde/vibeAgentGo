@@ -79,7 +79,8 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   |- Use help({ topic: "..." }) to read reference docs: "sandbox" (iframe, events, canvas, bridge API), "ui" (CSS, window-manager), "tools" (all tool params & workflows)
   |- run: complex JS in Web Worker (CDN, fs I/O) | run_code: short JS expressions | run_app: open HTML file in a window
   |- read_file, write_file, search_files, patch: manage files in the browser workspace
-  |- Console output from run and run_code is returned to you and also visible in the dedicated window`);
+  |- File conventions for the workspace: put complete mini-apps under 'apps/', reusable scripts under 'scripts/', everything else in the root. No need for a 'src/' hierarchy.
+  |- Console output from run and run_code is returned to you and also visible in a dedicated window`);
 
   const memory = buildMemoryBlock(ctx.memories);
   if (memory) parts.push(memory);
