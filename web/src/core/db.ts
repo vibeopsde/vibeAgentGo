@@ -59,7 +59,42 @@ export function openDB(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
-export function tx<T>(
+const DB_RECOVERABLE_ERRORS = new Set([
+  'InvalidStateError',
+  'TransactionInactiveError',
+  'NotFoundError',
+  'UnknownError',
+]);
+
+function isRecoverableDBError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  // IndexedDB errors expose a `name` property (e.g. 'InvalidStateError').
+  if (DB_RECOVERABLE_ERRORS.has(err.name)) return true;
+  const msg = err.message?.toLowerCase() || '';
+  return msg.includes('connection is closing') || msg.includes('invalid state');
+}
+
+async function withDBRetry<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => IDBRequest,
+  attempt = 0
+): Promise<T> {
+  try {
+    return await runTx<T>(storeName, mode, fn);
+  } catch (err) {
+    if (attempt === 0 && isRecoverableDBError(err)) {
+      // Connection likely became stale (e.g. versionchange from another tab,
+      // browser GC, or unexpected InvalidStateError). Reset the cached promise
+      // and retry exactly once before giving up.
+      dbPromise = null;
+      return withDBRetry(storeName, mode, fn, attempt + 1);
+    }
+    throw err;
+  }
+}
+
+function runTx<T>(
   storeName: string,
   mode: IDBTransactionMode,
   fn: (store: IDBObjectStore) => IDBRequest
@@ -89,6 +124,14 @@ export function tx<T>(
           settle(() => resolve(req.result as T));
       })
   );
+}
+
+export function tx<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => IDBRequest
+): Promise<T> {
+  return withDBRetry<T>(storeName, mode, fn);
 }
 
 export function txAll<T>(
@@ -150,19 +193,34 @@ export async function cursorByIndex<T>(
   });
 }
 
+export function resetDBConnection(): Promise<void> {
+  return new Promise((resolve) => {
+    if (dbPromise) {
+      dbPromise
+        .then((db) => {
+          try {
+            db.close();
+          } catch {
+            /* ignore */
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          dbPromise = null;
+          resolve();
+        });
+    } else {
+      dbPromise = null;
+      resolve();
+    }
+  });
+}
+
 export async function resetLocalData(): Promise<void> {
   localStorage.removeItem('vibeAgentGo-config');
   localStorage.removeItem('vibeAgentGo-onboarding');
   localStorage.removeItem('vibeAgentGo-theme');
-  if (dbPromise) {
-    try {
-      const db = await dbPromise;
-      db.close();
-    } catch {
-      /* might already be closed */
-    }
-    dbPromise = null;
-  }
+  await resetDBConnection();
   return new Promise((resolve) => {
     const req = indexedDB.deleteDatabase(DB_NAME);
     req.onsuccess = () => resolve();
