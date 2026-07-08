@@ -231,6 +231,8 @@ export interface ClientConfig {
   gitToken?: string;
   gitCorsProxy?: string;
   gitAutoBackup?: boolean;
+  youtubeProxyUrl?: string;
+  youtubeLanguage?: string;
 }
 
 export function loadConfig(): ClientConfig {
@@ -253,6 +255,8 @@ export function loadConfig(): ClientConfig {
     searchProvider: 'none',
     searchApiKey: '',
     editorTabSize: 2,
+    youtubeProxyUrl: '',
+    youtubeLanguage: defaultLanguage,
   };
   // Strip legacy keys from old stored configs (e.g. maxTokens was removed in V2607.1.9)
   const stripped = (parsed || {}) as Partial<ClientConfig> & { maxTokens?: number };

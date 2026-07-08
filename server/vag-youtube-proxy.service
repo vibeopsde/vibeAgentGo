@@ -1,0 +1,17 @@
+[Unit]
+Description=vibeAgentGo YouTube transcript proxy
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/vibeAgentGo/server
+Environment="YOUTUBE_PROXY_HOST=127.0.0.1"
+Environment="YOUTUBE_PROXY_PORT=8001"
+Environment="YOUTUBE_PROXY_CORS_ORIGINS=https://vag.vibeops.de,https://dev-vag.vibeops.de"
+ExecStart=/usr/local/lib/hermes-agent/venv/bin/python -m uvicorn youtube_proxy:app --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

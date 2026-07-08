@@ -17,3 +17,5 @@ __MACOSX/
 *.db-wal
 *.db-shm
 .hag/
+__pycache__/
+*.pyc
