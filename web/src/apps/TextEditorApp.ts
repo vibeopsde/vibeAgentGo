@@ -7,6 +7,7 @@ import type { App, BridgeRequest, BridgeResponse } from '../types/index.js';
 import { t } from '../i18n/index.js';
 import { escapeHtml } from '../utils/escape.js';
 import { loadConfig } from '../core/memory.js';
+import { GitBackupManager } from '../core/gitBackup.js';
 
 export class TextEditorApp implements App {
   id = 'editor';
@@ -372,6 +373,7 @@ export class TextEditorApp implements App {
       this.setDirty(false);
       this.setStatus(t('editor.saved') || 'Saved');
       this.onSave?.(this.currentPath);
+      this.autoGitBackup();
     } else {
       this.setStatus(t('editor.saveError') || 'Save failed', true);
     }
@@ -399,6 +401,26 @@ export class TextEditorApp implements App {
   private setStatus(text: string, error = false) {
     this.statusEl.textContent = text;
     this.statusEl.className = `editor-status ${error ? 'error' : ''}`;
+  }
+
+  private async autoGitBackup() {
+    const config = loadConfig();
+    if (!config.gitAutoBackup || !config.gitUrl || !config.gitToken) return;
+    try {
+      await new GitBackupManager().push(
+        {
+          url: config.gitUrl,
+          username: config.gitUsername || '',
+          token: config.gitToken,
+          corsProxy: config.gitCorsProxy,
+        },
+        `auto: ${new Date().toISOString()}`
+      );
+    } catch (err) {
+      // Silent background backup; surface would be noisy
+      // eslint-disable-next-line no-console
+      console.warn('Auto git backup failed', err);
+    }
   }
 
   onClose(): boolean {

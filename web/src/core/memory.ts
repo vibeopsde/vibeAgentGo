@@ -226,6 +226,11 @@ export interface ClientConfig {
   searchApiKey: string
   sounds?: boolean;
   editorTabSize?: number;
+  gitUrl?: string;
+  gitUsername?: string;
+  gitToken?: string;
+  gitCorsProxy?: string;
+  gitAutoBackup?: boolean;
 }
 
 export function loadConfig(): ClientConfig {

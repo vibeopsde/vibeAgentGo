@@ -1864,6 +1864,18 @@ select {
   margin-top: 12px;
 }
 
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0 20px;
+}
+
+.settings-section-subtitle {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
 .settings-content .memory-panel,
 .settings-content .skills-panel {
   padding: 0;
