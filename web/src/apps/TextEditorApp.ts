@@ -30,7 +30,11 @@ export class TextEditorApp implements App {
     this.element.innerHTML = `
       <div class="editor-header">
         <span class="editor-path">${t('editor.untitled') || 'Untitled'}</span>
-        <button class="editor-save" title="${t('editor.save') || 'Save'} (Ctrl+S)">💾</button>
+        <div class="editor-actions">
+          <button class="editor-new" title="${t('editor.newFile') || 'New File'} (Ctrl+N)">📄</button>
+          <button class="editor-save" title="${t('editor.save') || 'Save'} (Ctrl+S)">💾</button>
+          <button class="editor-save-as" title="${t('editor.saveAs') || 'Save As'} (Ctrl+Shift+S)">💾➕</button>
+        </div>
       </div>
       <textarea class="editor-textarea" spellcheck="false"></textarea>
       <div class="editor-status"></div>
@@ -41,14 +45,88 @@ export class TextEditorApp implements App {
     this.statusEl = this.element.querySelector('.editor-status') as HTMLElement;
 
     this.textarea.addEventListener('input', () => this.markDirty());
-    this.textarea.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
+    this.textarea.addEventListener('keydown', (e) => this.handleKeydown(e));
+
+    this.element.querySelector('.editor-new')?.addEventListener('click', () => this.newFile());
+    this.element.querySelector('.editor-save')?.addEventListener('click', () => this.save());
+    this.element.querySelector('.editor-save-as')?.addEventListener('click', () => this.saveAs());
+  }
+
+  private handleKeydown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        this.saveAs();
+      } else {
         this.save();
       }
-    });
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+      e.preventDefault();
+      this.newFile();
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = this.textarea.selectionStart;
+      const end = this.textarea.selectionEnd;
+      const value = this.textarea.value;
+      if (e.shiftKey) {
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const before = value.slice(lineStart, start);
+        if (before.startsWith('  ')) {
+          this.textarea.setRangeText(before.slice(2), lineStart, start, 'end');
+        } else if (before.startsWith('\t')) {
+          this.textarea.setRangeText(before.slice(1), lineStart, start, 'end');
+        }
+      } else {
+        this.textarea.setRangeText('  ', start, end, 'end');
+      }
+      this.markDirty();
+    }
+  }
 
-    this.element.querySelector('.editor-save')?.addEventListener('click', () => this.save());
+  private async ensurePath(): Promise<string | null> {
+    if (this.currentPath) return this.currentPath;
+    return this.promptForPath(t('editor.saveAsPrompt') || 'File name?');
+  }
+
+  private async promptForPath(message: string): Promise<string | null> {
+    const input = window.prompt(message, this.currentPath || 'untitled.txt');
+    if (!input) return null;
+    const path = input.trim().replace(/^\/+|\/+$/g, '');
+    if (!path) return null;
+    return path;
+  }
+
+  private async newFile() {
+    if (this.isDirty && !window.confirm(t('editor.unsavedChanges') || 'Discard unsaved changes?')) {
+      return;
+    }
+    const path = await this.promptForPath(t('editor.newFilePrompt') || 'Name for new file?');
+    if (!path) return;
+    const res = await this.onBridgeRequest?.({ type: 'readFile', path });
+    if (res?.ok) {
+      const overwrite = window.confirm(t('editor.fileExists') || 'File exists. Overwrite?');
+      if (!overwrite) return;
+    }
+    this.currentPath = path;
+    this.textarea.value = '';
+    this.setDirty(false);
+    this.setPathDisplay();
+    this.setStatus(t('editor.newFileCreated') || 'New file created');
+    await this.save();
+  }
+
+  private async saveAs() {
+    const path = await this.promptForPath(t('editor.saveAsPrompt') || 'Save as file name?');
+    if (!path) return;
+    this.currentPath = path;
+    this.setPathDisplay();
+    await this.save();
+  }
+
+  private setPathDisplay() {
+    this.pathEl.textContent = this.currentPath ? (this.isDirty ? `● ${this.currentPath}` : this.currentPath) : (t('editor.untitled') || 'Untitled');
   }
 
   setBridgeHandler(handler: (req: BridgeRequest) => Promise<BridgeResponse>) {
@@ -80,7 +158,10 @@ export class TextEditorApp implements App {
   }
 
   private async save() {
-    if (!this.currentPath) return;
+    const path = await this.ensurePath();
+    if (!path) return;
+    this.currentPath = path;
+    this.setPathDisplay();
     const content = this.textarea.value;
     const res = await this.onBridgeRequest?.({ type: 'writeFile', path: this.currentPath, content });
     if (res?.ok) {
@@ -98,7 +179,7 @@ export class TextEditorApp implements App {
   private setDirty(dirty: boolean) {
     this.isDirty = dirty;
     this.element.classList.toggle('dirty', dirty);
-    this.pathEl.textContent = this.currentPath ? (dirty ? `● ${this.currentPath}` : this.currentPath) : (t('editor.untitled') || 'Untitled');
+    this.setPathDisplay();
   }
 
   private setStatus(text: string, error = false) {

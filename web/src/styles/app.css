@@ -2353,7 +2353,15 @@ select {
   color: var(--accent, #3b82f6);
 }
 
-.editor-save {
+.editor-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.editor-new,
+.editor-save,
+.editor-save-as {
   width: 28px;
   height: 28px;
   display: flex;
@@ -2366,10 +2374,17 @@ select {
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
+  padding: 0;
 }
 
-.editor-save:hover {
+.editor-new:hover,
+.editor-save:hover,
+.editor-save-as:hover {
   background: var(--bg-hover);
+}
+
+.editor-save-as {
+  font-size: 13px;
 }
 
 .editor-textarea {

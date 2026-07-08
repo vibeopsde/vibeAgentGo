@@ -156,6 +156,12 @@ const de: Translations = {
   'editor.saveError': 'Speichern fehlgeschlagen',
   'editor.loaded': 'Geladen',
   'editor.unsavedChanges': 'Ungespeicherte Änderungen verwerfen?',
+  'editor.newFile': 'Neue Datei',
+  'editor.saveAs': 'Speichern unter',
+  'editor.newFilePrompt': 'Name der neuen Datei?',
+  'editor.saveAsPrompt': 'Dateiname zum Speichern?',
+  'editor.fileExists': 'Datei existiert bereits. Überschreiben?',
+  'editor.newFileCreated': 'Neue Datei erstellt',
 
   // Skills
   'skills.title': 'Skills',
@@ -331,6 +337,12 @@ const en: Translations = {
   'editor.saveError': 'Save failed',
   'editor.loaded': 'Loaded',
   'editor.unsavedChanges': 'Discard unsaved changes?',
+  'editor.newFile': 'New File',
+  'editor.saveAs': 'Save As',
+  'editor.newFilePrompt': 'Name for new file?',
+  'editor.saveAsPrompt': 'File name to save?',
+  'editor.fileExists': 'File already exists. Overwrite?',
+  'editor.newFileCreated': 'New file created',
 
   // Skills
   'skills.title': 'Skills',
