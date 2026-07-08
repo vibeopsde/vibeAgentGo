@@ -44,17 +44,22 @@ export class ExplorerApp implements App {
         <span class="explorer-title">${t('explorer.title') || 'Explorer'}</span>
         <button class="explorer-new-folder" title="${t('explorer.newFolder') || 'New folder'}">📁＋</button>
         <button class="explorer-new-file" title="${t('explorer.newFile') || 'New file'}">＋</button>
+        <button class="explorer-upload" title="${t('explorer.upload') || 'Upload files'}">⬆</button>
         <button class="explorer-refresh" title="${t('explorer.refresh') || 'Refresh'}">↻</button>
       </div>
       <div class="explorer-list"></div>
       <div class="explorer-empty">${t('explorer.empty') || 'No files yet'}</div>
+      <input type="file" class="explorer-upload-input" multiple style="display: none;">
     `;
 
     this.listEl = this.element.querySelector('.explorer-list') as HTMLElement;
+    const uploadInput = this.element.querySelector('.explorer-upload-input') as HTMLInputElement;
 
     this.element.querySelector('.explorer-new-folder')?.addEventListener('click', () => this.createFolder());
     this.element.querySelector('.explorer-new-file')?.addEventListener('click', () => this.createFile());
     this.element.querySelector('.explorer-refresh')?.addEventListener('click', () => this.refresh());
+    this.element.querySelector('.explorer-upload')?.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', () => this.handleUpload(uploadInput.files));
   }
 
   setBridgeHandler(handler: (req: BridgeRequest) => Promise<BridgeResponse>) {
@@ -182,6 +187,8 @@ export class ExplorerApp implements App {
       <span class="explorer-name" title="${escapeHtml(node.path)}">${escapeHtml(node.name)}</span>
       <div class="explorer-actions">
         ${isHtml ? '<button class="explorer-play" title="Run">▶</button>' : ''}
+        <button class="explorer-duplicate" title="${t('explorer.duplicate') || 'Duplicate'}">⎘</button>
+        <button class="explorer-download" title="${t('explorer.download') || 'Download'}">⬇</button>
         <button class="explorer-rename" title="${t('common.rename') || 'Rename'}">✎</button>
         <button class="explorer-delete" title="${t('common.delete') || 'Delete'}">×</button>
       </div>
@@ -199,6 +206,14 @@ export class ExplorerApp implements App {
     el.querySelector('.explorer-rename')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.renameFile(node.path);
+    });
+    el.querySelector('.explorer-duplicate')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.duplicateFile(node.path);
+    });
+    el.querySelector('.explorer-download')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.downloadFile(node.path);
     });
     if (isHtml) {
       el.querySelector('.explorer-play')?.addEventListener('click', async (e) => {
@@ -334,6 +349,59 @@ export class ExplorerApp implements App {
     if (this.expandedFolders.has(oldPath)) {
       this.expandedFolders.delete(oldPath);
       this.expandedFolders.add(newPath);
+    }
+    await this.refresh();
+  }
+
+  private async duplicateFile(path: string) {
+    const file = this.files.find((f) => f.path === path);
+    if (!file) return;
+    const parts = path.split('/');
+    const name = parts.pop() || path;
+    const ext = name.includes('.') ? name.split('.').pop()! : '';
+    const base = ext ? name.slice(0, -(ext.length + 1)) : name;
+    const parent = parts.join('/');
+    const generateName = (n: number): string => {
+      const candidate = `${base} copy${n === 1 ? '' : ` ${n}`}${ext ? `.${ext}` : ''}`;
+      return parent ? `${parent}/${candidate}` : candidate;
+    };
+    let n = 1;
+    while (this.files.some((f) => f.path === generateName(n))) n++;
+    const newPath = generateName(n);
+    await this.onBridgeRequest?.({ type: 'writeFile', path: newPath, content: file.content });
+    await this.refresh();
+    this.activePath = newPath;
+    this.onOpenFile?.(newPath);
+  }
+
+  private async downloadFile(path: string) {
+    const res = await this.onBridgeRequest?.({ type: 'readFile', path });
+    if (!res?.ok) return;
+    const blob = new Blob([String(res.data ?? '')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = path.split('/').pop() || path;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private async handleUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    for (const file of Array.from(files)) {
+      const text = await file.text();
+      const name = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.\-]/g, '');
+      if (!name) continue;
+      let path = name;
+      let n = 1;
+      while (this.files.some((f) => f.path === path)) {
+        const ext = name.includes('.') ? name.split('.').pop()! : '';
+        const base = ext ? name.slice(0, -(ext.length + 1)) : name;
+        const candidate = `${base}_${n}${ext ? `.${ext}` : ''}`;
+        path = candidate;
+        n++;
+      }
+      await this.onBridgeRequest?.({ type: 'writeFile', path, content: text });
     }
     await this.refresh();
   }

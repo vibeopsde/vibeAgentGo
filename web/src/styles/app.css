@@ -2042,6 +2042,10 @@ select {
   background: var(--bg-hover);
 }
 
+.explorer-upload-input {
+  display: none;
+}
+
 .explorer-list {
   flex: 1;
   overflow: auto;
@@ -2136,6 +2140,8 @@ select {
 .explorer-item .explorer-delete,
 .explorer-item .explorer-play,
 .explorer-item .explorer-rename,
+.explorer-item .explorer-duplicate,
+.explorer-item .explorer-download,
 .explorer-folder .explorer-delete,
 .explorer-folder .explorer-rename {
   width: 22px;
@@ -2157,6 +2163,8 @@ select {
 .explorer-item:hover .explorer-delete,
 .explorer-item:hover .explorer-play,
 .explorer-item:hover .explorer-rename,
+.explorer-item:hover .explorer-duplicate,
+.explorer-item:hover .explorer-download,
 .explorer-folder:hover .explorer-delete,
 .explorer-folder:hover .explorer-rename {
   opacity: 1;
@@ -2168,11 +2176,9 @@ select {
   background: var(--bg-elev);
 }
 
-.explorer-item .explorer-play:hover {
-  color: var(--accent, #3b82f6);
-  background: var(--bg-elev);
-}
-
+.explorer-item .explorer-play:hover,
+.explorer-item .explorer-download:hover,
+.explorer-item .explorer-duplicate:hover,
 .explorer-item .explorer-rename:hover,
 .explorer-folder .explorer-rename:hover {
   color: var(--accent, #3b82f6);
