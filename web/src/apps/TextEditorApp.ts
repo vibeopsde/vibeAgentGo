@@ -16,6 +16,7 @@ export class TextEditorApp implements App {
   private statusEl!: HTMLElement;
   private pathEl!: HTMLElement;
   private onBridgeRequest: ((req: BridgeRequest) => Promise<BridgeResponse>) | null = null;
+  private onOpenFile: ((path: string) => void) | null = null;
   private currentPath: string | null = null;
   private isDirty = false;
 
@@ -54,6 +55,10 @@ export class TextEditorApp implements App {
     this.onBridgeRequest = handler;
   }
 
+  setOnOpenFile(handler: (path: string) => void) {
+    this.onOpenFile = handler;
+  }
+
   mount(container: HTMLElement) {
     container.innerHTML = '';
     container.appendChild(this.element);
@@ -62,6 +67,7 @@ export class TextEditorApp implements App {
   openFile(path: string) {
     this.currentPath = path;
     this.pathEl.textContent = path;
+    this.onOpenFile?.(path);
     this.load();
   }
 

@@ -2065,8 +2065,52 @@ select {
   user-select: none;
 }
 
-.explorer-item:hover {
+.explorer-item:hover,
+.explorer-item.active {
   background: var(--bg-hover);
+}
+
+.explorer-folder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.explorer-folder:hover {
+  background: var(--bg-hover);
+}
+
+.explorer-folder .explorer-folder-toggle {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.explorer-folder .explorer-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.explorer-folder .explorer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.explorer-folder .explorer-folder-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .explorer-item .explorer-icon {
@@ -2090,7 +2134,10 @@ select {
 }
 
 .explorer-item .explorer-delete,
-.explorer-item .explorer-play {
+.explorer-item .explorer-play,
+.explorer-item .explorer-rename,
+.explorer-folder .explorer-delete,
+.explorer-folder .explorer-rename {
   width: 22px;
   height: 22px;
   display: flex;
@@ -2102,22 +2149,32 @@ select {
   border: none;
   color: var(--text-muted);
   opacity: 0;
-  font-size: 18px;
+  font-size: 14px;
   line-height: 1;
   padding: 0;
 }
 
 .explorer-item:hover .explorer-delete,
-.explorer-item:hover .explorer-play {
+.explorer-item:hover .explorer-play,
+.explorer-item:hover .explorer-rename,
+.explorer-folder:hover .explorer-delete,
+.explorer-folder:hover .explorer-rename {
   opacity: 1;
 }
 
-.explorer-item .explorer-delete:hover {
+.explorer-item .explorer-delete:hover,
+.explorer-folder .explorer-delete:hover {
   color: var(--danger, #ef4444);
   background: var(--bg-elev);
 }
 
 .explorer-item .explorer-play:hover {
+  color: var(--accent, #3b82f6);
+  background: var(--bg-elev);
+}
+
+.explorer-item .explorer-rename:hover,
+.explorer-folder .explorer-rename:hover {
   color: var(--accent, #3b82f6);
   background: var(--bg-elev);
 }

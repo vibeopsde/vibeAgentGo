@@ -436,6 +436,13 @@ export class AppController {
     this.wm.registerApp('editor', () => {
       const app = new TextEditorApp();
       app.setBridgeHandler(this.handleBridgeRequest);
+      app.setOnOpenFile((path) => {
+        const explorerWins = this.wm.getWindowsByApp('explorer');
+        for (const winId of explorerWins) {
+          const inst = this.wm.getInstance(winId) as ExplorerApp | undefined;
+          inst?.setActivePath(path);
+        }
+      });
       return app;
     });
 

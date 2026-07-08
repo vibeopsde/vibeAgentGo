@@ -30,6 +30,7 @@ export class ExplorerApp implements App {
   private onRunApp: ((title: string, html: string) => void) | null = null;
   private files: FileEntry[] = [];
   private expandedFolders = new Set<string>();
+  private activePath: string | null = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -66,6 +67,11 @@ export class ExplorerApp implements App {
 
   setOnRunApp(handler: (title: string, html: string) => void) {
     this.onRunApp = handler;
+  }
+
+  setActivePath(path: string | null) {
+    this.activePath = path;
+    this.render();
   }
 
   mount(container: HTMLElement) {
@@ -106,7 +112,7 @@ export class ExplorerApp implements App {
       for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
         const path = i === 0 ? part : `${parentPath}/${part}`;
-        const isFolder = i < parts.length - 1;
+        const isFolder = i < parts.length - 1 || part === '.keep';
         const existing = map.get(path);
         if (!existing) {
           const node: TreeNode = { name: part, path, isFolder, children: [] };
@@ -125,8 +131,14 @@ export class ExplorerApp implements App {
   }
 
   private renderNode(container: HTMLElement, node: TreeNode, depth: number) {
+    // Hide placeholder .keep files from the tree; they only exist to keep empty folders visible
+    if (node.name === '.keep' && node.isFolder) return;
+
     const el = document.createElement('div');
     el.className = node.isFolder ? 'explorer-folder' : 'explorer-item';
+    if (!node.isFolder && node.path === this.activePath) {
+      el.classList.add('active');
+    }
     el.style.paddingLeft = `${depth * 16 + 8}px`;
 
     if (node.isFolder) {
@@ -135,10 +147,22 @@ export class ExplorerApp implements App {
         <span class="explorer-folder-toggle">${expanded ? '▼' : '▶'}</span>
         <span class="explorer-icon">📁</span>
         <span class="explorer-name">${escapeHtml(node.name)}</span>
+        <div class="explorer-folder-actions">
+          <button class="explorer-rename" title="${t('common.rename') || 'Rename'}">✎</button>
+          <button class="explorer-delete" title="${t('common.delete') || 'Delete'}">×</button>
+        </div>
       `;
       el.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('.explorer-folder-actions')) return;
         this.toggleFolder(node.path);
+      });
+      el.querySelector('.explorer-delete')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deleteFolder(node.path);
+      });
+      el.querySelector('.explorer-rename')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.renameFolder(node.path);
       });
       container.appendChild(el);
       if (expanded) {
@@ -158,17 +182,23 @@ export class ExplorerApp implements App {
       <span class="explorer-name" title="${escapeHtml(node.path)}">${escapeHtml(node.name)}</span>
       <div class="explorer-actions">
         ${isHtml ? '<button class="explorer-play" title="Run">▶</button>' : ''}
+        <button class="explorer-rename" title="${t('common.rename') || 'Rename'}">✎</button>
         <button class="explorer-delete" title="${t('common.delete') || 'Delete'}">×</button>
       </div>
     `;
     el.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('.explorer-delete')) return;
-      if ((e.target as HTMLElement).closest('.explorer-play')) return;
+      if ((e.target as HTMLElement).closest('.explorer-actions')) return;
+      this.activePath = node.path;
       this.onOpenFile?.(node.path);
+      this.render();
     });
     el.querySelector('.explorer-delete')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.deleteFile(node.path);
+    });
+    el.querySelector('.explorer-rename')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.renameFile(node.path);
     });
     if (isHtml) {
       el.querySelector('.explorer-play')?.addEventListener('click', async (e) => {
@@ -235,12 +265,76 @@ export class ExplorerApp implements App {
     await this.refresh();
     this.expandedFolders.add(path.split('/').slice(0, -1).join('/'));
     this.render();
+    this.activePath = path;
     this.onOpenFile?.(path);
   }
 
   private async deleteFile(path: string) {
     if (!window.confirm((t('explorer.confirmDelete') || 'Delete {path}?').replace('{path}', path))) return;
     await this.onBridgeRequest?.({ type: 'deleteFile', path });
+    if (this.activePath === path) this.activePath = null;
+    await this.refresh();
+  }
+
+  private async renameFile(oldPath: string) {
+    const oldName = oldPath.split('/').pop() || oldPath;
+    const newName = window.prompt(t('explorer.renamePrompt') || 'Rename file:', oldName);
+    if (!newName || newName.trim() === oldName.trim()) return;
+    const cleanName = newName.trim().replace(/^\/+/, '');
+    if (!cleanName) return;
+    const newPath = oldPath.split('/').slice(0, -1).concat(cleanName).join('/');
+    if (this.files.some((f) => f.path === newPath)) {
+      window.alert(t('explorer.fileExists') || 'A file already exists with that name');
+      return;
+    }
+    const content = this.files.find((f) => f.path === oldPath)?.content ?? '';
+    await this.onBridgeRequest?.({ type: 'writeFile', path: newPath, content });
+    await this.onBridgeRequest?.({ type: 'deleteFile', path: oldPath });
+    if (this.activePath === oldPath) this.activePath = newPath;
+    await this.refresh();
+  }
+
+  private async deleteFolder(path: string) {
+    const children = this.files.filter((f) => f.path === path || f.path.startsWith(`${path}/`));
+    if (children.length === 0) return;
+    if (!window.confirm((t('explorer.confirmDeleteFolder') || 'Delete folder {path} and all its contents?').replace('{path}', path))) return;
+    for (const file of children) {
+      await this.onBridgeRequest?.({ type: 'deleteFile', path: file.path });
+    }
+    if (this.activePath && this.activePath.startsWith(`${path}/`)) this.activePath = null;
+    this.expandedFolders.delete(path);
+    await this.refresh();
+  }
+
+  private async renameFolder(oldPath: string) {
+    const oldName = oldPath.split('/').pop() || oldPath;
+    const newName = window.prompt(t('explorer.renameFolderPrompt') || 'Rename folder:', oldName);
+    if (!newName || newName.trim() === oldName.trim()) return;
+    const cleanName = newName.trim().replace(/^\/+/, '').replace(/\/+$/, '');
+    if (!cleanName) return;
+    const parentPath = oldPath.split('/').slice(0, -1).join('/');
+    const newPath = parentPath ? `${parentPath}/${cleanName}` : cleanName;
+
+    if (this.files.some((f) => f.path === newPath || f.path.startsWith(`${newPath}/`))) {
+      window.alert(t('explorer.folderExists') || 'A folder already exists with that name');
+      return;
+    }
+
+    const affected = this.files.filter((f) => f.path === oldPath || f.path.startsWith(`${oldPath}/`));
+    for (const file of affected) {
+      const newFilePath = file.path.replace(oldPath, newPath);
+      await this.onBridgeRequest?.({ type: 'writeFile', path: newFilePath, content: file.content });
+    }
+    for (const file of affected) {
+      await this.onBridgeRequest?.({ type: 'deleteFile', path: file.path });
+    }
+    if (this.activePath && this.activePath.startsWith(`${oldPath}/`)) {
+      this.activePath = this.activePath.replace(oldPath, newPath);
+    }
+    if (this.expandedFolders.has(oldPath)) {
+      this.expandedFolders.delete(oldPath);
+      this.expandedFolders.add(newPath);
+    }
     await this.refresh();
   }
 
