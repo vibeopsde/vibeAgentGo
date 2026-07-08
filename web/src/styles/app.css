@@ -1104,6 +1104,13 @@ select {
 
 /* --- Sessions --- */
 
+.session-title-header {
+  text-align: center;
+  padding: 12px 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
 .session-item {
   display: flex;
   align-items: center;
