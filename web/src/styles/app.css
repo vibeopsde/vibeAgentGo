@@ -1936,6 +1936,7 @@ select {
   display: flex;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .chat-main {
@@ -1946,20 +1947,21 @@ select {
 }
 
 .chat-session-drawer {
-  width: 280px;
-  max-width: 80vw;
+  width: 0;
   height: 100%;
   background: var(--bg-elev);
-  border-right: 1px solid var(--border);
-  overflow: auto;
-  transform: translateX(-100%);
-  transition: transform 0.2s ease;
+  border-right: none;
+  overflow: hidden;
   flex-shrink: 0;
+  transition: width 0.2s ease, border-right-width 0.2s ease;
   position: relative;
 }
 
 .chat-session-drawer.open {
-  transform: translateX(0);
+  width: 280px;
+  max-width: 80vw;
+  border-right: 1px solid var(--border);
+  overflow: auto;
 }
 
 @media (max-width: 640px) {
@@ -1968,8 +1970,13 @@ select {
     top: 0;
     left: 0;
     z-index: 2000;
-    width: 85vw;
+    width: 0;
+    max-width: 85vw;
     box-shadow: 2px 0 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .chat-session-drawer.open {
+    width: 85vw;
   }
 }
 
