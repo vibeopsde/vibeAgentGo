@@ -56,12 +56,12 @@ export class ChatPanel {
     menuEl.style.display = 'none';
     menuEl.innerHTML = `
       <button class="chat-menu-item" data-action="new-chat">
-        <span class="chat-menu-icon">✨</span>
+        <span class="chat-menu-icon">➕</span>
         <span>${t('header.newChat') || 'New chat'}</span>
       </button>
       <button class="chat-menu-item" data-action="sessions">
-        <span class="chat-menu-icon">💬</span>
-        <span>${t('chat.sessions') || 'Sessions'}</span>
+        <span class="chat-menu-icon">🗃️</span>
+        <span>${t('chat.sessions')}</span>
       </button>
       <button class="chat-menu-item" data-action="attach">
         <span class="chat-menu-icon">📎</span>

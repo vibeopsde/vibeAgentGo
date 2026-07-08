@@ -33,6 +33,8 @@ const de: Translations = {
   // Chat
   'chat.placeholder': 'Nachricht an vibeAgentGo...',
   'chat.attachFile': 'Datei anhängen',
+  'chat.sessions': 'Sessions',
+  'chat.menu': 'Menü',
   'chat.removeAttachment': 'Anhang entfernen',
   'chat.toolCall': 'Tool-Aufruf',
 
@@ -196,6 +198,8 @@ const en: Translations = {
   // Chat
   'chat.placeholder': 'Message vibeAgentGo...',
   'chat.attachFile': 'Attach file',
+  'chat.sessions': 'Sessions',
+  'chat.menu': 'Menu',
   'chat.removeAttachment': 'Remove attachment',
   'chat.toolCall': 'Tool call',
 
