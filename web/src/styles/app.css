@@ -20,6 +20,8 @@
   --radius: 8px;
   --header-h: 48px;
   --mobile-nav-h: 64px;
+  --dock-bg: rgba(22, 27, 34, 0.92);
+  --dock-shadow: rgba(0, 0, 0, 0.3);
 }
 
 /* Light theme: manual override or system preference */
@@ -43,6 +45,8 @@
   --text-on-accent: #ffffff;
   --danger: #cf222e;
   --danger-hover: #a40e26;
+  --dock-bg: rgba(255, 255, 255, 0.92);
+  --dock-shadow: rgba(0, 0, 0, 0.15);
 }
 
 @media (prefers-color-scheme: light) {
@@ -61,6 +65,8 @@
     --text-on-accent: #ffffff;
     --danger: #cf222e;
     --danger-hover: #a40e26;
+    --dock-bg: rgba(255, 255, 255, 0.92);
+    --dock-shadow: rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -1611,10 +1617,10 @@ select {
   display: flex;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(22, 27, 34, 0.92);
+  background: var(--dock-bg);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px var(--dock-shadow);
   backdrop-filter: blur(8px);
   z-index: 1000;
 }
