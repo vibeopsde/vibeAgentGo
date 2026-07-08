@@ -32,6 +32,7 @@ export class ExplorerApp implements App {
   private expandedFolders = new Set<string>();
   private activePath: string | null = null;
   private contextMenu: HTMLElement | null = null;
+  private searchQuery = '';
 
   constructor() {
     this.element = document.createElement('div');
@@ -48,19 +49,29 @@ export class ExplorerApp implements App {
         <button class="explorer-upload" title="${t('explorer.upload') || 'Upload files'}">⬆</button>
         <button class="explorer-refresh" title="${t('explorer.refresh') || 'Refresh'}">↻</button>
       </div>
+      <div class="explorer-search">
+        <input type="text" class="explorer-search-input" placeholder="${t('explorer.search') || 'Search files...'}" />
+      </div>
+      <div class="explorer-breadcrumbs"></div>
       <div class="explorer-list" tabindex="0"></div>
+      <div class="explorer-details"></div>
       <div class="explorer-empty">${t('explorer.empty') || 'No files yet'}</div>
       <input type="file" class="explorer-upload-input" multiple style="display: none;">
     `;
 
     this.listEl = this.element.querySelector('.explorer-list') as HTMLElement;
     const uploadInput = this.element.querySelector('.explorer-upload-input') as HTMLInputElement;
+    const searchInput = this.element.querySelector('.explorer-search-input') as HTMLInputElement;
 
     this.element.querySelector('.explorer-new-folder')?.addEventListener('click', () => this.createFolder());
     this.element.querySelector('.explorer-new-file')?.addEventListener('click', () => this.createFile());
     this.element.querySelector('.explorer-refresh')?.addEventListener('click', () => this.refresh());
     this.element.querySelector('.explorer-upload')?.addEventListener('click', () => uploadInput.click());
     uploadInput.addEventListener('change', () => this.handleUpload(uploadInput.files));
+    searchInput.addEventListener('input', () => {
+      this.searchQuery = searchInput.value.trim().toLowerCase();
+      this.render();
+    });
 
     this.setupDragDrop();
     document.addEventListener('click', () => this.closeContextMenu());
@@ -118,6 +129,8 @@ export class ExplorerApp implements App {
   private render() {
     this.closeContextMenu();
     this.listEl.innerHTML = '';
+    this.renderBreadcrumbs();
+    this.renderDetails();
     const empty = this.element.querySelector('.explorer-empty') as HTMLElement;
     if (this.files.length === 0) {
       empty.style.display = 'block';
@@ -126,9 +139,97 @@ export class ExplorerApp implements App {
     empty.style.display = 'none';
 
     const tree = this.buildTree();
-    for (const node of tree) {
-      this.renderNode(this.listEl, node, 0);
+    if (this.searchQuery) {
+      const filtered = this.collectSearchResults(tree);
+      if (filtered.length === 0) {
+        this.listEl.innerHTML = `<div class="explorer-no-results">${t('explorer.noResults') || 'No files found'}</div>`;
+      } else {
+        for (const node of filtered) {
+          this.renderNode(this.listEl, node, 0, true);
+        }
+      }
+      return;
     }
+    for (const node of tree) {
+      this.renderNode(this.listEl, node, 0, false);
+    }
+  }
+
+  private collectSearchResults(tree: TreeNode[]): TreeNode[] {
+    const results: TreeNode[] = [];
+    const walk = (node: TreeNode) => {
+      if (!node.isFolder) {
+        if (node.name.toLowerCase().includes(this.searchQuery) || node.path.toLowerCase().includes(this.searchQuery)) {
+          results.push(node);
+        }
+      }
+      for (const child of node.children) walk(child);
+    };
+    for (const node of tree) walk(node);
+    return results;
+  }
+
+  private renderBreadcrumbs() {
+    const el = this.element.querySelector('.explorer-breadcrumbs') as HTMLElement;
+    if (!this.activePath) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = 'flex';
+    const parts = this.activePath.split('/');
+    let acc = '';
+    const crumbs = parts.map((part, i) => {
+      acc = acc ? `${acc}/${part}` : part;
+      const isLast = i === parts.length - 1;
+      return `<button class="explorer-crumb${isLast ? ' active' : ''}" data-path="${escapeHtml(acc)}" ${isLast ? 'disabled' : ''}>${escapeHtml(part)}</button>`;
+    });
+    el.innerHTML = `<button class="explorer-crumb" data-path="">${t('explorer.root') || 'Root'}</button> > ${crumbs.join(' > ')}`;
+    el.querySelectorAll('.explorer-crumb').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const path = (e.currentTarget as HTMLElement).dataset.path ?? '';
+        if (!path) return;
+        if (path.split('/').length === 1 || this.files.some((f) => f.path === path || f.path.startsWith(`${path}/`))) {
+          this.expandedFolders.add(path);
+        }
+        this.render();
+      });
+    });
+  }
+
+  private renderDetails() {
+    const el = this.element.querySelector('.explorer-details') as HTMLElement;
+    if (!this.activePath) {
+      el.style.display = 'none';
+      el.innerHTML = '';
+      return;
+    }
+    const file = this.files.find((f) => f.path === this.activePath);
+    const isFolder = !file && this.files.some((f) => f.path.startsWith(`${this.activePath}/`));
+    el.style.display = 'block';
+    if (file) {
+      const bytes = new Blob([file.content]).size;
+      const lines = file.content.split('\n').length;
+      el.innerHTML = `
+        <div class="explorer-detail-row"><span>Path</span><span title="${escapeHtml(file.path)}">${escapeHtml(file.path)}</span></div>
+        <div class="explorer-detail-row"><span>Size</span><span>${this.formatBytes(bytes)}</span></div>
+        <div class="explorer-detail-row"><span>Lines</span><span>${lines}</span></div>
+      `;
+    } else if (isFolder) {
+      const childCount = this.files.filter((f) => f.path.startsWith(`${this.activePath}/`) && !f.path.slice(`${this.activePath}/`.length).includes('/')).length;
+      el.innerHTML = `
+        <div class="explorer-detail-row"><span>Path</span><span title="${escapeHtml(this.activePath)}">${escapeHtml(this.activePath)}</span></div>
+        <div class="explorer-detail-row"><span>Type</span><span>Folder</span></div>
+        <div class="explorer-detail-row"><span>Items</span><span>${childCount}</span></div>
+      `;
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  private formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   private buildTree(): TreeNode[] {
@@ -160,7 +261,7 @@ export class ExplorerApp implements App {
     return root;
   }
 
-  private renderNode(container: HTMLElement, node: TreeNode, depth: number) {
+  private renderNode(container: HTMLElement, node: TreeNode, depth: number, flatSearch = false) {
     if (node.name === '.keep' && node.isFolder) return;
 
     const el = document.createElement('div');
@@ -174,7 +275,7 @@ export class ExplorerApp implements App {
     el.dataset.type = node.isFolder ? 'folder' : 'file';
 
     if (node.isFolder) {
-      const expanded = this.expandedFolders.has(node.path);
+      const expanded = this.expandedFolders.has(node.path) || this.searchQuery !== '';
       el.innerHTML = `
         <span class="explorer-folder-toggle">${expanded ? '▼' : '▶'}</span>
         <span class="explorer-icon">📁</span>
@@ -202,7 +303,7 @@ export class ExplorerApp implements App {
         const childrenContainer = document.createElement('div');
         childrenContainer.className = 'explorer-folder-children';
         for (const child of node.children) {
-          this.renderNode(childrenContainer, child, depth + 1);
+          this.renderNode(childrenContainer, child, depth + 1, flatSearch);
         }
         container.appendChild(childrenContainer);
       }
