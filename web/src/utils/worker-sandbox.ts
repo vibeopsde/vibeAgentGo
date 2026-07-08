@@ -150,6 +150,24 @@ export function runInWorkerSandbox(
       });
     };
 
+    // Worker crashed with an uncloneable message or serialization error
+    worker.onmessageerror = (e: MessageEvent) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      worker.terminate();
+      try {
+        import('../core/logger.js').then(({ logger }) => {
+          logger.error('worker.sandbox', `Worker message error: ${e.data ? String(e.data) : 'uncloneable message'}`, {});
+        }).catch(() => {});
+      } catch { /* ignore */ }
+      resolve({
+        logs: [],
+        result: '',
+        error: { message: 'Worker message error (result may be too large or uncloneable)', name: 'MessageError' },
+      });
+    };
+
     // Send the code to the worker
     worker.postMessage({ __workerSandbox: true, type: 'run', code, timeoutMs });
   });

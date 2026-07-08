@@ -9,6 +9,8 @@ self.__workerSandbox = true;
 
 // --- Console capture ---
 const logs = [];
+const MAX_LOGS = 500;
+const MAX_LOG_CHARS = 2000;
 const capture = (level) => (...args) => {
   const message = args.map((a) => {
     if (a instanceof Error) return a.stack || a.message;
@@ -17,7 +19,9 @@ const capture = (level) => (...args) => {
     }
     return String(a);
   }).join(' ');
-  logs.push({ level, message });
+  const safe = message.length > MAX_LOG_CHARS ? message.slice(0, MAX_LOG_CHARS) + '…' : message;
+  if (logs.length >= MAX_LOGS) logs.shift();
+  logs.push({ level, message: safe });
 };
 
 const console = {
@@ -139,6 +143,8 @@ function runCode(code) {
   }
 }
 
+const MAX_RESULT_CHARS = 100000; // ~100 KB is plenty for a tool result; larger outputs should be written to files.
+
 function finish(result, error) {
   if (__finished) return; // Don't send duplicate results
   __finished = true;
@@ -155,6 +161,10 @@ function finish(result, error) {
     }
   } else {
     resultStr = String(result);
+  }
+
+  if (resultStr.length > MAX_RESULT_CHARS) {
+    resultStr = resultStr.slice(0, MAX_RESULT_CHARS) + '\n\n... (truncated by worker; large outputs should be written to files via fs.writeFile())';
   }
 
   self.postMessage({

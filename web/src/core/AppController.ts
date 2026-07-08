@@ -45,7 +45,34 @@ export class AppController {
     sounds.setEnabled(cfg.sounds !== false);
     registerGlobalErrorHandlers();
     this.registerServiceWorker();
+    this.registerPageLifecycle();
     this.registerApps();
+  }
+
+  private registerPageLifecycle() {
+    // Save the latest tool result/history when the user leaves or the tab is hidden.
+    // Browsers typically allow pending IndexedDB writes to complete briefly after
+    // a backgrounding event, so this is the best-effort crash guard.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.agent && this.isRunning) {
+        this.agent.saveCheckpoint().catch(() => {});
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      if (this.agent && this.isRunning) {
+        this.agent.saveCheckpoint().catch(() => {});
+      }
+    });
+
+    // Warn before reload while the agent is running. This also buys a moment for the
+    // async checkpoint above to flush, though the user can still dismiss the prompt.
+    window.addEventListener('beforeunload', (e) => {
+      if (this.isRunning) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
   }
 
   start() {

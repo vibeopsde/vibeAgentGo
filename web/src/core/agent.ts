@@ -41,6 +41,8 @@ export class Agent {
   private sessionId: string | null = null;
   private listeners: Partial<Record<keyof AgentEventMap, ((data: unknown) => void)[]>> = {};
   private abortController: AbortController | null = null;
+  private currentHistory: Message[] = [];
+  private currentRunSessionId: string | null = null;
 
   constructor(tools: Tool[], memory: MemoryStore, opts: AgentOptions = {}) {
     this.tools = tools;
@@ -134,6 +136,24 @@ export class Agent {
   }
 
   private async _runInner(
+    userMessage: string,
+    config: AgentConfig,
+    runSessionId: string | null,
+    attachments: ChatAttachment[],
+    controller: AbortController
+  ): Promise<string> {
+    this.currentRunSessionId = runSessionId;
+    this.currentHistory = [];
+
+    try {
+      return await this._runInnerCore(userMessage, config, runSessionId, attachments, controller);
+    } finally {
+      this.currentRunSessionId = null;
+      this.currentHistory = [];
+    }
+  }
+
+  private async _runInnerCore(
     userMessage: string,
     config: AgentConfig,
     runSessionId: string | null,
@@ -246,6 +266,7 @@ export class Agent {
       history[0] = { role: 'system', content: systemPrompt };
     }
     history.push({ role: 'user', content: finalUserContent });
+    this.currentHistory = history;
 
     const toolSchemas = toolsToSchemas(this.tools);
     const ctx = this.buildToolContext();
@@ -312,6 +333,7 @@ export class Agent {
           tool_calls: sanitizedToolCalls,
         };
         history.push(assistantMsg);
+        this.currentHistory = history;
 
         for (const tc of sanitizedToolCalls) {
           const toolName = tc.function.name;
@@ -375,6 +397,9 @@ export class Agent {
             tool_call_id: tc.id,
             content: result,
           });
+          this.currentHistory = history;
+          // Checkpoint immediately after each tool result so the result survives a tab crash
+          await this.saveCurrentSession(history, runSessionId);
         }
 
         continue;
@@ -384,6 +409,7 @@ export class Agent {
       const finalContent = response.content || '';
       this.emit('message', { role: 'assistant', content: finalContent });
       history.push({ role: 'assistant', content: finalContent });
+      this.currentHistory = history;
 
       await this.saveCurrentSession(history, runSessionId);
 
@@ -442,6 +468,21 @@ export class Agent {
 
   getRecentErrors(limit = 20): Promise<import('./logger.js').LogEntry[]> {
     return readLogs({ levels: ['error', 'fatal', 'warn'], limit, sessionId: this.sessionId });
+  }
+
+  // Public checkpoint that can be triggered from AppController on page lifecycle events
+  // (visibilitychange / pagehide) so the latest tool result is not lost if the tab is
+  // background-terminated.
+  async saveCheckpoint(): Promise<void> {
+    const sessionId = this.currentRunSessionId || this.sessionId;
+    const history = this.currentHistory;
+    if (!sessionId || history.length === 0) return;
+    try {
+      logger.debug('agent.checkpoint', 'Lifecycle checkpoint save', { sessionId });
+      await this.saveCurrentSession(history, sessionId);
+    } catch {
+      /* ignore */
+    }
   }
 
   private async dispatchToolByName(name: string, args: unknown, ctx: ToolContext): Promise<string> {
