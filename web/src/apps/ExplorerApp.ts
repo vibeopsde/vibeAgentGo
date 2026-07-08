@@ -278,7 +278,7 @@ export class ExplorerApp implements App {
       const expanded = this.expandedFolders.has(node.path) || this.searchQuery !== '';
       el.innerHTML = `
         <span class="explorer-folder-toggle">${expanded ? '▼' : '▶'}</span>
-        <span class="explorer-icon">📁</span>
+        <span class="explorer-icon">${expanded ? '📂' : '📁'}</span>
         <span class="explorer-name">${escapeHtml(node.name)}</span>
         <div class="explorer-folder-actions">
           <button class="explorer-rename" title="${t('common.rename') || 'Rename'}">✎</button>
@@ -453,9 +453,42 @@ export class ExplorerApp implements App {
   private iconFor(path: string): string {
     const ext = path.split('.').pop()?.toLowerCase() || '';
     const map: Record<string, string> = {
-      ts: '📘', js: '📜', json: '📋', md: '📝', html: '🌐', css: '🎨', py: '🐍',
-      txt: '📄', yml: '⚙️', yaml: '⚙️', xml: '📠', csv: '📊', log: '📋',
+      ts: '📘', tsx: '⚛️', js: '📜', jsx: '⚛️', mjs: '📜', cjs: '📜',
+      json: '📋', jsonc: '📋', lock: '🔒',
+      md: '📝', mdx: '📝', txt: '📄', rtf: '📄',
+      html: '🌐', htm: '🌐', xhtml: '🌐',
+      css: '🎨', scss: '🎨', sass: '🎨', less: '🎨',
+      py: '🐍', ipynb: '📓',
+      java: '☕', kt: '☕', scala: '☕', groovy: '☕',
+      go: '🔵', rs: '🦀', rb: '💎', php: '🐘', swift: '🦉', r: '📊',
+      c: '🔧', cpp: '➕', h: '🔧', hpp: '➕', cs: '🔷', vb: '🔷', fs: '🔷',
+      sh: '⚡', bash: '⚡', zsh: '⚡', fish: '⚡', ps1: '⚡', bat: '⚡', cmd: '⚡',
+      yml: '⚙️', yaml: '⚙️', toml: '⚙️', ini: '⚙️', cfg: '⚙️', conf: '⚙️', env: '⚙️',
+      xml: '📠', svg: '🎨', csv: '📊', tsv: '📊', sql: '🗃️', prisma: '🗃️',
+      log: '📋', out: '📋',
+      dockerfile: '🐳', dockerignore: '🐳',
+      gitignore: '🌲', gitattributes: '🌲', gitmodules: '🌲', gitkeep: '🌲',
+      license: '⚖️', notice: '⚖️', readme: '📖', changelog: '📖', contributing: '📖',
+      makefile: '🔨', cmake: '🔨', gradle: '🔨', maven: '🔨', pom: '🔨',
+      vue: '💚', svelte: '🧡', astro: '🚀', solid: '🔲', angular: '🅰️', react: '⚛️',
+      wasm: '🔳', wat: '🔳',
+      jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', bmp: '🖼️', ico: '🖼️',
+      mp3: '🎵', wav: '🎵', ogg: '🎵', aac: '🎵', flac: '🎵', m4a: '🎵',
+      mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬', webm: '🎬', ogv: '🎬',
+      pdf: '📕', doc: '📘', docx: '📘', xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙',
+      zip: '📦', tar: '📦', gz: '📦', bz2: '📦', xz: '📦', '7z': '📦', rar: '📦', jar: '📦',
     };
+    // Special file names without extension or dot-prefixed
+    const basename = path.split('/').pop()?.toLowerCase() || '';
+    if (basename === 'dockerfile') return '🐳';
+    if (basename.startsWith('dockerfile.')) return '🐳';
+    if (basename === 'license' || basename === 'copying') return '⚖️';
+    if (basename.startsWith('readme')) return '📖';
+    if (basename.startsWith('changelog')) return '📖';
+    if (basename.startsWith('contributing')) return '📖';
+    if (basename.startsWith('notice')) return '⚖️';
+    if (basename === 'makefile') return '🔨';
+    if (basename === 'robots.txt') return '🤖';
     return map[ext] || '📄';
   }
 

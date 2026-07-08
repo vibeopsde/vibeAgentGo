@@ -2387,6 +2387,38 @@ select {
   font-size: 13px;
 }
 
+.editor-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.editor-gutter {
+  width: 42px;
+  min-width: 42px;
+  background: var(--bg-elev);
+  border-right: 1px solid var(--border);
+  color: var(--fg-sub);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 12px;
+  line-height: 20px;
+  padding: 12px 4px 12px 0;
+  text-align: right;
+  overflow: hidden;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.editor-gutter div {
+  height: 20px;
+  padding-right: 6px;
+}
+
+.editor-gutter::-webkit-scrollbar {
+  display: none;
+}
+
 .editor-textarea {
   flex: 1;
   width: 100%;
@@ -2395,11 +2427,67 @@ select {
   resize: none;
   padding: 12px;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text);
-  background: var(--bg);
-  tab-size: 2;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--fg, #222);
+  background: var(--bg, #fff);
+  overflow: auto;
+}
+
+.editor-find-overlay {
+  position: absolute;
+  top: 48px;
+  right: 12px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-elev, #fff);
+  border: 1px solid var(--border, #e1e1e1);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 100;
+  min-width: 320px;
+}
+
+.find-row,
+.replace-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.find-row input,
+.replace-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border, #e1e1e1);
+  border-radius: 6px;
+  background: var(--bg, #fff);
+  color: var(--fg, #222);
+  font: inherit;
+}
+
+.find-row button,
+.replace-row button {
+  padding: 6px 10px;
+  border: 1px solid var(--border, #e1e1e1);
+  border-radius: 6px;
+  background: var(--bg, #fff);
+  color: var(--fg, #222);
+  cursor: pointer;
+}
+
+.find-row button:hover,
+.replace-row button:hover {
+  background: var(--bg-hover, #f5f5f5);
+}
+
+.find-match-count {
+  font-size: 12px;
+  color: var(--muted, #666);
+  white-space: nowrap;
 }
 
 .editor-status {

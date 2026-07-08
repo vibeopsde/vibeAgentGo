@@ -219,12 +219,13 @@ export class SkillStore {
 export interface ClientConfig {
   model: string;
   baseUrl: string;
-  apiKey: string;
+  apiKey: string
   maxTurns: number;
   language: 'de' | 'en';
   searchProvider: 'none' | 'tavily';
-  searchApiKey: string;
+  searchApiKey: string
   sounds?: boolean;
+  editorTabSize?: number;
 }
 
 export function loadConfig(): ClientConfig {
@@ -246,6 +247,7 @@ export function loadConfig(): ClientConfig {
     language: defaultLanguage,
     searchProvider: 'none',
     searchApiKey: '',
+    editorTabSize: 2,
   };
   // Strip legacy keys from old stored configs (e.g. maxTokens was removed in V2607.1.9)
   const stripped = (parsed || {}) as Partial<ClientConfig> & { maxTokens?: number };
@@ -263,6 +265,7 @@ export function saveConfig(config: Partial<ClientConfig>): ClientConfig {
   if (updated.apiKey) updated.apiKey = updated.apiKey.trim();
   if (updated.searchApiKey) updated.searchApiKey = updated.searchApiKey.trim();
   updated.language = updated.language === 'en' ? 'en' : 'de';
+  updated.editorTabSize = Math.max(1, Math.min(8, Math.round(Number(updated.editorTabSize) || 2)));
   localStorage.setItem(CONFIG_KEY, JSON.stringify(updated));
   return updated;
 }

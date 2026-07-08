@@ -225,6 +225,10 @@ export class SettingsApp implements App {
             <span>🔊 Akustische Signale bei Tool-Aufrufen und Fertig-Meldung</span>
           </label>
         </div>
+        <div class="form-group">
+          <label for="cfg-tab-size">Editor Tab Size</label>
+          <input type="number" id="cfg-tab-size" min="1" max="8" value="${config.editorTabSize ?? 2}" />
+        </div>
       </div>
     `;
 
@@ -232,10 +236,11 @@ export class SettingsApp implements App {
       const language = (panel.querySelector('#cfg-language') as HTMLSelectElement).value as 'de' | 'en';
       const themeValue = (panel.querySelector('#cfg-theme') as HTMLSelectElement).value as ThemeMode;
       const soundsEnabled = (panel.querySelector('#cfg-sounds') as HTMLInputElement).checked;
+      const editorTabSize = Math.max(1, Math.min(8, Math.round(Number((panel.querySelector('#cfg-tab-size') as HTMLInputElement).value) || 2)));
       setLanguage(language);
       setTheme(themeValue);
       sounds.setEnabled(soundsEnabled);
-      saveConfig({ ...config, language, sounds: soundsEnabled });
+      saveConfig({ ...config, language, sounds: soundsEnabled, editorTabSize });
       this.emitReload();
     });
   }

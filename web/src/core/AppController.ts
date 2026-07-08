@@ -423,9 +423,19 @@ export class AppController {
       const app = new ExplorerApp();
       app.setBridgeHandler(this.handleBridgeRequest);
       app.setOnOpenFile((path) => {
-        const winId = this.wm.launchOrFocus('editor');
-        const editor = this.wm.getInstance(winId) as TextEditorApp | undefined;
-        editor?.openFile(path);
+        const existingEditorId = this.wm.getWindowsByApp('editor').find((id) => {
+          const inst = this.wm.getInstance(id) as TextEditorApp | undefined;
+          return inst && !inst.isDirty();
+        });
+        if (existingEditorId) {
+          this.wm.focusWindow(existingEditorId);
+          const editor = this.wm.getInstance(existingEditorId) as TextEditorApp | undefined;
+          editor?.openFile(path);
+        } else {
+          const winId = this.wm.openWindow({ appId: 'editor', width: 720, height: 520, x: 40, y: 40 });
+          const editor = this.wm.getInstance(winId) as TextEditorApp | undefined;
+          editor?.openFile(path);
+        }
       });
       app.setOnRunApp((title, html) => {
         this.openProgramView(title, html);
@@ -440,6 +450,14 @@ export class AppController {
         const explorerWins = this.wm.getWindowsByApp('explorer');
         for (const winId of explorerWins) {
           const inst = this.wm.getInstance(winId) as ExplorerApp | undefined;
+          inst?.setActivePath(path);
+        }
+      });
+      app.setOnSave((path) => {
+        const explorerWins = this.wm.getWindowsByApp('explorer');
+        for (const winId of explorerWins) {
+          const inst = this.wm.getInstance(winId) as ExplorerApp | undefined;
+          inst?.refresh();
           inst?.setActivePath(path);
         }
       });
