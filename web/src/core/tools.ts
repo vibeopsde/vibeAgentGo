@@ -7,6 +7,7 @@ import type { Tool, ToolContext } from '../types/index.js';
 import { MemoryStore, loadConfig } from './memory.js';
 import { readLogs, type LogLevel } from './logger.js';
 import { openDB, resetDBConnection } from './db.js';
+import { GitBackupManager, type GitCredentials } from './gitBackup.js';
 
 import { validateArgs } from '../utils/schema_validate.js';
 import sandboxRef from './refs/sandbox.md?raw';
@@ -1044,6 +1045,135 @@ const error_log: Tool = {
   },
 };
 
+// --- Git Workspace Sync ---
+
+function resolveGitCreds(args: Record<string, unknown>): GitCredentials | { error: string } {
+  const config = loadConfig();
+  const url = asString(args.url).trim() || config.gitUrl?.trim() || '';
+  const username = asString(args.username).trim() || config.gitUsername?.trim() || '';
+  const token = asString(args.token).trim() || config.gitToken?.trim() || '';
+  const corsProxy = asString(args.cors_proxy).trim() || config.gitCorsProxy?.trim() || '';
+
+  if (!url) {
+    return { error: 'No Git repository URL configured. Set it in Settings → Backup or pass url="...".' };
+  }
+  if (!token) {
+    return { error: 'No Git personal access token configured. Set it in Settings → Backup or pass token="...".' };
+  }
+
+  return { url, username, token, corsProxy: corsProxy || undefined };
+}
+
+const git_clone: Tool = {
+  name: 'git_clone',
+  description:
+    'Clone a remote Git repository into the browser workspace. This replaces any existing cloned Git working directory and only affects the Git filesystem layer; the IndexedDB workspace is updated when git_pull is used. Credentials can be configured in Settings → Backup or passed as arguments. Requires a CORS proxy for most Git hosts (e.g. https://vag.vibeops.de/git-proxy/).',
+  parameters: {
+    type: 'object',
+    properties: {
+      url: { type: 'string', description: 'Remote repository URL (e.g. https://github.com/user/repo.git). Falls back to Settings → Backup → Git URL.' },
+      username: { type: 'string', description: 'Git username. Falls back to Settings → Backup → Git username.' },
+      token: { type: 'string', description: 'Personal access token. Falls back to Settings → Backup → Git token.' },
+      cors_proxy: { type: 'string', description: 'CORS proxy URL. Falls back to Settings → Backup → CORS proxy.' },
+    },
+  },
+  handler: async (args: Record<string, unknown>) => {
+    const creds = resolveGitCreds(args);
+    if ('error' in creds) return creds.error;
+    try {
+      const manager = new GitBackupManager();
+      await manager.clone(creds);
+      return `Cloned ${creds.url} successfully. Use git_pull to import the files into the workspace.`;
+    } catch (e) {
+      return `Git clone failed: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  },
+};
+
+const git_pull: Tool = {
+  name: 'git_pull',
+  description:
+    'Pull the latest changes from the configured Git remote and import them into the browser workspace (IndexedDB). Files that exist remotely are written to the workspace; files that were removed remotely are deleted locally. Requires the repository to be cloned first. Credentials can be configured in Settings → Backup or passed as arguments.',
+  parameters: {
+    type: 'object',
+    properties: {
+      url: { type: 'string', description: 'Remote repository URL. Falls back to Settings → Backup.' },
+      username: { type: 'string', description: 'Git username. Falls back to Settings → Backup.' },
+      token: { type: 'string', description: 'Personal access token. Falls back to Settings → Backup.' },
+      cors_proxy: { type: 'string', description: 'CORS proxy URL. Falls back to Settings → Backup.' },
+    },
+  },
+  handler: async (args: Record<string, unknown>) => {
+    const creds = resolveGitCreds(args);
+    if ('error' in creds) return creds.error;
+    try {
+      const manager = new GitBackupManager();
+      const { imported, deleted } = await manager.pull(creds);
+      return `Pulled from ${creds.url}. Imported ${imported} file(s), deleted ${deleted} local file(s).`;
+    } catch (e) {
+      return `Git pull failed: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  },
+};
+
+const git_push: Tool = {
+  name: 'git_push',
+  description:
+    'Push the current browser workspace files to the configured Git remote as a new commit. Only Explorer files are synced; sessions, memory, skills, and config stay local. Credentials can be configured in Settings → Backup or passed as arguments.',
+  parameters: {
+    type: 'object',
+    properties: {
+      message: { type: 'string', description: 'Git commit message. Default: "backup: <ISO timestamp>"' },
+      url: { type: 'string', description: 'Remote repository URL. Falls back to Settings → Backup.' },
+      username: { type: 'string', description: 'Git username. Falls back to Settings → Backup.' },
+      token: { type: 'string', description: 'Personal access token. Falls back to Settings → Backup.' },
+      cors_proxy: { type: 'string', description: 'CORS proxy URL. Falls back to Settings → Backup.' },
+    },
+  },
+  handler: async (args: Record<string, unknown>) => {
+    const creds = resolveGitCreds(args);
+    if ('error' in creds) return creds.error;
+    const message = asString(args.message).trim() || `backup: ${new Date().toISOString()}`;
+    try {
+      const manager = new GitBackupManager();
+      await manager.push(creds, message);
+      return `Pushed workspace to ${creds.url} with commit "${message}".`;
+    } catch (e) {
+      return `Git push failed: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  },
+};
+
+const git_status: Tool = {
+  name: 'git_status',
+  description:
+    'Check the status of the Git working directory: whether it is clean, how many local commits exist, and whether a clone is present. Credentials can be configured in Settings → Backup or passed as arguments.',
+  parameters: {
+    type: 'object',
+    properties: {
+      url: { type: 'string', description: 'Remote repository URL. Falls back to Settings → Backup.' },
+      username: { type: 'string', description: 'Git username. Falls back to Settings → Backup.' },
+      token: { type: 'string', description: 'Personal access token. Falls back to Settings → Backup.' },
+      cors_proxy: { type: 'string', description: 'CORS proxy URL. Falls back to Settings → Backup.' },
+    },
+  },
+  handler: async (args: Record<string, unknown>) => {
+    const creds = resolveGitCreds(args);
+    if ('error' in creds) return creds.error;
+    try {
+      const manager = new GitBackupManager();
+      const cloned = await manager.isCloned();
+      if (!cloned) {
+        return `No Git repository cloned yet. Use git_clone first.`;
+      }
+      const status = await manager.status(creds);
+      return `Git status: ${status.clean ? 'clean' : 'modified'}, ${status.ahead} local commit(s), ${status.behind} behind remote.`;
+    } catch (e) {
+      return `Git status failed: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  },
+};
+
 // --- Registry ---
 
 export function createDefaultTools(): Tool[] {
@@ -1063,5 +1193,9 @@ export function createDefaultTools(): Tool[] {
     memory_search,
     sys_check,
     error_log,
+    git_clone,
+    git_pull,
+    git_push,
+    git_status,
   ];
 }

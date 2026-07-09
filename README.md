@@ -9,7 +9,7 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
-- **15 Tools** including file I/O, PDF extraction, patch editing, web search, YouTube transcripts, memory, error log, system check, and code execution in a Web Worker sandbox
+- **19 Tools** including file I/O, PDF extraction, patch editing, web search, YouTube transcripts, memory, error log, system check, Git workspace sync, and code execution in a Web Worker sandbox
 - **Slash Commands** in the chat input that run locally without an LLM round-trip (`/sys_check`, `/new`, `/clear`, `/help`)
 - **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace
@@ -92,6 +92,10 @@ web/
 | `memory_search` | Search existing memory entries by keyword |
 | `sys_check` | Deterministic health check for IndexedDB, files, worker sandbox, and config (supports `repair` mode) |
 | `error_log` | Read the local browser-side error and audit log |
+| `git_clone` | Clone a remote Git repository into the browser workspace |
+| `git_pull` | Pull remote changes and import them into the workspace |
+| `git_push` | Push workspace files to the remote Git repository |
+| `git_status` | Check whether the Git working directory is clean or modified |
 
 ## Slash Commands
 

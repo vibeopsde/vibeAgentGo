@@ -148,6 +148,7 @@ export function renderLLMConfigSection(
       modelSelect.disabled = false;
       modelManual.style.display = 'none';
       modelSelect.value = selectedModel;
+      modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
     } else {
       // No models listed — fall back to manual input
       modelSelect.innerHTML = `<option value="">${t('onboarding.noModelsManual')}</option>`;

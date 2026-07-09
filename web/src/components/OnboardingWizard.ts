@@ -187,21 +187,25 @@ export class OnboardingWizard {
     actions.className = 'onboarding-actions onboarding-actions-split';
     actions.innerHTML = `
       <button id="ob-back" class="btn btn-secondary">${t('onboarding.back')}</button>
-      <button id="ob-next" class="btn btn-primary" disabled>${t('onboarding.next')}</button>
+      <button id="ob-next" class="btn btn-secondary" disabled>${t('onboarding.next')}</button>
     `;
     card.appendChild(actions);
 
-    // Enable Next only when a model is actually selected
+    // Enable + highlight Next only when a model is actually selected
     const nextBtn = this.element.querySelector('#ob-next') as HTMLButtonElement;
     const modelSelect = card.querySelector('#cfg-model') as HTMLSelectElement;
     const modelManual = card.querySelector('#cfg-model-manual') as HTMLInputElement;
 
     const updateNextButton = () => {
+      let hasModel = false;
       if (modelManual.style.display === 'block') {
-        nextBtn.disabled = !modelManual.value.trim();
+        hasModel = !!modelManual.value.trim();
       } else {
-        nextBtn.disabled = !modelSelect.value.trim();
+        hasModel = !!modelSelect.value.trim();
       }
+      nextBtn.disabled = !hasModel;
+      nextBtn.classList.toggle('btn-primary', hasModel);
+      nextBtn.classList.toggle('btn-secondary', !hasModel);
     };
 
     // If a saved model was pre-filled, enable Next immediately
