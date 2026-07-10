@@ -36,13 +36,10 @@ export class ChatPanel {
     this.inputEl.addEventListener('input', () => this.autoResize());
     this.inputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.shiftKey) {
-        // Shift+Enter inserts a newline (default behavior for textarea).
-        return;
-      }
-      if (e.key === 'Enter') {
         e.preventDefault();
         this.send();
       }
+      // Plain Enter lets the textarea insert a newline (default behavior).
     });
 
     this.sendBtn = document.createElement('button');
