@@ -20,6 +20,7 @@
   --radius: 8px;
   --header-h: 48px;
   --mobile-nav-h: 64px;
+  --mobile-bar-h: 40px;
   --dock-bg: rgba(22, 27, 34, 0.92);
   --dock-shadow: rgba(0, 0, 0, 0.3);
 }
@@ -1512,6 +1513,62 @@ select {
   display: block;
 }
 
+.wm-space-bar {
+  height: var(--mobile-bar-h);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.wm-space-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.wm-space-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wm-space-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wm-space-close:hover,
+.wm-space-close:active {
+  background: var(--red);
+  color: var(--text-on-accent);
+}
+
+.wm-space-content {
+  display: none;
+  height: calc(100% - var(--mobile-bar-h));
+  overflow: auto;
+  position: relative;
+}
+
 .wm-window {
   position: absolute;
   display: flex;
@@ -1699,13 +1756,22 @@ select {
 }
 
 .wm-root.mobile .wm-space {
-  display: block;
+  display: flex;
+  flex-direction: column;
   flex: 0 0 100%;
   scroll-snap-align: start;
   opacity: 0.35;
   transform: scale(0.96);
   transition: opacity 0.2s ease, transform 0.2s ease;
   border-right: 1px solid var(--border);
+}
+
+.wm-root.mobile .wm-space-bar {
+  display: flex;
+}
+
+.wm-root.mobile .wm-space-content {
+  display: block;
 }
 
 .wm-root.mobile .wm-space.active {

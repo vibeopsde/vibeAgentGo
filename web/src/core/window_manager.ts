@@ -115,11 +115,27 @@ export class WindowManager {
     let contentEl: HTMLElement;
 
     if (isMobile) {
-      // Mobile: space is a full-screen scroll container
+      // Mobile: space is a full-screen scroll container with its own title bar
       element = document.createElement('div');
       element.className = 'wm-space';
       element.dataset.windowId = id;
-      contentEl = element; // app mounts directly in the space
+
+      const bar = document.createElement('div');
+      bar.className = 'wm-space-bar';
+      bar.innerHTML = `
+        <span class="wm-space-icon">${icon}</span>
+        <span class="wm-space-title">${title}</span>
+        <button class="wm-space-close" title="Close" aria-label="Close window">×</button>
+      `;
+      bar.querySelector('.wm-space-close')!.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeWindow(id);
+      });
+
+      contentEl = document.createElement('div');
+      contentEl.className = 'wm-space-content';
+      element.appendChild(bar);
+      element.appendChild(contentEl);
       this.spaces.appendChild(element);
     } else {
       // Desktop: floating window
