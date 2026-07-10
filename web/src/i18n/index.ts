@@ -32,7 +32,7 @@ const de: Translations = {
   'header.theme': 'Design',
 
   // Chat
-  'chat.placeholder': 'Nachricht an vibeAgentGo...',
+  'chat.placeholder': 'Nachricht an vibeAgentGo... (Enter = Zeilenumbruch, Shift+Enter = senden)',
   'chat.attachFile': 'Datei anhängen',
   'chat.sessions': 'Sessions',
   'chat.menu': 'Menü',
@@ -238,7 +238,7 @@ const en: Translations = {
   'header.theme': 'Theme',
 
   // Chat
-  'chat.placeholder': 'Message vibeAgentGo...',
+  'chat.placeholder': 'Message vibeAgentGo... (Enter = newline, Shift+Enter = send)',
   'chat.attachFile': 'Attach file',
   'chat.sessions': 'Sessions',
   'chat.menu': 'Menu',
