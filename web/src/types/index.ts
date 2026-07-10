@@ -161,6 +161,8 @@ export interface AppWindow {
   height: number;
   zIndex: number;
   minimized: boolean;
+  maximized: boolean;
+  restoreBounds?: { x: number; y: number; width: number; height: number };
 }
 
 export type AppFactory = () => App;

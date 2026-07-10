@@ -5,6 +5,48 @@
 import { IDBFactory, IDBKeyRange, IDBTransaction } from 'fake-indexeddb';
 import { beforeEach } from 'vitest';
 
+// jsdom doesn't implement window.matchMedia, but the window manager uses it
+// to decide between desktop and mobile layouts. Provide a minimal mock that
+// always reports a desktop viewport so window-manager tests can instantiate
+// the WindowManager without crashing.
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  }),
+});
+
+// jsdom also lacks PointerEvent, but the window manager uses pointer events for
+// drag and resize. Provide a minimal polyfill so window-manager tests can
+// dispatch pointer events without crashing.
+if (typeof PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends MouseEvent {
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+    }
+  }
+  (globalThis as any).PointerEvent = PointerEventPolyfill;
+}
+
+// Capture methods are not implemented on elements in jsdom; stub them so
+// pointer-event handlers can call them without throwing.
+if (typeof Element.prototype.setPointerCapture !== 'function') {
+  Element.prototype.setPointerCapture = () => {};
+}
+if (typeof Element.prototype.releasePointerCapture !== 'function') {
+  Element.prototype.releasePointerCapture = () => {};
+}
+if (typeof Element.prototype.hasPointerCapture !== 'function') {
+  Element.prototype.hasPointerCapture = () => false;
+}
+
 // Give every test a fresh IndexedDB factory so each test starts with a clean
 // database schema and no stale object stores from previous test runs.
 // We also initialize the schema by forcing the database open, because some

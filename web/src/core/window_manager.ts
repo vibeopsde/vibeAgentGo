@@ -150,7 +150,14 @@ export class WindowManager {
         e.stopPropagation();
         this.minimizeWindow(id);
       });
-      bar.addEventListener('pointerdown', (e) => this.startDrag(e, id));
+      bar.addEventListener('dblclick', (e) => {
+        if ((e.target as HTMLElement).closest('.wm-window-controls')) return;
+        this.toggleMaximize(id);
+      });
+      bar.addEventListener('pointerdown', (e) => {
+        if ((e.target as HTMLElement).closest('.wm-window-controls')) return;
+        this.startDrag(e, id);
+      });
       bar.style.touchAction = 'none';
 
       contentEl = document.createElement('div');
@@ -189,6 +196,7 @@ export class WindowManager {
       height: opts.height ?? 300,
       zIndex: this.zCounter,
       minimized: false,
+      maximized: false,
     };
 
     this.windows.set(id, win);
@@ -262,6 +270,52 @@ export class WindowManager {
     if (!win || this.element.classList.contains('mobile')) return;
     win.element.classList.toggle('minimized', true);
     win.minimized = true;
+  }
+
+  toggleMaximize(id: string) {
+    const win = this.windows.get(id);
+    if (!win || this.element.classList.contains('mobile')) return;
+    if (win.minimized) this.focusWindow(id);
+    if (win.maximized) this.restoreWindow(id);
+    else this.maximizeWindow(id);
+  }
+
+  maximizeWindow(id: string) {
+    const win = this.windows.get(id);
+    if (!win || this.element.classList.contains('mobile')) return;
+    if (win.maximized) return;
+    const { desktopTop, availableHeight } = this.chromeBounds();
+    const vw = window.innerWidth;
+    win.restoreBounds = { x: win.x, y: win.y, width: win.width, height: win.height };
+    win.maximized = true;
+    win.minimized = false;
+    win.element.classList.remove('minimized');
+    win.element.style.left = '0px';
+    win.element.style.top = `${desktopTop}px`;
+    win.element.style.width = `${vw}px`;
+    win.element.style.height = `${Math.max(availableHeight, 200)}px`;
+    win.x = 0;
+    win.y = desktopTop;
+    win.width = vw;
+    win.height = Math.max(availableHeight, 200);
+    this.focusWindow(id);
+  }
+
+  restoreWindow(id: string) {
+    const win = this.windows.get(id);
+    if (!win || this.element.classList.contains('mobile')) return;
+    const bounds = win.restoreBounds ?? { x: 40, y: 40, width: 400, height: 300 };
+    win.maximized = false;
+    win.element.classList.remove('minimized');
+    win.element.style.left = `${bounds.x}px`;
+    win.element.style.top = `${bounds.y}px`;
+    win.element.style.width = `${bounds.width}px`;
+    win.element.style.height = `${bounds.height}px`;
+    win.x = bounds.x;
+    win.y = bounds.y;
+    win.width = bounds.width;
+    win.height = bounds.height;
+    this.focusWindow(id);
   }
 
   focusWindow(id: string) {
@@ -394,7 +448,7 @@ export class WindowManager {
   private startDrag(e: PointerEvent, id: string) {
     if (this.element.classList.contains('mobile')) return;
     const win = this.windows.get(id);
-    if (!win) return;
+    if (!win || win.maximized) return;
     this.focusWindow(id);
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const startX = e.clientX;
@@ -443,10 +497,20 @@ export class WindowManager {
     if (!win) return;
     const zone = this.getSnapZone(clientX, clientY);
     if (!zone) return;
-    win.element.style.left = `${zone.left}px`;
-    win.element.style.top = `${zone.top}px`;
-    win.element.style.width = `${zone.width}px`;
-    win.element.style.height = `${zone.height}px`;
+    // Top edge => full-screen maximize; left/right => half-screen geometry.
+    if (zone.width === window.innerWidth) {
+      this.maximizeWindow(id);
+    } else {
+      if (win.maximized) win.maximized = false;
+      win.element.style.left = `${zone.left}px`;
+      win.element.style.top = `${zone.top}px`;
+      win.element.style.width = `${zone.width}px`;
+      win.element.style.height = `${zone.height}px`;
+      win.x = zone.left;
+      win.y = zone.top;
+      win.width = zone.width;
+      win.height = zone.height;
+    }
   }
 
   /** Returns the snap rectangle for the given pointer position, or null if no snap zone is active. */
@@ -491,7 +555,7 @@ export class WindowManager {
   private startResize(e: PointerEvent, id: string) {
     if (this.element.classList.contains('mobile')) return;
     const win = this.windows.get(id);
-    if (!win) return;
+    if (!win || win.maximized) return;
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const startX = e.clientX;
