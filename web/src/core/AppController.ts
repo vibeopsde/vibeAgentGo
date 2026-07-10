@@ -147,6 +147,14 @@ export class AppController {
           await this.memory.writeFile(req.path, req.content);
           return { ok: true, data: null };
         }
+        case 'writeFileBinary': {
+          await this.memory.writeFileBinary(req.path, new Uint8Array(req.data));
+          return { ok: true, data: null };
+        }
+        case 'readFileBinary': {
+          const data = await this.memory.readFileBinary(req.path);
+          return { ok: true, data: data ? Array.from(data) : null };
+        }
         case 'deleteFile': {
           const ok = await this.memory.deleteFile(req.path);
           return { ok, data: null };

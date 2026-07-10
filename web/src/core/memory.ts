@@ -125,6 +125,25 @@ export class MemoryStore {
     }
   }
 
+  async writeFileBinary(path: string, data: Uint8Array): Promise<void> {
+    const buffer =
+      data.byteLength === data.buffer.byteLength
+        ? data.buffer
+        : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+    await tx('files', 'readwrite', (store) =>
+      store.put({ path, content: '', binary: buffer, updated_at: new Date().toISOString() })
+    );
+  }
+
+  async readFileBinary(path: string): Promise<Uint8Array | null> {
+    try {
+      const result = await tx<{ path: string; binary?: ArrayBuffer }>('files', 'readonly', (store) => store.get(path));
+      return result?.binary ? new Uint8Array(result.binary) : null;
+    } catch {
+      return null;
+    }
+  }
+
   async listFiles(): Promise<{ path: string; content: string }[]> {
     const all = await txAll<{ path: string; content: string }>('files', 'readonly', (store) => store.getAll());
     return all.sort((a, b) => a.path.localeCompare(b.path));

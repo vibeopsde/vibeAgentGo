@@ -80,6 +80,8 @@ export interface MemoryStore {
   deleteSession(id: string): Promise<boolean>;
   writeFile(path: string, content: string): Promise<void>;
   readFile(path: string): Promise<string | null>;
+  writeFileBinary(path: string, data: Uint8Array): Promise<void>;
+  readFileBinary(path: string): Promise<Uint8Array | null>;
   listFiles(): Promise<{ path: string; content: string }[]>;
   listFilePaths(): Promise<string[]>;
   deleteFile(path: string): Promise<boolean>;
@@ -118,6 +120,8 @@ export interface RenderViewEvent {
 export type BridgeRequest =
   | { type: 'readFile'; path: string }
   | { type: 'writeFile'; path: string; content: string }
+  | { type: 'readFileBinary'; path: string }
+  | { type: 'writeFileBinary'; path: string; data: number[] }
   | { type: 'deleteFile'; path: string }
   | { type: 'listFiles' }
   | { type: 'getMemory'; query: string; category?: string; limit?: number }

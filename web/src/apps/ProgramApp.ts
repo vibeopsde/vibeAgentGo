@@ -59,7 +59,7 @@ export class ProgramApp implements App {
 
     this.iframe = document.createElement('iframe');
     this.iframe.className = 'program-iframe';
-    this.iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals');
+    this.iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals allow-downloads allow-popups');
     this.iframe.srcdoc = this.wrapHtml(this.state.html);
     this.iframe.style.width = '100%';
     this.iframe.style.height = '100%';
@@ -127,6 +127,11 @@ ${html}
     },
     readFile: (path) => bridge.request('readFile', { path }),
     writeFile: (path, content) => bridge.request('writeFile', { path, content }),
+    readFileBinary: async (path) => {
+      const res = await bridge.request('readFileBinary', { path });
+      return res?.ok && res.data ? new Uint8Array(res.data) : null;
+    },
+    writeFileBinary: (path, data) => bridge.request('writeFileBinary', { path, data }),
     listFiles: () => bridge.request('listFiles', {}),
     getMemory: (query, category, limit) => bridge.request('getMemory', { query, category, limit }),
     getConfig: () => bridge.request('getConfig', {}),
