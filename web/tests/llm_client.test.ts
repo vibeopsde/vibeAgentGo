@@ -161,6 +161,22 @@ describe('testConnection', () => {
     }
   });
 
+  it('sorts models alphabetically and limits to 50', async () => {
+    const ids = Array.from({ length: 60 }, (_, i) => `model-${String(i).padStart(2, '0')}`);
+    const shuffled = [...ids].reverse();
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: shuffled.map((id) => ({ id })) }),
+    });
+
+    const res = await testConnection({ baseUrl: 'https://example.com/v1', apiKey: 'x' });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.models).toHaveLength(50);
+      expect(res.models).toEqual(ids.sort((a, b) => a.localeCompare(b)).slice(0, 50));
+    }
+  });
+
   it('returns error on failure', async () => {
     (fetch as any).mockResolvedValue({
       ok: false,
@@ -168,7 +184,7 @@ describe('testConnection', () => {
       text: async () => 'Forbidden',
     });
 
-    const res = await testConnection({ baseUrl: 'https://example.com/v1', apiKey: 'k' });
+    const res = await testConnection({ baseUrl: 'https://example.com/v1', apiKey: 'x' });
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error).toContain('HTTP 403');

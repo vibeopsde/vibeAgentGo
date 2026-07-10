@@ -77,7 +77,8 @@ export async function testConnection(config: {
       data.data
         ?.map((m: { id?: string }) => m.id)
         .filter((id: string | undefined): id is string => typeof id === 'string')
-        .slice(0, 20) || [];
+        .sort((a: string, b: string) => a.localeCompare(b))
+        .slice(0, 50) || [];
     return { ok: true, models };
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
