@@ -1,10 +1,10 @@
 // ============================================================
 // vibeAgentGo — AppStoreApp
-// Browse and install vAG-Apps from the public store index.
+// Browse available apps from the remote index and manage installed apps
+// that live as files in the workspace under apps/<Category>/<id>/.
 // ============================================================
 
 import type { App, BridgeRequest, BridgeResponse, InstalledApp } from '../types/index.js';
-import { InstalledAppStore } from '../core/app_store_db.js';
 import { t } from '../i18n/index.js';
 import { escapeHtml } from '../utils/escape.js';
 
@@ -61,14 +61,15 @@ export class AppStoreApp implements App {
   mount(container: HTMLElement) {
     container.innerHTML = '';
     container.appendChild(this.element);
-    this.loadStore();
+    this.load();
   }
 
-  private build() {
-    this.render();
+  private async bridge(req: BridgeRequest): Promise<BridgeResponse> {
+    if (!this.onBridgeRequest) return { ok: false, error: 'No bridge handler' };
+    return this.onBridgeRequest(req);
   }
 
-  private async loadStore() {
+  private async load() {
     this.status = 'loading';
     this.message = t('appstore.loading') || 'Loading App Store...';
     this.render();
@@ -78,12 +79,38 @@ export class AppStoreApp implements App {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.store = (await res.json()) as StoreIndex;
       this.categories = Array.from(new Set(this.store.apps.map((a) => a.category))).sort();
+      await this.refreshInstalled();
       this.status = 'idle';
     } catch (e) {
       this.status = 'error';
       this.message = t('appstore.error') || `Failed to load App Store: ${e instanceof Error ? e.message : String(e)}`;
     }
     this.render();
+  }
+
+  private async refreshInstalled() {
+    const files = await this.bridge({ type: 'listFiles' });
+    if (!files.ok || !Array.isArray(files.data)) return;
+
+    const manifests = (files.data as { path: string; content: string }[]).filter((f) =>
+      f.path.startsWith('apps/') && f.path.endsWith('/vAG-app.json')
+    );
+
+    const installed: InstalledApp[] = [];
+    for (const mf of manifests) {
+      try {
+        const manifest = JSON.parse(mf.content) as StoreAppEntry;
+        const entryPath = mf.path.replace(/vAG-app\.json$/, manifest.entry || 'index.html');
+        const entry = await this.bridge({ type: 'readFile', path: entryPath });
+        installed.push({
+          ...manifest,
+          entryContent: entry.ok && typeof entry.data === 'string' ? entry.data : '',
+        } as InstalledApp);
+      } catch {
+        /* skip invalid */
+      }
+    }
+    this.installed = new Map(installed.map((a) => [a.id, a]));
   }
 
   private getFilteredApps(): StoreAppEntry[] {
@@ -109,12 +136,13 @@ export class AppStoreApp implements App {
         ...app,
         entryContent,
         icon: iconContent,
+        iconContent,
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      await this.onBridgeRequest?.({ type: 'installApp', app: installed });
-      this.installed.set(app.id, installed);
+      await this.bridge({ type: 'installApp', app: installed });
+      await this.refreshInstalled();
       this.status = 'idle';
     } catch (e) {
       this.status = 'error';
@@ -136,13 +164,17 @@ export class AppStoreApp implements App {
   }
 
   private async uninstall(app: StoreAppEntry) {
-    await this.onBridgeRequest?.({ type: 'uninstallApp', id: app.id });
-    this.installed.delete(app.id);
+    await this.bridge({ type: 'uninstallApp', id: app.id });
+    await this.refreshInstalled();
     this.render();
   }
 
   private async launch(app: StoreAppEntry) {
-    await this.onBridgeRequest?.({ type: 'launchApp', id: app.id });
+    await this.bridge({ type: 'launchApp', id: app.id });
+  }
+
+  private build() {
+    this.render();
   }
 
   private render() {
@@ -154,7 +186,7 @@ export class AppStoreApp implements App {
       <span class="appstore-title">${t('appstore.title') || 'App Store'}</span>
       <button class="appstore-refresh" title="${t('appstore.refresh') || 'Refresh'}">↻</button>
     `;
-    header.querySelector('.appstore-refresh')?.addEventListener('click', () => this.loadStore());
+    header.querySelector('.appstore-refresh')?.addEventListener('click', () => this.load());
 
     const filters = document.createElement('div');
     filters.className = 'appstore-filters';

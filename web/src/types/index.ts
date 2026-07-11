@@ -125,6 +125,7 @@ export interface InstalledApp {
   category: string;
   description: string;
   icon: string | null;
+  iconContent: string | null;
   entry: string;
   entryContent: string;
   path: string;

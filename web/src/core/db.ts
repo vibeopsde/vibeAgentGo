@@ -6,8 +6,7 @@
 // ============================================================
 
 export const DB_NAME = 'vibeAgentGo-agent';
-export const DB_VERSION = 5; // bumped from 4 — adds installedApps store for vAG-Apps
-// created by the old logger.ts race condition (only had 'logs' store).
+export const DB_VERSION = 4; // rolled back from 5 — vAG-Apps now live as workspace files
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -52,9 +51,6 @@ export function openDB(): Promise<IDBDatabase> {
         logStore.createIndex('timestamp', 'timestamp', { unique: false });
         logStore.createIndex('level', 'level', { unique: false });
         logStore.createIndex('source', 'source', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('installedApps')) {
-        db.createObjectStore('installedApps', { keyPath: 'id' });
       }
       console.info(`[vibeAgentGo] DB upgraded from v${oldVersion} to v${db.version}`);
     };

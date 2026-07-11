@@ -29,7 +29,7 @@ export class AppController {
   private memory = new MemoryStore();
   private tools = createDefaultTools();
   private wm = new WindowManager();
-  private appStore = new InstalledAppStore();
+  private appStore = new InstalledAppStore({ bridge: (req) => this.handleBridgeRequest(req) });
 
   private currentSessionId: string | null = null;
   private agent: Agent | null = null;
@@ -566,8 +566,8 @@ export class AppController {
   private async startApp() {
     const config = loadConfig();
     setLanguage(config.language);
-    await this.loadInstalledApps();
     this.buildLayout();
+    await this.loadInstalledApps();
 
     const lastId = this.loadLastSession();
     if (lastId) {
