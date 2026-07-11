@@ -71,9 +71,14 @@ export class WindowManager {
     this.element.classList.toggle('mobile', isMobile);
     this.desktop.classList.toggle('hidden', isMobile);
     this.spaces.classList.toggle('hidden', !isMobile);
-    // When switching to mobile, ensure the active space is marked visible
-    if (isMobile && this.activeWindowId) {
-      this.syncActiveSpace(this.activeWindowId);
+    // When switching to mobile, ensure the active space is marked visible.
+    // If there is no tracked active window, fall back to the first space so the deck is never blank.
+    if (isMobile) {
+      const spaces = Array.from(this.spaces.querySelectorAll('.wm-space')) as HTMLElement[];
+      if (spaces.length) {
+        const activeId = this.activeWindowId || spaces[0].dataset.windowId || null;
+        if (activeId) this.syncActiveSpace(activeId);
+      }
     }
   }
 

@@ -86,24 +86,50 @@ export class AppController {
 
   // --- Service worker ---
 
-  private registerServiceWorker() {
+  private async registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
 
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    const registration = await navigator.serviceWorker.register('./sw.js').catch(() => undefined);
+    if (!registration) return;
 
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (this.isRunning) {
-        const checkInterval = setInterval(() => {
-          if (!this.isRunning) {
-            clearInterval(checkInterval);
-            window.location.reload();
-          }
-        }, 1000);
-        setTimeout(() => window.location.reload(), 60000);
-      } else {
-        window.location.reload();
-      }
+    // A new service worker is already waiting for activation.
+    if (registration.waiting) {
+      this.showUpdateNotification(registration.waiting);
+    }
+
+    // Detect freshly installed updates during this session.
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          this.showUpdateNotification(newWorker);
+        }
+      });
     });
+
+    // controllerchange is now informational only; reload is initiated by the user via the update banner.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // eslint-disable-next-line no-console
+      console.log('Service worker controller changed');
+    });
+  }
+
+  private showUpdateNotification(worker: ServiceWorker) {
+    if (document.getElementById('vibeagentgo-update-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'vibeagentgo-update-banner';
+    banner.className = 'update-banner';
+    banner.innerHTML = `
+      <span>${t('app.updateAvailable') || 'Update available'}</span>
+      <button class="update-banner-btn">${t('app.reload') || 'Reload'}</button>
+    `;
+    banner.querySelector('button')?.addEventListener('click', () => {
+      worker.postMessage({ type: 'SKIP_WAITING' });
+      // Give the new worker a moment to take control, then reload.
+      setTimeout(() => window.location.reload(), 300);
+    });
+    document.body.appendChild(banner);
   }
 
   // --- Session persistence ---

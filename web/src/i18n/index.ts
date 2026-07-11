@@ -7,6 +7,8 @@ interface Translations {
 const de: Translations = {
   // Common
   'app.title': 'vibeAgentGo',
+  'app.updateAvailable': 'Update verfügbar',
+  'app.reload': 'Neu laden',
   'common.save': 'Speichern',
   'common.cancel': 'Abbrechen',
   'common.close': 'Schließen',
@@ -215,6 +217,8 @@ const de: Translations = {
 const en: Translations = {
   // Common
   'app.title': 'vibeAgentGo',
+  'app.updateAvailable': 'Update available',
+  'app.reload': 'Reload',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.close': 'Close',

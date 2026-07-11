@@ -110,6 +110,46 @@ body {
   overflow: hidden;
 }
 
+/* --- Update notification banner --- */
+
+.update-banner {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px var(--dock-shadow);
+  color: var(--text);
+  font-size: 13px;
+  pointer-events: auto;
+  animation: update-banner-in 0.2s ease;
+}
+
+@keyframes update-banner-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.update-banner-btn {
+  padding: 6px 12px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.update-banner-btn:hover {
+  background: var(--accent-hover);
+}
+
 .chat-section {
   flex: 1;
   display: flex;
