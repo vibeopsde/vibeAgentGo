@@ -6,7 +6,7 @@
 // ============================================================
 
 export const DB_NAME = 'vibeAgentGo-agent';
-export const DB_VERSION = 4; // rolled back from 5 — vAG-Apps now live as workspace files
+export const DB_VERSION = 5; // kept at 5 — installedApps store removed, apps now live as workspace files
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
