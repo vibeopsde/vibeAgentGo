@@ -92,8 +92,8 @@ export class AppStoreApp implements App {
     const files = await this.bridge({ type: 'listFiles' });
     if (!files.ok || !Array.isArray(files.data)) return;
 
-    const manifests = (files.data as { path: string; content: string }[]).filter((f) =>
-      f.path.startsWith('apps/') && f.path.endsWith('/vAG-app.json')
+    const manifests = (files.data as { path: string; content: string }[]).filter(
+      (f) => f.path.startsWith('apps/') && f.path.endsWith('/vAG-app.json')
     );
 
     const installed: InstalledApp[] = [];

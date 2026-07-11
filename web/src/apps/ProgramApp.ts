@@ -25,10 +25,7 @@ export class ProgramApp implements App {
   private messageHandler: ((e: MessageEvent) => void) | null = null;
   private allowedPermissions: string[] | null = null;
 
-  constructor(
-    onBridgeRequest: (req: BridgeRequest) => Promise<BridgeResponse>,
-    allowedPermissions?: string[]
-  ) {
+  constructor(onBridgeRequest: (req: BridgeRequest) => Promise<BridgeResponse>, allowedPermissions?: string[]) {
     this.onBridgeRequest = onBridgeRequest;
     this.allowedPermissions = allowedPermissions ?? null;
     this.element = document.createElement('div');

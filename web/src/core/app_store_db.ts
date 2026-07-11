@@ -29,8 +29,8 @@ export class InstalledAppStore {
     const files = await this.bridge({ type: 'listFiles' });
     if (!files.ok || !Array.isArray(files.data)) return [];
 
-    const manifests = (files.data as { path: string; content: string }[]).filter((f) =>
-      f.path.startsWith(`${APPS_ROOT}/`) && f.path.endsWith('/vAG-app.json')
+    const manifests = (files.data as { path: string; content: string }[]).filter(
+      (f) => f.path.startsWith(`${APPS_ROOT}/`) && f.path.endsWith('/vAG-app.json')
     );
 
     const apps: InstalledApp[] = [];
@@ -74,7 +74,11 @@ export class InstalledAppStore {
       license: app.license,
     };
 
-    await this.bridge({ type: 'writeFile', path: `${basePath}/vAG-app.json`, content: JSON.stringify(manifest, null, 2) });
+    await this.bridge({
+      type: 'writeFile',
+      path: `${basePath}/vAG-app.json`,
+      content: JSON.stringify(manifest, null, 2),
+    });
     await this.bridge({ type: 'writeFile', path: `${basePath}/${app.entry}`, content: app.entryContent });
     if (app.icon) {
       await this.bridge({ type: 'writeFile', path: `${basePath}/${app.icon}`, content: app.iconContent || '' });
