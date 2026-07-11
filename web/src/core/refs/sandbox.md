@@ -14,7 +14,10 @@
 ## Verfügbare Bridge-API (window.vibeAgentGo)
 ```js
 // Dateien im Workspace lesen/schreiben
-const content = await window.vibeAgentGo.readFile('data.json');
+// Die Bridge API antwortet mit einem Wrapper: { ok: true, data: "..." }.
+// Der Dateiinhalt steckt in .data, nicht im Rückgabewert selbst.
+const result = await window.vibeAgentGo.readFile('data.json');
+const content = result?.data ?? '';
 await window.vibeAgentGo.writeFile('output.json', '{"result": 42}');
 const files = await window.vibeAgentGo.listFiles();
 
@@ -72,9 +75,11 @@ canvas.addEventListener('touchstart', (e) => {
 }, { passive: false });
 ```
 
-## Persistenz (statt localStorage)
+// Persistenz (statt localStorage)
 ```js
 // Highscore speichern
 await window.vibeAgentGo.writeFile('highscore.json', JSON.stringify({ score: 1000 }));
-const data = JSON.parse(await window.vibeAgentGo.readFile('highscore.json') || '{}');
+const result = await window.vibeAgentGo.readFile('highscore.json');
+const content = result?.data ?? '';
+const data = JSON.parse(content || '{}');
 ```
