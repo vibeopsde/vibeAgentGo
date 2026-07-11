@@ -117,10 +117,8 @@ export class GitBackupManager {
     });
   }
 
-  async status(creds: GitCredentials): Promise<{ ahead: number; behind: number; clean: boolean }> {
+  async status(creds: GitCredentials): Promise<{ localCommits: number; clean: boolean }> {
     await this.ensureRepo(creds);
-    const currentBranch = await git.currentBranch({ fs: this.fs, dir: WORKDIR, fullname: false });
-    const branch = currentBranch || 'main';
     await git.fetch({
       fs: this.fs,
       http,
@@ -131,7 +129,7 @@ export class GitBackupManager {
     const local = await git.log({ fs: this.fs, dir: WORKDIR, depth: 1 });
     const statusMatrix = await git.statusMatrix({ fs: this.fs, dir: WORKDIR });
     const clean = statusMatrix.every(([_, head, workdir, stage]) => head === workdir && workdir === stage);
-    return { ahead: local.length, behind: 0, clean };
+    return { localCommits: local.length, clean };
   }
 
   private async ensureRepo(creds: GitCredentials): Promise<void> {

@@ -165,7 +165,7 @@ export async function llmChatStream(opts: {
         logger.error('llm.stream', `Stream read failed for ${requestId}: ${err.message}`, {
           model: opts.model,
         });
-        throw new Error(`Stream read failed: ${err.message}`);
+        throw new Error(`Stream read failed: ${err.message}`, { cause: err });
       }
 
       if (done) break;
@@ -182,12 +182,13 @@ export async function llmChatStream(opts: {
 
         // SSE lines can have multiple `data:` prefixes in malformed streams
         const dataParts: string[] = [];
+        if (trimmed === 'data: [DONE]' || trimmed === '[DONE]') {
+          continue;
+        }
         if (trimmed.startsWith('data: ')) {
           dataParts.push(trimmed.slice(6));
         } else if (trimmed.startsWith('data:')) {
           dataParts.push(trimmed.slice(5).trimStart());
-        } else if (trimmed === 'data: [DONE]' || trimmed === '[DONE]') {
-          continue;
         } else {
           // Non-data lines (e.g. retry, event) are ignored
           continue;
@@ -197,9 +198,9 @@ export async function llmChatStream(opts: {
           if (data === '[DONE]') continue;
           if (!data) continue;
 
-          let parsed: any;
+          let parsed: Record<string, unknown> | null = null;
           try {
-            parsed = JSON.parse(data);
+            parsed = JSON.parse(data) as Record<string, unknown>;
           } catch (parseErr) {
             malformedChunks++;
             if (malformedChunks <= 3) {
@@ -211,38 +212,41 @@ export async function llmChatStream(opts: {
             continue;
           }
 
-          const choice = parsed.choices?.[0];
+          const choices = parsed?.choices as unknown[] | undefined;
+          const choice = choices?.[0] as Record<string, unknown> | undefined;
           if (!choice) {
             // Some providers send empty keep-alive chunks; ignore silently
             continue;
           }
 
-          const delta = choice.delta;
+          const delta = choice.delta as Record<string, unknown> | undefined;
           if (!delta) continue;
 
-          if (typeof delta.content === 'string') {
+          if (typeof (delta.content as unknown) === 'string') {
             // Guard against literal 'undefined' or malformed deltas from the provider.
-            const text = delta.content === 'undefined' ? '' : delta.content;
+            const text = delta.content === 'undefined' ? '' : (delta.content as string);
             fullContent += text;
             if (text) opts.onDelta?.(text);
           }
 
           if (delta.tool_calls) {
-            for (const tc of delta.tool_calls) {
-              const idx = tc.index ?? 0;
+            const toolCalls = delta.tool_calls as Array<Record<string, unknown>>;
+            for (const tc of toolCalls) {
+              const idx = (tc.index as number) ?? 0;
+              const tcFunction = (tc.function as Record<string, unknown>) ?? {};
               const existing = toolCallMap.get(idx);
               if (existing) {
-                if (tc.id) existing.id = tc.id;
-                if (tc.function?.name) existing.function.name += tc.function.name;
-                if (tc.function?.arguments) {
-                  existing.function.arguments += tc.function.arguments;
+                if (tc.id) existing.id = tc.id as string;
+                if (tcFunction.name) existing.function.name += String(tcFunction.name);
+                if (tcFunction.arguments) {
+                  existing.function.arguments += String(tcFunction.arguments);
                 }
               } else {
                 toolCallMap.set(idx, {
-                  id: tc.id || `call_${idx}_${Date.now()}`,
+                  id: (tc.id as string) || `call_${idx}_${Date.now()}`,
                   function: {
-                    name: tc.function?.name || '',
-                    arguments: tc.function?.arguments || '',
+                    name: String(tcFunction.name || ''),
+                    arguments: String(tcFunction.arguments || ''),
                   },
                 });
               }
@@ -254,7 +258,7 @@ export async function llmChatStream(opts: {
           }
 
           if (choice.finish_reason) {
-            finishReason = choice.finish_reason;
+            finishReason = choice.finish_reason as LLMResponse['finish_reason'];
           }
 
           // Provider-specific error inside the stream

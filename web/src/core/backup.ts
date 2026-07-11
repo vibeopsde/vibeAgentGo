@@ -3,7 +3,7 @@
 // Bundle all IndexedDB + localStorage data into a single ZIP.
 // ============================================================
 
-import type { Session } from '../types/index.js';
+import type { Session, MemoryEntry, SkillRecord } from '../types/index.js';
 import JSZip from 'jszip';
 import { MemoryStore, SkillStore, CONFIG_KEY, loadConfig } from './memory.js';
 import { tx } from './db.js';
@@ -17,13 +17,24 @@ export interface BackupManifest {
 
 export interface AppBackup {
   manifest: BackupManifest;
-  memory: any[];
-  sessions: any[];
-  skills: any[];
-  files: { path: string; content: string }[];
-  config: Record<string, any>;
+  memory: MemoryEntry[];
+  sessions: Session[];
+  skills: SkillRecord[];
+  files: ImportedFile[];
+  config: Record<string, unknown>;
   theme: string | null;
   onboarding: string | null;
+}
+
+interface ImportedFile {
+  path: string;
+  content: string;
+}
+
+interface SessionLike {
+  id: string;
+  messages?: unknown[];
+  [key: string]: unknown;
 }
 
 export class BackupManager {
@@ -102,15 +113,15 @@ export class BackupManager {
       return f ? JSON.parse(await f.async('text')) : undefined;
     };
 
-    const memory: any[] = (await loadJson('memory.json')) || [];
-    const sessions: any[] = (await loadJson('sessions.json')) || [];
-    const skills: any[] = (await loadJson('skills.json')) || [];
-    const config: Record<string, any> = (await loadJson('config.json')) || {};
+    const memory: MemoryEntry[] = (await loadJson('memory.json')) || [];
+    const sessions: SessionLike[] = (await loadJson('sessions.json')) || [];
+    const skills: SkillRecord[] = (await loadJson('skills.json')) || [];
+    const config: Record<string, unknown> = (await loadJson('config.json')) || {};
     const theme: string | null = (await loadJson('theme.json')) ?? null;
     const onboarding: string | null = (await loadJson('onboarding.json')) ?? null;
 
     const filesFolder = zip.folder('files');
-    const files: { path: string; content: string }[] = [];
+    const files: ImportedFile[] = [];
     if (filesFolder) {
       filesFolder.forEach((relativePath, file) => {
         // Skip directories and macOS resource forks
@@ -134,13 +145,13 @@ export class BackupManager {
     if (onboarding !== null) localStorage.setItem('vibeAgentGo-onboarding', onboarding);
 
     // Restore IndexedDB
-    await Promise.all(memory.map((m: any) => this.saveMemoryRaw(m)));
-    await Promise.all(sessions.map((s: any) => this.memory.saveSession(s)));
-    await Promise.all(skills.map((s: any) => this.skillStore.saveSkill(s)));
-    await Promise.all(files.map((f: any) => this.memory.writeFile(f.path, f.content)));
+    await Promise.all(memory.map((m) => this.saveMemoryRaw(m)));
+    await Promise.all(sessions.map((s) => this.memory.saveSession(s as unknown as Session)));
+    await Promise.all(skills.map((s) => this.skillStore.saveSkill(s as Omit<SkillRecord, 'created_at' | 'updated_at'> & { id: string })));
+    await Promise.all(files.map((f) => this.memory.writeFile(f.path, f.content)));
   }
 
-  private async saveMemoryRaw(entry: any): Promise<void> {
+  private async saveMemoryRaw(entry: MemoryEntry): Promise<void> {
     // Use direct IndexedDB put to preserve id and timestamps.
     await tx('memory', 'readwrite', (store: IDBObjectStore) => store.put(entry));
   }

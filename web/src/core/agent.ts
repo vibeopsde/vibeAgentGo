@@ -117,11 +117,7 @@ export class Agent {
       return await this._runInner(userMessage, config, runSessionId, attachments, controller);
     } catch (e) {
       const friendly =
-        e instanceof Error && e.name === 'AbortError'
-          ? 'Request aborted'
-          : e instanceof Error
-            ? e.message
-            : String(e);
+        e instanceof Error && e.name === 'AbortError' ? 'Request aborted' : e instanceof Error ? e.message : String(e);
 
       captureFunctionError('agent.run', e, {
         sessionId: runSessionId,

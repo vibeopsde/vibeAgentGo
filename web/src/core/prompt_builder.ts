@@ -84,9 +84,11 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   |- Console output from run and run_code is returned to you and also visible in a dedicated window
   |- CORS: Never use public third-party CORS proxies (allorigins, corsproxy.io, etc.). The app provides its own proxy at /api/proxy/?url=ENCODED_URL. For generated mini-apps that fetch external resources, use window.corsFetch(url) or /api/proxy/?url=... instead of raw fetch for cross-origin requests.`);
 
-  parts.push(lang === 'de'
-    ? `Wichtig für Mini-Apps: Bevor du interaktive HTML/JS-Apps oder Dateikonverter baust, rufe zuerst help({ topic: "sandbox" }) auf, damit die App auf Anhieb funktioniert.`
-    : `Important for mini-apps: Before building interactive HTML/JS apps or file converters, call help({ topic: "sandbox" }) first so the app works on the first try.`);
+  parts.push(
+    lang === 'de'
+      ? `Wichtig für Mini-Apps: Bevor du interaktive HTML/JS-Apps oder Dateikonverter baust, rufe zuerst help({ topic: "sandbox" }) auf, damit die App auf Anhieb funktioniert.`
+      : `Important for mini-apps: Before building interactive HTML/JS apps or file converters, call help({ topic: "sandbox" }) first so the app works on the first try.`
+  );
 
   const memory = buildMemoryBlock(ctx.memories);
   if (memory) parts.push(memory);

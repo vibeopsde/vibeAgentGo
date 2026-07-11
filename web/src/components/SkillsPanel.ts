@@ -41,18 +41,18 @@ export class SkillsPanel {
     const rows = skills
       .map(
         (s) => `
-      <div class="skill-row" data-id="${escapeHtml(s.id)}">
-        <div class="skill-info">
-          <div class="skill-name">${escapeHtml(s.name)}</div>
-          <div class="skill-description">${escapeHtml(s.description) || '<em>no description</em>'}</div>
-          <div class="skill-triggers">${(s.trigger || []).map((tr: string) => `<span class="skill-tag">${escapeHtml(tr)}</span>`).join('') || '<span class="skill-tag skill-tag-inactive">manual</span>'}</div>
-        </div>
-        <div class="skill-actions">
-          <button class="btn btn-secondary skill-edit" data-id="${escapeHtml(s.id)}">${t('common.edit')}</button>
-          <button class="btn btn-danger skill-delete" data-id="${escapeHtml(s.id)}">${t('common.delete')}</button>
-        </div>
+      <div class="skill-row" data-id="${escapeHtml(s.id ?? '')}">
+      <div class="skill-info">
+        <div class="skill-name">${escapeHtml(s.name)}</div>
+        <div class="skill-description">${escapeHtml(s.description) || '<em>no description</em>'}</div>
+        <div class="skill-triggers">${(s.trigger || []).map((tr: string) => `<span class="skill-tag">${escapeHtml(tr)}</span>`).join('') || '<span class="skill-tag skill-tag-inactive">manual</span>'}</div>
       </div>
-    `
+      <div class="skill-actions">
+        <button class="btn btn-secondary skill-edit" data-id="${escapeHtml(s.id ?? '')}">${t('common.edit')}</button>
+        <button class="btn btn-danger skill-delete" data-id="${escapeHtml(s.id ?? '')}">${t('common.delete')}</button>
+      </div>
+      </div>
+      `
       )
       .join('');
 

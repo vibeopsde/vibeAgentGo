@@ -1167,7 +1167,7 @@ const git_status: Tool = {
         return `No Git repository cloned yet. Use git_clone first.`;
       }
       const status = await manager.status(creds);
-      return `Git status: ${status.clean ? 'clean' : 'modified'}, ${status.ahead} local commit(s), ${status.behind} behind remote.`;
+      return `Git status: ${status.clean ? 'clean' : 'modified'}, ${status.localCommits} local commit(s)`;
     } catch (e) {
       return `Git status failed: ${e instanceof Error ? e.message : String(e)}`;
     }

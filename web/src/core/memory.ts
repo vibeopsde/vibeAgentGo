@@ -190,17 +190,17 @@ const ONBOARDING_KEY = 'vibeAgentGo-onboarding';
 // --- Skills (IndexedDB) ---
 
 export interface SkillRecord {
-  id: string;
+  id?: string;
   name: string;
   description: string;
   content: string;
   trigger?: string[];
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export class SkillStore {
-  async saveSkill(skill: Omit<SkillRecord, 'created_at' | 'updated_at'>): Promise<void> {
+  async saveSkill(skill: Omit<SkillRecord, 'created_at' | 'updated_at'> & { id: string }): Promise<void> {
     const now = new Date().toISOString();
     const existing = await this.getSkill(skill.id);
     const record: SkillRecord = {
@@ -221,7 +221,7 @@ export class SkillStore {
 
   async listSkills(): Promise<SkillRecord[]> {
     return txAll<SkillRecord>('skills', 'readonly', (store) => store.getAll()).then((all) =>
-      all.sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      all.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))
     );
   }
 
@@ -238,11 +238,11 @@ export class SkillStore {
 export interface ClientConfig {
   model: string;
   baseUrl: string;
-  apiKey: string
+  apiKey: string;
   maxTurns: number;
   language: 'de' | 'en';
   searchProvider: 'none' | 'tavily';
-  searchApiKey: string
+  searchApiKey: string;
   sounds?: boolean;
   editorTabSize?: number;
   gitUrl?: string;

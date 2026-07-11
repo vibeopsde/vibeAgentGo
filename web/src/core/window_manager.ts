@@ -10,12 +10,19 @@ interface WindowData {
   data?: Record<string, unknown>;
 }
 
+interface AppMetadata {
+  factory: AppFactory;
+  showInDock: boolean;
+  title: string;
+  icon: string;
+}
+
 export class WindowManager {
   element: HTMLElement;
   private desktop: HTMLElement;
   private spaces: HTMLElement;
   private dock: HTMLElement;
-  private apps = new Map<string, { factory: AppFactory; showInDock: boolean }>();
+  private apps = new Map<string, AppMetadata>();
   private windows = new Map<string, AppWindow>();
   private windowData = new Map<string, WindowData>();
   private instances = new Map<string, App>(); // windowId -> app instance
@@ -93,7 +100,13 @@ export class WindowManager {
   }
 
   registerApp(appId: string, factory: AppFactory, showInDock = true) {
-    this.apps.set(appId, { factory, showInDock });
+    const metadata = factory();
+    this.apps.set(appId, {
+      factory,
+      showInDock,
+      title: metadata.title,
+      icon: metadata.icon,
+    });
     this.updateDock();
   }
 
@@ -144,8 +157,8 @@ export class WindowManager {
       element.dataset.windowId = id;
       element.style.width = `${opts.width ?? 400}px`;
       element.style.height = `${opts.height ?? 300}px`;
-      element.style.left = `${opts.x ?? 40 + (this.windows.size * 20)}px`;
-      element.style.top = `${opts.y ?? 40 + (this.windows.size * 20)}px`;
+      element.style.left = `${opts.x ?? 40 + this.windows.size * 20}px`;
+      element.style.top = `${opts.y ?? 40 + this.windows.size * 20}px`;
       element.style.zIndex = String(++this.zCounter);
 
       const bar = document.createElement('div');
@@ -399,10 +412,7 @@ export class WindowManager {
     for (const [appId, entry] of this.apps) {
       if (!entry.showInDock) continue;
       staticAppIds.add(appId);
-      const factory = entry.factory;
-      const instance = Array.from(this.instances.values()).find((a) => a.id === appId);
-      const app = instance ?? factory();
-      const btn = this.createDockIcon(app.icon, app.title, () => this.launchOrFocus(appId));
+      const btn = this.createDockIcon(entry.icon, entry.title, () => this.launchOrFocus(appId));
       const hasOpen = Array.from(this.windows.values()).some((w) => w.appId === appId);
       btn.style.opacity = hasOpen ? '1' : '0.7';
       this.dock.appendChild(btn);
@@ -436,7 +446,9 @@ export class WindowManager {
     this.isProgrammaticScroll = true;
     space.scrollIntoView({ behavior: 'smooth', inline: 'start' });
     // Clear guard after scroll animation completes (~350ms with CSS smooth scroll).
-    setTimeout(() => { this.isProgrammaticScroll = false; }, 400);
+    setTimeout(() => {
+      this.isProgrammaticScroll = false;
+    }, 400);
   }
 
   private updateActiveSpaceOnScroll() {
@@ -500,7 +512,7 @@ export class WindowManager {
   // so its top edge marks the bottom limit for snapped windows.
   private chromeBounds() {
     const dockBottom = 12; // CSS bottom of .wm-dock
-    const dockGap = 8;    // visual clearance above the dock
+    const dockGap = 8; // visual clearance above the dock
     const dockTop = window.innerHeight - dockBottom - this.dock.offsetHeight;
     // No more app header — desktop starts at top of viewport.
     const desktopTop = 0;
@@ -530,7 +542,10 @@ export class WindowManager {
   }
 
   /** Returns the snap rectangle for the given pointer position, or null if no snap zone is active. */
-  private getSnapZone(clientX: number, clientY: number): { left: number; top: number; width: number; height: number } | null {
+  private getSnapZone(
+    clientX: number,
+    clientY: number
+  ): { left: number; top: number; width: number; height: number } | null {
     const vw = window.innerWidth;
     const snapThreshold = 40;
     const { availableHeight } = this.chromeBounds();

@@ -182,10 +182,10 @@ export interface OpenWindowOptions {
 }
 
 export interface WindowManagerEventMap {
-  'window_opened': { windowId: string; appId: string };
-  'window_closed': { windowId: string; appId: string };
-  'window_focused': { windowId: string; appId: string };
-  'app_launched': { appId: string; windowId: string };
+  window_opened: { windowId: string; appId: string };
+  window_closed: { windowId: string; appId: string };
+  window_focused: { windowId: string; appId: string };
+  app_launched: { appId: string; windowId: string };
 }
 
 // --- Session ---
@@ -200,12 +200,15 @@ export interface Session {
 
 // --- Skills ---
 
-export interface Skill {
+export interface SkillRecord {
+  id?: string;
   name: string;
   description: string;
   content: string;
   trigger?: string[];
+  created_at?: string;
+  updated_at?: string;
 }
 
-// --- Project State ---
-// Removed: agent_state.json scratchpad was dropped to keep workspace simple.
+/** @deprecated Use SkillRecord instead. */
+export type Skill = SkillRecord;
