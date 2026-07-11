@@ -317,7 +317,7 @@ export class ExplorerApp implements App {
       <span class="explorer-icon">${this.iconFor(node.path)}</span>
       <span class="explorer-name" title="${escapeHtml(node.path)}">${escapeHtml(node.name)}</span>
       <div class="explorer-actions">
-        ${isHtml ? '<button class="explorer-play" title="Run">▶</button>' : ''}
+        ${isHtml ? '<button class="explorer-edit" title="' + (t('explorer.edit') || 'Edit') + '">✎</button>' : ''}
         <button class="explorer-duplicate" title="${t('explorer.duplicate') || 'Duplicate'}">⎘</button>
         <button class="explorer-download" title="${t('explorer.download') || 'Download'}">⬇</button>
         <button class="explorer-rename" title="${t('common.rename') || 'Rename'}">✎</button>
@@ -327,7 +327,11 @@ export class ExplorerApp implements App {
     el.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('.explorer-actions')) return;
       this.activePath = node.path;
-      this.onOpenFile?.(node.path);
+      if (isHtml) {
+        this.runHtml(node.path);
+      } else {
+        this.onOpenFile?.(node.path);
+      }
       this.render();
     });
     el.addEventListener('contextmenu', (e) => {
@@ -358,9 +362,11 @@ export class ExplorerApp implements App {
       this.downloadFile(node.path);
     });
     if (isHtml) {
-      el.querySelector('.explorer-play')?.addEventListener('click', async (e) => {
+      el.querySelector('.explorer-edit')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.runHtml(node.path);
+        this.activePath = node.path;
+        this.onOpenFile?.(node.path);
+        this.render();
       });
     }
     container.appendChild(el);
