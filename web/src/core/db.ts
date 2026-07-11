@@ -94,11 +94,7 @@ async function withDBRetry<T>(
   }
 }
 
-function runTx<T>(
-  storeName: string,
-  mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest
-): Promise<T> {
+function runTx<T>(storeName: string, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest): Promise<T> {
   return openDB().then(
     (db) =>
       new Promise<T>((resolve, reject) => {
@@ -108,7 +104,10 @@ function runTx<T>(
         const req = fn(store);
 
         const settle = (fn: () => void) => {
-          if (!settled) { settled = true; fn(); }
+          if (!settled) {
+            settled = true;
+            fn();
+          }
         };
 
         req.onsuccess = () => settle(() => resolve(req.result as T));
@@ -118,10 +117,8 @@ function runTx<T>(
         // another tab), the request's onsuccess/onerror may never fire.
         // Without these handlers, the Promise hangs forever — the agent stalls,
         // the user reloads, currentSessionId is lost, and a new session starts.
-        transaction.onabort = () =>
-          settle(() => reject(transaction.error || new Error('Transaction aborted')));
-        transaction.oncomplete = () =>
-          settle(() => resolve(req.result as T));
+        transaction.onabort = () => settle(() => reject(transaction.error || new Error('Transaction aborted')));
+        transaction.oncomplete = () => settle(() => resolve(req.result as T));
       })
   );
 }
@@ -142,10 +139,7 @@ export function txAll<T>(
   return tx(storeName, mode, fn);
 }
 
-export async function cursorAll<T>(
-  storeName: string,
-  direction: IDBCursorDirection = 'prev'
-): Promise<T[]> {
+export async function cursorAll<T>(storeName: string, direction: IDBCursorDirection = 'prev'): Promise<T[]> {
   const db = await openDB();
   return new Promise<T[]>((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readonly');

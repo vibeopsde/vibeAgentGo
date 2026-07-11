@@ -56,7 +56,11 @@ export class TextEditorApp implements App {
     this.gutterEl = this.element.querySelector('.editor-gutter') as HTMLElement;
     this.statusEl = this.element.querySelector('.editor-status') as HTMLElement;
 
-    this.textarea.addEventListener('input', () => { this.recordInput(); this.markDirty(); this.updateGutter(); });
+    this.textarea.addEventListener('input', () => {
+      this.recordInput();
+      this.markDirty();
+      this.updateGutter();
+    });
     this.textarea.addEventListener('keydown', (e) => this.handleKeydown(e));
     this.textarea.addEventListener('scroll', () => this.syncGutter());
 
@@ -157,7 +161,10 @@ export class TextEditorApp implements App {
         findAll();
       };
 
-      findInput.addEventListener('input', () => { currentIndex = 0; findAll(); });
+      findInput.addEventListener('input', () => {
+        currentIndex = 0;
+        findAll();
+      });
       nextBtn.addEventListener('click', () => selectMatch(currentIndex + 1));
       prevBtn.addEventListener('click', () => selectMatch(currentIndex - 1));
       closeBtn.addEventListener('click', () => this.closeFindReplace());
@@ -198,8 +205,14 @@ export class TextEditorApp implements App {
         }
       });
       findInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); selectMatch(currentIndex + 1); }
-        if (e.key === 'Escape') { e.preventDefault(); this.closeFindReplace(); }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          selectMatch(currentIndex + 1);
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          this.closeFindReplace();
+        }
       });
       this.findReplaceOverlay.addEventListener('click', (e) => e.stopPropagation());
     }
@@ -323,7 +336,11 @@ export class TextEditorApp implements App {
   }
 
   private setPathDisplay() {
-    this.pathEl.textContent = this.currentPath ? (this.dirty ? `● ${this.currentPath}` : this.currentPath) : (t('editor.untitled') || 'Untitled');
+    this.pathEl.textContent = this.currentPath
+      ? this.dirty
+        ? `● ${this.currentPath}`
+        : this.currentPath
+      : t('editor.untitled') || 'Untitled';
   }
 
   setBridgeHandler(handler: (req: BridgeRequest) => Promise<BridgeResponse>) {
@@ -418,7 +435,7 @@ export class TextEditorApp implements App {
       );
     } catch (err) {
       // Silent background backup; surface would be noisy
-      // eslint-disable-next-line no-console
+
       console.warn('Auto git backup failed', err);
     }
   }

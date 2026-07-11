@@ -12,13 +12,7 @@ import { TextEditorApp } from '../apps/TextEditorApp.js';
 import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { Agent } from './agent.js';
 import { registerGlobalErrorHandlers, captureFunctionError } from './global_errors.js';
-import {
-  loadConfig,
-  saveConfig,
-  hasCompletedOnboarding,
-  MemoryStore,
-  SkillStore,
-} from './memory.js';
+import { loadConfig, saveConfig, hasCompletedOnboarding, MemoryStore, SkillStore } from './memory.js';
 import { isTextContentPart } from '../types/index.js';
 import { createDefaultTools } from './tools.js';
 import { isSlashCommand, handleSlashCommand } from './slash_commands.js';
@@ -129,9 +123,7 @@ export class AppController {
   // --- Chat window helper ---
 
   private getChatApp(): ChatApp | undefined {
-    return this.activeChatWindowId
-      ? (this.wm.getInstance(this.activeChatWindowId) as ChatApp | undefined)
-      : undefined;
+    return this.activeChatWindowId ? (this.wm.getInstance(this.activeChatWindowId) as ChatApp | undefined) : undefined;
   }
 
   // --- View bridge (ProgramApp iframe) ---
@@ -197,7 +189,9 @@ export class AppController {
           try {
             await this.agent.run(req.text, config, this.currentSessionId || undefined);
           } catch (e) {
-            captureFunctionError('AppController.handleBridgeRequest.sendMessage', e, { sessionId: this.currentSessionId });
+            captureFunctionError('AppController.handleBridgeRequest.sendMessage', e, {
+              sessionId: this.currentSessionId,
+            });
             chat?.appendError(e instanceof Error ? e.message : String(e));
             chat?.setStatus('idle');
           } finally {
@@ -385,7 +379,9 @@ export class AppController {
             },
           });
           if (handled) return;
-          chatApp.appendSystem(t('chat.unknownSlashCommand') || `Unknown slash command. Type /help for available commands.`);
+          chatApp.appendSystem(
+            t('chat.unknownSlashCommand') || `Unknown slash command. Type /help for available commands.`
+          );
           return;
         }
 

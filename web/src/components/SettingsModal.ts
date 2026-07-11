@@ -14,7 +14,10 @@ import { renderYouTubeConfigSection } from './SettingsYouTubeSection.js';
 import { renderBackupSection } from './SettingsBackupSection.js';
 import { renderDangerZoneSection } from './SettingsDangerZoneSection.js';
 
-function renderAppearanceSection(modal: HTMLElement, config: { language: 'de' | 'en'; theme: ThemeMode }): {
+function renderAppearanceSection(
+  modal: HTMLElement,
+  config: { language: 'de' | 'en'; theme: ThemeMode }
+): {
   language: 'de' | 'en';
   theme: ThemeMode;
 } {
@@ -25,7 +28,9 @@ function renderAppearanceSection(modal: HTMLElement, config: { language: 'de' | 
     )
     .join('');
 
-  modal.insertAdjacentHTML('beforeend', `
+  modal.insertAdjacentHTML(
+    'beforeend',
+    `
     <div class="form-group">
       <label for="cfg-language">${t('settings.language')}</label>
       <select id="cfg-language">${languageOptions}</select>
@@ -38,7 +43,8 @@ function renderAppearanceSection(modal: HTMLElement, config: { language: 'de' | 
         <option value="dark" ${config.theme === 'dark' ? 'selected' : ''}>Dark</option>
       </select>
     </div>
-  `);
+  `
+  );
 
   return {
     get language() {
@@ -107,12 +113,15 @@ export class SettingsModal {
     const youtube = renderYouTubeConfigSection(this.modal, config);
     renderDangerZoneSection(this.modal, () => window.location.reload());
 
-    this.modal.insertAdjacentHTML('beforeend', `
+    this.modal.insertAdjacentHTML(
+      'beforeend',
+      `
       <div class="form-actions">
         <button id="cfg-cancel" class="btn btn-secondary">${t('common.cancel')}</button>
         <button id="cfg-save" class="btn btn-primary">${t('common.save')}</button>
       </div>
-    `);
+    `
+    );
 
     this.modal.querySelector('#cfg-cancel')!.addEventListener('click', () => this.close());
     this.modal.querySelector('#cfg-save')!.addEventListener('click', () => {

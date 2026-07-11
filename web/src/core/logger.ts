@@ -43,13 +43,15 @@ function writeLog(entry: LogEntry): Promise<number> {
   return tx<IDBValidKey>(STORE, 'readwrite', (store) => store.add(record)).then((id) => Number(id));
 }
 
-export async function readLogs(opts: {
-  levels?: LogLevel[];
-  sources?: string[];
-  limit?: number;
-  since?: string;
-  sessionId?: string | null;
-} = {}): Promise<LogEntry[]> {
+export async function readLogs(
+  opts: {
+    levels?: LogLevel[];
+    sources?: string[];
+    limit?: number;
+    since?: string;
+    sessionId?: string | null;
+  } = {}
+): Promise<LogEntry[]> {
   const db = await openDB();
   return new Promise<LogEntry[]>((resolve, reject) => {
     const transaction = db.transaction(STORE, 'readonly');

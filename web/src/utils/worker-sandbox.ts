@@ -25,10 +25,7 @@ export interface WorkerSandboxOptions {
   timeoutMs?: number;
 }
 
-export function runInWorkerSandbox(
-  code: string,
-  options: WorkerSandboxOptions = {}
-): Promise<WorkerSandboxResult> {
+export function runInWorkerSandbox(code: string, options: WorkerSandboxOptions = {}): Promise<WorkerSandboxResult> {
   const timeoutMs = Math.max(1000, Math.min(options.timeoutMs ?? 30000, 60000));
 
   return new Promise((resolve) => {
@@ -57,9 +54,7 @@ export function runInWorkerSandbox(
       // Workspace I/O requests from the worker
       if (data.type === 'readFile') {
         try {
-          const content = options.readFile
-            ? await options.readFile(data.path)
-            : null;
+          const content = options.readFile ? await options.readFile(data.path) : null;
           worker.postMessage({ __workerSandbox: true, type: 'readFileResult', id: data.id, content });
         } catch (e) {
           worker.postMessage({
@@ -142,11 +137,17 @@ export function runInWorkerSandbox(
           colno: e.colno,
           stack: e.error instanceof Error ? e.error.stack : undefined,
         });
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       resolve({
         logs: [],
         result: '',
-        error: { message: e.message || 'Worker crashed', name: 'WorkerCrashError', stack: e.error instanceof Error ? e.error.stack : undefined },
+        error: {
+          message: e.message || 'Worker crashed',
+          name: 'WorkerCrashError',
+          stack: e.error instanceof Error ? e.error.stack : undefined,
+        },
       });
     };
 
@@ -158,7 +159,9 @@ export function runInWorkerSandbox(
       worker.terminate();
       try {
         logger.error('worker.sandbox', `Worker message error: ${e.data ? String(e.data) : 'uncloneable message'}`, {});
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       resolve({
         logs: [],
         result: '',

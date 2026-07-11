@@ -215,7 +215,9 @@ export class ExplorerApp implements App {
         <div class="explorer-detail-row"><span>Lines</span><span>${lines}</span></div>
       `;
     } else if (isFolder) {
-      const childCount = this.files.filter((f) => f.path.startsWith(`${this.activePath}/`) && !f.path.slice(`${this.activePath}/`.length).includes('/')).length;
+      const childCount = this.files.filter(
+        (f) => f.path.startsWith(`${this.activePath}/`) && !f.path.slice(`${this.activePath}/`.length).includes('/')
+      ).length;
       el.innerHTML = `
         <div class="explorer-detail-row"><span>Path</span><span title="${escapeHtml(this.activePath)}">${escapeHtml(this.activePath)}</span></div>
         <div class="explorer-detail-row"><span>Type</span><span>Folder</span></div>
@@ -420,13 +422,25 @@ export class ExplorerApp implements App {
       if (!action) return;
       this.closeContextMenu();
       if (action === 'rename') {
-        isFolder ? this.renameFolder(path) : this.renameFile(path);
+        if (isFolder) {
+          this.renameFolder(path);
+        } else {
+          this.renameFile(path);
+        }
       } else if (action === 'duplicate') {
-        isFolder ? this.duplicateFolder(path) : this.duplicateFile(path);
+        if (isFolder) {
+          this.duplicateFolder(path);
+        } else {
+          this.duplicateFile(path);
+        }
       } else if (action === 'download' && !isFolder) {
         this.downloadFile(path);
       } else if (action === 'delete') {
-        isFolder ? this.deleteFolder(path) : this.deleteFile(path);
+        if (isFolder) {
+          this.deleteFolder(path);
+        } else {
+          this.deleteFile(path);
+        }
       }
     });
     document.body.appendChild(menu);
@@ -453,30 +467,125 @@ export class ExplorerApp implements App {
   private iconFor(path: string): string {
     const ext = path.split('.').pop()?.toLowerCase() || '';
     const map: Record<string, string> = {
-      ts: '📘', tsx: '⚛️', js: '📜', jsx: '⚛️', mjs: '📜', cjs: '📜',
-      json: '📋', jsonc: '📋', lock: '🔒',
-      md: '📝', mdx: '📝', txt: '📄', rtf: '📄',
-      html: '🌐', htm: '🌐', xhtml: '🌐',
-      css: '🎨', scss: '🎨', sass: '🎨', less: '🎨',
-      py: '🐍', ipynb: '📓',
-      java: '☕', kt: '☕', scala: '☕', groovy: '☕',
-      go: '🔵', rs: '🦀', rb: '💎', php: '🐘', swift: '🦉', r: '📊',
-      c: '🔧', cpp: '➕', h: '🔧', hpp: '➕', cs: '🔷', vb: '🔷', fs: '🔷',
-      sh: '⚡', bash: '⚡', zsh: '⚡', fish: '⚡', ps1: '⚡', bat: '⚡', cmd: '⚡',
-      yml: '⚙️', yaml: '⚙️', toml: '⚙️', ini: '⚙️', cfg: '⚙️', conf: '⚙️', env: '⚙️',
-      xml: '📠', svg: '🎨', csv: '📊', tsv: '📊', sql: '🗃️', prisma: '🗃️',
-      log: '📋', out: '📋',
-      dockerfile: '🐳', dockerignore: '🐳',
-      gitignore: '🌲', gitattributes: '🌲', gitmodules: '🌲', gitkeep: '🌲',
-      license: '⚖️', notice: '⚖️', readme: '📖', changelog: '📖', contributing: '📖',
-      makefile: '🔨', cmake: '🔨', gradle: '🔨', maven: '🔨', pom: '🔨',
-      vue: '💚', svelte: '🧡', astro: '🚀', solid: '🔲', angular: '🅰️', react: '⚛️',
-      wasm: '🔳', wat: '🔳',
-      jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', bmp: '🖼️', ico: '🖼️',
-      mp3: '🎵', wav: '🎵', ogg: '🎵', aac: '🎵', flac: '🎵', m4a: '🎵',
-      mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬', webm: '🎬', ogv: '🎬',
-      pdf: '📕', doc: '📘', docx: '📘', xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙',
-      zip: '📦', tar: '📦', gz: '📦', bz2: '📦', xz: '📦', '7z': '📦', rar: '📦', jar: '📦',
+      ts: '📘',
+      tsx: '⚛️',
+      js: '📜',
+      jsx: '⚛️',
+      mjs: '📜',
+      cjs: '📜',
+      json: '📋',
+      jsonc: '📋',
+      lock: '🔒',
+      md: '📝',
+      mdx: '📝',
+      txt: '📄',
+      rtf: '📄',
+      html: '🌐',
+      htm: '🌐',
+      xhtml: '🌐',
+      css: '🎨',
+      scss: '🎨',
+      sass: '🎨',
+      less: '🎨',
+      py: '🐍',
+      ipynb: '📓',
+      java: '☕',
+      kt: '☕',
+      scala: '☕',
+      groovy: '☕',
+      go: '🔵',
+      rs: '🦀',
+      rb: '💎',
+      php: '🐘',
+      swift: '🦉',
+      r: '📊',
+      c: '🔧',
+      cpp: '➕',
+      h: '🔧',
+      hpp: '➕',
+      cs: '🔷',
+      vb: '🔷',
+      fs: '🔷',
+      sh: '⚡',
+      bash: '⚡',
+      zsh: '⚡',
+      fish: '⚡',
+      ps1: '⚡',
+      bat: '⚡',
+      cmd: '⚡',
+      yml: '⚙️',
+      yaml: '⚙️',
+      toml: '⚙️',
+      ini: '⚙️',
+      cfg: '⚙️',
+      conf: '⚙️',
+      env: '⚙️',
+      xml: '📠',
+      svg: '🎨',
+      csv: '📊',
+      tsv: '📊',
+      sql: '🗃️',
+      prisma: '🗃️',
+      log: '📋',
+      out: '📋',
+      dockerfile: '🐳',
+      dockerignore: '🐳',
+      gitignore: '🌲',
+      gitattributes: '🌲',
+      gitmodules: '🌲',
+      gitkeep: '🌲',
+      license: '⚖️',
+      notice: '⚖️',
+      readme: '📖',
+      changelog: '📖',
+      contributing: '📖',
+      makefile: '🔨',
+      cmake: '🔨',
+      gradle: '🔨',
+      maven: '🔨',
+      pom: '🔨',
+      vue: '💚',
+      svelte: '🧡',
+      astro: '🚀',
+      solid: '🔲',
+      angular: '🅰️',
+      react: '⚛️',
+      wasm: '🔳',
+      wat: '🔳',
+      jpg: '🖼️',
+      jpeg: '🖼️',
+      png: '🖼️',
+      gif: '🖼️',
+      webp: '🖼️',
+      bmp: '🖼️',
+      ico: '🖼️',
+      mp3: '🎵',
+      wav: '🎵',
+      ogg: '🎵',
+      aac: '🎵',
+      flac: '🎵',
+      m4a: '🎵',
+      mp4: '🎬',
+      mov: '🎬',
+      avi: '🎬',
+      mkv: '🎬',
+      webm: '🎬',
+      ogv: '🎬',
+      pdf: '📕',
+      doc: '📘',
+      docx: '📘',
+      xls: '📗',
+      xlsx: '📗',
+      ppt: '📙',
+      pptx: '📙',
+      zip: '📦',
+      tar: '📦',
+      gz: '📦',
+      bz2: '📦',
+      xz: '📦',
+      '7z': '📦',
+      rar: '📦',
+      jar: '📦',
     };
     // Special file names without extension or dot-prefixed
     const basename = path.split('/').pop()?.toLowerCase() || '';
@@ -499,7 +608,9 @@ export class ExplorerApp implements App {
     if (!folderPath) return;
     const path = `${folderPath}/.keep`;
 
-    const existing = this.files.find((f) => f.path === path || f.path === folderPath || f.path.startsWith(`${folderPath}/`));
+    const existing = this.files.find(
+      (f) => f.path === path || f.path === folderPath || f.path.startsWith(`${folderPath}/`)
+    );
     if (existing) {
       window.alert(t('explorer.folderExists') || 'Folder already exists');
       this.expandedFolders.add(folderPath);
@@ -562,7 +673,12 @@ export class ExplorerApp implements App {
   private async deleteFolder(path: string) {
     const children = this.files.filter((f) => f.path === path || f.path.startsWith(`${path}/`));
     if (children.length === 0) return;
-    if (!window.confirm((t('explorer.confirmDeleteFolder') || 'Delete folder {path} and all its contents?').replace('{path}', path))) return;
+    if (
+      !window.confirm(
+        (t('explorer.confirmDeleteFolder') || 'Delete folder {path} and all its contents?').replace('{path}', path)
+      )
+    )
+      return;
     for (const file of children) {
       await this.onBridgeRequest?.({ type: 'deleteFile', path: file.path });
     }
@@ -661,7 +777,7 @@ export class ExplorerApp implements App {
     if (!files || files.length === 0) return;
     for (const file of Array.from(files)) {
       const text = await file.text();
-      const name = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.\-]/g, '');
+      const name = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '');
       if (!name) continue;
       let path = name;
       let n = 1;

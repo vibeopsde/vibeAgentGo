@@ -147,7 +147,9 @@ export class BackupManager {
     // Restore IndexedDB
     await Promise.all(memory.map((m) => this.saveMemoryRaw(m)));
     await Promise.all(sessions.map((s) => this.memory.saveSession(s as unknown as Session)));
-    await Promise.all(skills.map((s) => this.skillStore.saveSkill(s as Omit<SkillRecord, 'created_at' | 'updated_at'> & { id: string })));
+    await Promise.all(
+      skills.map((s) => this.skillStore.saveSkill(s as Omit<SkillRecord, 'created_at' | 'updated_at'> & { id: string }))
+    );
     await Promise.all(files.map((f) => this.memory.writeFile(f.path, f.content)));
   }
 

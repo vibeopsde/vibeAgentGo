@@ -201,9 +201,7 @@ function applyReplace(
       `old_string is not unique (${occurrences} matches). Use replace_all: true to replace all occurrences, or provide more context to make it unique.`
     );
   }
-  const next = replaceAll
-    ? content.split(oldString).join(newString)
-    : content.replace(oldString, newString);
+  const next = replaceAll ? content.split(oldString).join(newString) : content.replace(oldString, newString);
   return { content: next, replacements: replaceAll ? occurrences : 1 };
 }
 
@@ -275,11 +273,8 @@ function parseV4APatch(patchText: string): PatchFile[] {
 }
 
 function findContextIndex(lines: string[], context: string[], removals: string[]): number {
-  const searchLines = context.length > 0 && removals.length > 0
-    ? context.concat(removals)
-    : context.length > 0
-    ? context
-    : removals;
+  const searchLines =
+    context.length > 0 && removals.length > 0 ? context.concat(removals) : context.length > 0 ? context : removals;
   if (searchLines.length === 0) return -1;
   for (let i = 0; i <= lines.length - searchLines.length; i++) {
     let match = true;
@@ -297,9 +292,7 @@ function findContextIndex(lines: string[], context: string[], removals: string[]
 function applyHunk(lines: string[], hunk: PatchHunk): string[] {
   const startIdx = findContextIndex(lines, hunk.context, hunk.removals);
   if (startIdx < 0) {
-    throw new Error(
-      `Could not find patch context. Expected:\n${hunk.context.concat(hunk.removals).join('\n')}`
-    );
+    throw new Error(`Could not find patch context. Expected:\n${hunk.context.concat(hunk.removals).join('\n')}`);
   }
   // The context is kept; only the removal lines are replaced by the additions.
   const removalStartIdx = startIdx + hunk.context.length;
@@ -440,10 +433,7 @@ async function runInSandbox(
     }
   }
 
-  const logsText =
-    logs.length > 0
-      ? logs.map((l) => `[${l.level.toUpperCase()}] ${l.message}`).join('\n')
-      : 'No logs';
+  const logsText = logs.length > 0 ? logs.map((l) => `[${l.level.toUpperCase()}] ${l.message}`).join('\n') : 'No logs';
 
   if (error) {
     return {
@@ -467,7 +457,11 @@ const run_code: Tool = {
   parameters: {
     type: 'object',
     properties: {
-      code: { type: 'string', description: 'JavaScript expression or small function to evaluate. Available globals: console, async/await. No DOM, no fs, no CDN imports.' },
+      code: {
+        type: 'string',
+        description:
+          'JavaScript expression or small function to evaluate. Available globals: console, async/await. No DOM, no fs, no CDN imports.',
+      },
       timeout: { type: 'number', description: 'Timeout in milliseconds (default: 10000, max: 30000)' },
     },
     required: ['code'],
@@ -479,7 +473,10 @@ const run_code: Tool = {
     if (error) {
       return `${truncateText(error, MAX_CHARS)}\n\nLogs:\n${truncateText(logsText, MAX_CHARS)}\n\nResult: ${truncateText(result, MAX_CHARS)}`;
     }
-    const out = logsText !== 'No logs' ? `Logs:\n${truncateText(logsText, MAX_CHARS)}\n\nResult: ${truncateText(result, MAX_CHARS)}` : `Result: ${truncateText(result, MAX_CHARS)}`;
+    const out =
+      logsText !== 'No logs'
+        ? `Logs:\n${truncateText(logsText, MAX_CHARS)}\n\nResult: ${truncateText(result, MAX_CHARS)}`
+        : `Result: ${truncateText(result, MAX_CHARS)}`;
     return out;
   },
 };
@@ -491,7 +488,11 @@ const run: Tool = {
   parameters: {
     type: 'object',
     properties: {
-      code: { type: 'string', description: 'JavaScript code to execute. Available globals: fs (workspace I/O: fs.readFile, fs.writeFile, fs.listFiles), console, importScripts (CDN imports), render(title, html) to show interactive views, async/await.' },
+      code: {
+        type: 'string',
+        description:
+          'JavaScript code to execute. Available globals: fs (workspace I/O: fs.readFile, fs.writeFile, fs.listFiles), console, importScripts (CDN imports), render(title, html) to show interactive views, async/await.',
+      },
       timeout: { type: 'number', description: 'Timeout in milliseconds (default: 30000, max: 60000)' },
     },
     required: ['code'],
@@ -517,7 +518,11 @@ const run_app: Tool = {
     type: 'object',
     properties: {
       title: { type: 'string', description: 'Title shown in the window title bar' },
-      file: { type: 'string', description: 'Path to an HTML file in the workspace (e.g. "app.html"). The file content is rendered in a sandboxed iframe.' },
+      file: {
+        type: 'string',
+        description:
+          'Path to an HTML file in the workspace (e.g. "app.html"). The file content is rendered in a sandboxed iframe.',
+      },
     },
     required: ['title', 'file'],
   },
@@ -564,9 +569,13 @@ const help: Tool = {
   handler: async (args: Record<string, unknown>) => {
     const topic = asString(args.topic);
     if (!topic) {
-      return 'Available help topics:\n' +
-        Object.entries(HELP_TOPICS).map(([k, v]) => `  - ${k}: ${v}`).join('\n') +
-        '\n\nCall help({ topic: "..." }) to read a topic.';
+      return (
+        'Available help topics:\n' +
+        Object.entries(HELP_TOPICS)
+          .map(([k, v]) => `  - ${k}: ${v}`)
+          .join('\n') +
+        '\n\nCall help({ topic: "..." }) to read a topic.'
+      );
     }
     // Try built-in references first
     const builtIn = HELP_BUILTINS[topic];
@@ -701,7 +710,8 @@ const youtube_transcript: Tool = {
       },
       language: {
         type: 'string',
-        description: 'Preferred transcript language (e.g. "de", "en"). Defaults to the language configured in Settings.',
+        description:
+          'Preferred transcript language (e.g. "de", "en"). Defaults to the language configured in Settings.',
       },
       with_timestamps: {
         type: 'boolean',
@@ -823,20 +833,27 @@ const memory_search: Tool = {
 const sys_check: Tool = {
   name: 'sys_check',
   description:
-    "Deterministic health check of the browser-side system. Verifies IndexedDB connection, all object stores, session CRUD, memory, files, logs, configuration, and the worker sandbox. Returns a structured report. Always safe to run. Does NOT require any parameters.",
+    'Deterministic health check of the browser-side system. Verifies IndexedDB connection, all object stores, session CRUD, memory, files, logs, configuration, and the worker sandbox. Returns a structured report. Always safe to run. Does NOT require any parameters.',
   parameters: {
     type: 'object',
     properties: {
       repair: {
         type: 'boolean',
-        description: 'If true, attempt to repair a stale database connection by closing and reopening it. Default: false.',
+        description:
+          'If true, attempt to repair a stale database connection by closing and reopening it. Default: false.',
       },
     },
   },
   handler: async (args: Record<string, unknown>, ctx: ToolContext) => {
     const mem = getMemoryStore(ctx);
     const repair = asBoolean(args.repair);
-    interface Summary { total: number; passed: number; failed: number; warnings: number; totalMs: number; }
+    interface Summary {
+      total: number;
+      passed: number;
+      failed: number;
+      warnings: number;
+      totalMs: number;
+    }
     const report: {
       timestamp: string;
       userAgent: string;
@@ -968,11 +985,7 @@ const sys_check: Tool = {
 
     // 8. Parallel transaction stress test (catches stale connections / deadlocks)
     try {
-      await Promise.all([
-        mem.listSessions(),
-        mem.searchAllMemory(100),
-        mem.listFilePaths(),
-      ]);
+      await Promise.all([mem.listSessions(), mem.searchAllMemory(100), mem.listFilePaths()]);
       add('parallel_tx', 'ok');
     } catch (e) {
       add('parallel_tx', 'fail', e instanceof Error ? e.message : String(e));
@@ -1022,11 +1035,15 @@ const error_log: Tool = {
     const limit = Math.min(100, Math.max(1, asNumber(args.limit, 20)));
     const level = asString(args.level, 'warn');
     const levels: LogLevel[] =
-      level === 'debug' ? ['debug', 'info', 'warn', 'error', 'fatal']
-      : level === 'info' ? ['info', 'warn', 'error', 'fatal']
-      : level === 'warn' ? ['warn', 'error', 'fatal']
-      : level === 'error' ? ['error', 'fatal']
-      : ['fatal'];
+      level === 'debug'
+        ? ['debug', 'info', 'warn', 'error', 'fatal']
+        : level === 'info'
+          ? ['info', 'warn', 'error', 'fatal']
+          : level === 'warn'
+            ? ['warn', 'error', 'fatal']
+            : level === 'error'
+              ? ['error', 'fatal']
+              : ['fatal'];
 
     try {
       const entries = await readLogs({ levels, limit });
@@ -1071,7 +1088,11 @@ const git_clone: Tool = {
   parameters: {
     type: 'object',
     properties: {
-      url: { type: 'string', description: 'Remote repository URL (e.g. https://github.com/user/repo.git). Falls back to Settings → Backup → Git URL.' },
+      url: {
+        type: 'string',
+        description:
+          'Remote repository URL (e.g. https://github.com/user/repo.git). Falls back to Settings → Backup → Git URL.',
+      },
       username: { type: 'string', description: 'Git username. Falls back to Settings → Backup → Git username.' },
       token: { type: 'string', description: 'Personal access token. Falls back to Settings → Backup → Git token.' },
       cors_proxy: { type: 'string', description: 'CORS proxy URL. Falls back to Settings → Backup → CORS proxy.' },

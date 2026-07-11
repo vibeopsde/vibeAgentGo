@@ -74,15 +74,17 @@ export class OnboardingWizard {
     const selectLang = (lang: Language) => {
       this.config = saveConfig({ ...this.config, language: lang });
       setLanguage(lang);
-      this.element.querySelectorAll('.lang-flag-btn').forEach((b) =>
-        b.classList.toggle('lang-flag-active', (b as HTMLElement).dataset.lang === lang)
-      );
+      this.element
+        .querySelectorAll('.lang-flag-btn')
+        .forEach((b) => b.classList.toggle('lang-flag-active', (b as HTMLElement).dataset.lang === lang));
       nextBtn.disabled = false;
     };
 
-    this.element.querySelectorAll('.lang-flag-btn').forEach((btn) =>
-      btn.addEventListener('click', (e) => selectLang((e.currentTarget as HTMLElement).dataset.lang as Language))
-    );
+    this.element
+      .querySelectorAll('.lang-flag-btn')
+      .forEach((btn) =>
+        btn.addEventListener('click', (e) => selectLang((e.currentTarget as HTMLElement).dataset.lang as Language))
+      );
 
     nextBtn.addEventListener('click', () => {
       this.step = 2;
@@ -197,12 +199,7 @@ export class OnboardingWizard {
     const modelManual = card.querySelector('#cfg-model-manual') as HTMLInputElement;
 
     const updateNextButton = () => {
-      let hasModel = false;
-      if (modelManual.style.display === 'block') {
-        hasModel = !!modelManual.value.trim();
-      } else {
-        hasModel = !!modelSelect.value.trim();
-      }
+      const hasModel = modelManual.style.display === 'block' ? !!modelManual.value.trim() : !!modelSelect.value.trim();
       nextBtn.disabled = !hasModel;
       nextBtn.classList.toggle('btn-primary', hasModel);
       nextBtn.classList.toggle('btn-secondary', !hasModel);

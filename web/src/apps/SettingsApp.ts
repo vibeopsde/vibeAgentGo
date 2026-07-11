@@ -81,7 +81,8 @@ export class SettingsApp implements App {
           </div>
         </div>
         <nav class="settings-tabs" role="tablist">
-          ${TABS.map((tab) => `
+          ${TABS.map(
+            (tab) => `
             <button
               class="settings-tab ${tab.id === this.currentTab ? 'active' : ''}"
               data-tab="${tab.id}"
@@ -91,7 +92,8 @@ export class SettingsApp implements App {
               <span class="tab-icon">${tab.icon}</span>
               <span class="tab-label">${t(tab.label)}</span>
             </button>
-          `).join('')}
+          `
+          ).join('')}
         </nav>
       </aside>
       <section class="settings-content">
@@ -241,7 +243,10 @@ export class SettingsApp implements App {
       const language = (panel.querySelector('#cfg-language') as HTMLSelectElement).value as 'de' | 'en';
       const themeValue = (panel.querySelector('#cfg-theme') as HTMLSelectElement).value as ThemeMode;
       const soundsEnabled = (panel.querySelector('#cfg-sounds') as HTMLInputElement).checked;
-      const editorTabSize = Math.max(1, Math.min(8, Math.round(Number((panel.querySelector('#cfg-tab-size') as HTMLInputElement).value) || 2)));
+      const editorTabSize = Math.max(
+        1,
+        Math.min(8, Math.round(Number((panel.querySelector('#cfg-tab-size') as HTMLInputElement).value) || 2))
+      );
       setLanguage(language);
       setTheme(themeValue);
       sounds.setEnabled(soundsEnabled);

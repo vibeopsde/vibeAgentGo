@@ -165,7 +165,7 @@ export async function llmChatStream(opts: {
         logger.error('llm.stream', `Stream read failed for ${requestId}: ${err.message}`, {
           model: opts.model,
         });
-        throw new Error(`Stream read failed: ${err.message}`, { cause: err });
+        throw err;
       }
 
       if (done) break;

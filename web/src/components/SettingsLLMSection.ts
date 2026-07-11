@@ -29,7 +29,9 @@ export function renderLLMConfigSection(
   const initialPreset = selectedPreset;
   const savedModel = config.model;
 
-  container.insertAdjacentHTML('beforeend', `
+  container.insertAdjacentHTML(
+    'beforeend',
+    `
     <div class="form-group">
       <label for="cfg-provider">${t('settings.provider')}</label>
       <select id="cfg-provider">
@@ -57,7 +59,8 @@ export function renderLLMConfigSection(
       <input id="cfg-maxturns" type="number" value="${config.maxTurns}" min="1" max="100" />
     </div>
     <div id="cfg-test-result" class="test-result"></div>
-  `);
+  `
+  );
 
   const providerSelect = container.querySelector('#cfg-provider') as HTMLSelectElement;
   const apiKeyInput = container.querySelector('#cfg-apikey') as HTMLInputElement;
@@ -90,9 +93,7 @@ export function renderLLMConfigSection(
       apiKeyInput.value = '';
     }
     apiKeyGroup.style.display = preset.apiKeyRequired ? 'block' : 'none';
-    apiKeyHint.textContent = preset.apiKeyRequired
-      ? t('onboarding.apiKeyRequired')
-      : t('onboarding.apiKeyHint');
+    apiKeyHint.textContent = preset.apiKeyRequired ? t('onboarding.apiKeyRequired') : t('onboarding.apiKeyHint');
     // Reset model dropdown to "verify first" state
     modelManual.style.display = 'none';
     modelManual.value = '';
@@ -142,7 +143,9 @@ export function renderLLMConfigSection(
     if (models.length > 0) {
       const selectedModel = savedModel && models.includes(savedModel) ? savedModel : models[0];
       const options = models
-        .map((m) => `<option value="${escapeHtml(m)}" ${m === selectedModel ? 'selected' : ''}>${escapeHtml(m)}</option>`)
+        .map(
+          (m) => `<option value="${escapeHtml(m)}" ${m === selectedModel ? 'selected' : ''}>${escapeHtml(m)}</option>`
+        )
         .join('');
       modelSelect.innerHTML = `<option value="">${t('onboarding.pickModel')}</option>${options}`;
       modelSelect.disabled = false;
@@ -185,9 +188,8 @@ export function readLLMConfigFrom(container: HTMLElement): LLMConfigResult | nul
   if (!providerSelect || !modelSelect || !apiKeyInput || !maxTurnsInput) return null;
 
   const preset = findPresetByKey(providerSelect.value);
-  const model = modelManual && modelManual.style.display === 'block'
-    ? modelManual.value.trim()
-    : modelSelect.value.trim();
+  const model =
+    modelManual && modelManual.style.display === 'block' ? modelManual.value.trim() : modelSelect.value.trim();
 
   return {
     baseUrl: preset?.baseUrl ?? '',
@@ -198,7 +200,9 @@ export function readLLMConfigFrom(container: HTMLElement): LLMConfigResult | nul
 }
 
 /** Run the connection test from a container and update the result UI. */
-export async function testConnectionFrom(container: HTMLElement): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> {
+export async function testConnectionFrom(
+  container: HTMLElement
+): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> {
   const resultEl = container.querySelector('#cfg-test-result') as HTMLElement | null;
   const cfg = readLLMConfigFrom(container);
   if (!cfg) return { ok: false, error: 'LLM section not found' };

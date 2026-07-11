@@ -22,7 +22,9 @@ export function renderBackupSection(modal: HTMLElement, handlers: BackupHandlers
   const gitCorsProxy = config.gitCorsProxy ?? '';
   const gitAutoBackup = config.gitAutoBackup ?? false;
 
-  modal.insertAdjacentHTML('beforeend', `
+  modal.insertAdjacentHTML(
+    'beforeend',
+    `
     <h3>🗄️ ${t('settings.backup')}</h3>
     <div class="form-group">
       <label class="checkbox-label">
@@ -69,7 +71,8 @@ export function renderBackupSection(modal: HTMLElement, handlers: BackupHandlers
       <button id="cfg-git-pull" class="btn btn-secondary">${t('settings.gitPull')}</button>
       <button id="cfg-git-push" class="btn btn-primary">${t('settings.gitPush')}</button>
     </div>
-  `);
+  `
+  );
 
   const exportBtn = modal.querySelector('#cfg-export') as HTMLButtonElement;
   const importBtn = modal.querySelector('#cfg-import') as HTMLButtonElement;
@@ -175,7 +178,10 @@ export function renderBackupSection(modal: HTMLElement, handlers: BackupHandlers
     const manager = new GitBackupManager();
     try {
       const { imported, deleted } = await manager.pull(creds);
-      handlers.onMessage(t('settings.gitPullSuccess').replace('{{imported}}', String(imported)).replace('{{deleted}}', String(deleted)), 'success');
+      handlers.onMessage(
+        t('settings.gitPullSuccess').replace('{{imported}}', String(imported)).replace('{{deleted}}', String(deleted)),
+        'success'
+      );
       setTimeout(() => handlers.onReload(), 800);
     } catch (err) {
       handlers.onMessage(t('settings.gitPullError') + ': ' + (err as Error).message, 'error');

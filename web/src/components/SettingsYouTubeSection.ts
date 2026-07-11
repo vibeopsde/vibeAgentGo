@@ -12,7 +12,9 @@ export interface YouTubeConfigResult {
 }
 
 export function renderYouTubeConfigSection(modal: HTMLElement, config: ClientConfig): YouTubeConfigResult {
-  modal.insertAdjacentHTML('beforeend', `
+  modal.insertAdjacentHTML(
+    'beforeend',
+    `
     <h3>▶️ ${t('settings.youtube')}</h3>
     <div class="form-group">
       <label for="cfg-youtube-proxy">${t('settings.youtubeProxyUrl')}</label>
@@ -24,7 +26,8 @@ export function renderYouTubeConfigSection(modal: HTMLElement, config: ClientCon
       <input id="cfg-youtube-language" type="text" value="${escapeHtml(config.youtubeLanguage || '')}" placeholder="de,en" />
       <p class="field-hint">${t('settings.youtubeLanguageHint')}</p>
     </div>
-  `);
+  `
+  );
 
   return {
     get youtubeProxyUrl() {

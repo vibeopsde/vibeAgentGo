@@ -67,7 +67,8 @@ const de: Translations = {
   'settings.providerInfo': 'Jeder OpenAI-kompatible Endpoint mit CORS funktioniert.',
   'settings.youtube': 'YouTube',
   'settings.youtubeProxyUrl': 'Transcript-Proxy URL',
-  'settings.youtubeProxyHint': 'Eigener Proxy-Endpoint für YouTube-Transkripte (z. B. https://vag.vibeops.de/api/youtube/).',
+  'settings.youtubeProxyHint':
+    'Eigener Proxy-Endpoint für YouTube-Transkripte (z. B. https://vag.vibeops.de/api/youtube/).',
   'settings.youtubeLanguage': 'Standard-Sprache',
   'settings.youtubeLanguageHint': 'Bevorzugte Sprache für Transkripte, z. B. "de" oder "en". Fallback automatisch.',
   'settings.resetData': 'Alle lokalen Daten löschen',
@@ -86,7 +87,8 @@ const de: Translations = {
   'settings.importSuccess': 'Backup erfolgreich wiederhergestellt. Seite wird neu geladen.',
   'settings.importError': 'Backup konnte nicht wiederhergestellt werden',
   'settings.gitBackup': 'Git-Backup',
-  'settings.gitBackupHint': 'Synchronisiere nur Explorer-Dateien mit einem Git-Repository. Chats, Sessions und Einstellungen werden nicht gesynct.',
+  'settings.gitBackupHint':
+    'Synchronisiere nur Explorer-Dateien mit einem Git-Repository. Chats, Sessions und Einstellungen werden nicht gesynct.',
   'settings.gitUrl': 'Repository-URL',
   'settings.gitUsername': 'Benutzername',
   'settings.gitToken': 'Personal Access Token',
@@ -292,7 +294,8 @@ const en: Translations = {
   'settings.importSuccess': 'Backup restored successfully. Reloading page.',
   'settings.importError': 'Could not restore backup',
   'settings.gitBackup': 'Git Backup',
-  'settings.gitBackupHint': 'Sync only Explorer files with a Git repository. Chats, sessions and settings are not synced.',
+  'settings.gitBackupHint':
+    'Sync only Explorer files with a Git repository. Chats, sessions and settings are not synced.',
   'settings.gitUrl': 'Repository URL',
   'settings.gitUsername': 'Username',
   'settings.gitToken': 'Personal Access Token',

@@ -104,14 +104,24 @@ export class RenderPanel {
 
   private async handleBridgeRequest(id: number, request: BridgeRequest, source: WindowProxy) {
     if (!this.onBridgeRequest) {
-      source.postMessage({ vibeAgentGoBridgeResponse: true, id, response: { ok: false, error: 'Bridge not configured' } }, '*');
+      source.postMessage(
+        { vibeAgentGoBridgeResponse: true, id, response: { ok: false, error: 'Bridge not configured' } },
+        '*'
+      );
       return;
     }
     try {
       const response = await this.onBridgeRequest(request);
       source.postMessage({ vibeAgentGoBridgeResponse: true, id, response }, '*');
     } catch (e) {
-      source.postMessage({ vibeAgentGoBridgeResponse: true, id, response: { ok: false, error: e instanceof Error ? e.message : String(e) } }, '*');
+      source.postMessage(
+        {
+          vibeAgentGoBridgeResponse: true,
+          id,
+          response: { ok: false, error: e instanceof Error ? e.message : String(e) },
+        },
+        '*'
+      );
     }
   }
 

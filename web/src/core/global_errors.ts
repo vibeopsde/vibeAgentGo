@@ -69,7 +69,9 @@ export function registerGlobalErrorHandlers(): void {
   console.error = (...args: unknown[]) => {
     originalError.apply(console, args);
     try {
-      const message = args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+      const message = args
+        .map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a)))
+        .join(' ');
       if (message.length > 0 && !message.startsWith('[')) {
         logger.error('console.error', message.slice(0, 500));
       }
