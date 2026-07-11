@@ -84,6 +84,38 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   |- Console output from run and run_code is returned to you and also visible in a dedicated window
   |- CORS: Never use public third-party CORS proxies (allorigins, corsproxy.io, etc.). The app provides its own proxy at /api/proxy/?url=ENCODED_URL. For generated mini-apps that fetch external resources, use window.corsFetch(url) or /api/proxy/?url=... instead of raw fetch for cross-origin requests.`);
 
+  parts.push(`## vAG-App Format
+  |vibeAgentGo can open apps that follow the vAG-Apps store format. Whenever you build an interactive mini-app or standalone tool for the user, prefer this structure so it can be published to the vAG-Apps store later.
+  |
+  |Directory layout:
+  |  apps/<Category>/<app-id>/
+  |    |- vAG-app.json   (manifest)
+  |    |- index.html     (entry point)
+  |    \- assets/        (optional icons, images, etc.)
+  |
+  |Manifest schema (vAG-app.json):
+  |  {
+  |    "id": "deinname.appname",          // unique, must match the folder name
+  |    "name": "App Name",                // display name
+  |    "version": "1.0.0",                // semver
+  |    "author": "Your Name",
+  |    "category": "Productivity",        // one of: Productivity, Utilities, Development, Creative, Games, System
+  |    "description": "Short description.",
+  |    "icon": "assets/icon.svg",         // optional, relative to app folder
+  |    "entry": "index.html",             // relative entry HTML file
+  |    "permissions": [],                 // bridge permissions: readFile, writeFile, readFileBinary, writeFileBinary, deleteFile, listFiles, getMemory, getConfig, sendMessage
+  |    "minVibeAgentGo": "2607.9.0",      // optional
+  |    "license": "MIT"                   // optional
+  |  }
+  |
+  |Rules for the HTML entry:
+  |  - Must be a single, self-contained HTML file or reference assets inside the app folder.
+  |  - The file runs in a sandboxed iframe with null origin; no localStorage/sessionStorage access.
+  |  - Use window.vibeAgentGo.<method> to bridge to the workspace (readFile, writeFile, listFiles, getMemory, getConfig, sendMessage).
+  |  - Only request permissions listed in the manifest. If the app needs no workspace access, leave "permissions" empty.
+  |  - Use window.config for read-only settings (model name, language, etc.) without exposing API keys.
+  |  - Avoid external scripts unless absolutely necessary; if used, include Subresource Integrity (integrity attribute).`);
+
   parts.push(
     lang === 'de'
       ? `Wichtig für Mini-Apps: Bevor du interaktive HTML/JS-Apps oder Dateikonverter baust, rufe zuerst help({ topic: "sandbox" }) auf, damit die App auf Anhieb funktioniert.`
