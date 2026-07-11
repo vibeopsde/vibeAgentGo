@@ -23,9 +23,14 @@ export class ProgramApp implements App {
   private onBridgeRequest: (req: BridgeRequest) => Promise<BridgeResponse>;
   private state: ProgramAppState = { title: 'Program', html: '' };
   private messageHandler: ((e: MessageEvent) => void) | null = null;
+  private allowedPermissions: string[] | null = null;
 
-  constructor(onBridgeRequest: (req: BridgeRequest) => Promise<BridgeResponse>) {
+  constructor(
+    onBridgeRequest: (req: BridgeRequest) => Promise<BridgeResponse>,
+    allowedPermissions?: string[]
+  ) {
     this.onBridgeRequest = onBridgeRequest;
+    this.allowedPermissions = allowedPermissions ?? null;
     this.element = document.createElement('div');
     this.element.className = 'program-app';
   }
@@ -69,6 +74,16 @@ export class ProgramApp implements App {
     this.messageHandler = (e: MessageEvent) => {
       if (e.source !== this.iframe?.contentWindow) return;
       if (e.data?.type !== 'vibeAgentGo') return;
+
+      const req = e.data.payload as BridgeRequest;
+      if (this.allowedPermissions && !this.allowedPermissions.includes(req.type)) {
+        this.iframe?.contentWindow?.postMessage(
+          { type: 'vibeAgentGo', id: e.data.id, payload: { ok: false, error: `Permission denied: ${req.type}` } },
+          '*'
+        );
+        return;
+      }
+
       this.onBridgeRequest(e.data.payload as BridgeRequest).then((res) => {
         this.iframe?.contentWindow?.postMessage({ type: 'vibeAgentGo', id: e.data.id, payload: res }, '*');
       });

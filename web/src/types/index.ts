@@ -115,6 +115,26 @@ export interface RenderViewEvent {
   html: string;
 }
 
+// --- vAG-Apps ---
+
+export interface InstalledApp {
+  id: string;
+  name: string;
+  version: string;
+  author: string;
+  category: string;
+  description: string;
+  icon: string | null;
+  entry: string;
+  entryContent: string;
+  path: string;
+  minVibeAgentGo: string | null;
+  license: string | null;
+  permissions: string[];
+  installedAt: string;
+  updatedAt: string;
+}
+
 // --- Bridge (ProgramApp iframe) ---
 
 export type BridgeRequest =
@@ -126,7 +146,10 @@ export type BridgeRequest =
   | { type: 'listFiles' }
   | { type: 'getMemory'; query: string; category?: string; limit?: number }
   | { type: 'getConfig' }
-  | { type: 'sendMessage'; text: string };
+  | { type: 'sendMessage'; text: string }
+  | { type: 'installApp'; app: InstalledApp }
+  | { type: 'uninstallApp'; id: string }
+  | { type: 'launchApp'; id: string };
 
 export interface BridgeResponse {
   ok: boolean;

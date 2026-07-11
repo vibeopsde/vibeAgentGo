@@ -9,10 +9,13 @@ import { SettingsApp } from '../apps/SettingsApp.js';
 import { ProgramApp } from '../apps/ProgramApp.js';
 import { ExplorerApp } from '../apps/ExplorerApp.js';
 import { TextEditorApp } from '../apps/TextEditorApp.js';
+import { AppStoreApp } from '../apps/AppStoreApp.js';
 import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { Agent } from './agent.js';
 import { registerGlobalErrorHandlers, captureFunctionError } from './global_errors.js';
 import { loadConfig, saveConfig, hasCompletedOnboarding, MemoryStore, SkillStore } from './memory.js';
+import { InstalledAppStore } from './app_store_db.js';
+import type { InstalledApp } from './app_store_db.js';
 import { isTextContentPart } from '../types/index.js';
 import { createDefaultTools } from './tools.js';
 import { isSlashCommand, handleSlashCommand } from './slash_commands.js';
@@ -26,11 +29,13 @@ export class AppController {
   private memory = new MemoryStore();
   private tools = createDefaultTools();
   private wm = new WindowManager();
+  private appStore = new InstalledAppStore();
 
   private currentSessionId: string | null = null;
   private agent: Agent | null = null;
   private isRunning = false;
   private activeChatWindowId: string | null = null;
+  private installedApps = new Map<string, InstalledApp>();
 
   private readonly LAST_SESSION_KEY = 'vibeAgentGo-lastSession';
 
@@ -223,6 +228,25 @@ export class AppController {
           } finally {
             this.isRunning = false;
           }
+          return { ok: true, data: null };
+        }
+        case 'installApp': {
+          const app = req.app as InstalledApp;
+          await this.appStore.installApp(app);
+          this.installedApps.set(app.id, app);
+          this.registerInstalledAppFactory(app);
+          return { ok: true, data: null };
+        }
+        case 'uninstallApp': {
+          await this.appStore.uninstallApp(req.id);
+          this.installedApps.delete(req.id);
+          this.wm.unregisterApp(req.id);
+          return { ok: true, data: null };
+        }
+        case 'launchApp': {
+          const app = this.installedApps.get(req.id);
+          if (!app) return { ok: false, error: `App not installed: ${req.id}` };
+          this.wm.launchOrFocus(app.id);
           return { ok: true, data: null };
         }
         default: {
@@ -494,6 +518,13 @@ export class AppController {
       return app;
     });
 
+    this.wm.registerApp('appstore', () => {
+      const app = new AppStoreApp();
+      app.setBridgeHandler(this.handleBridgeRequest);
+      app.setInstalled(Array.from(this.installedApps.values()));
+      return app;
+    });
+
     this.wm.on('window_focused', ({ windowId, appId }) => {
       if (appId === 'chat') {
         this.activeChatWindowId = windowId;
@@ -532,15 +563,49 @@ export class AppController {
 
   // --- Init ---
 
-  private startApp() {
+  private async startApp() {
     const config = loadConfig();
     setLanguage(config.language);
+    await this.loadInstalledApps();
     this.buildLayout();
 
     const lastId = this.loadLastSession();
     if (lastId) {
       this.resumeSession(lastId);
     }
+  }
+
+  private async loadInstalledApps() {
+    const apps = await this.appStore.listInstalled();
+    for (const app of apps) {
+      this.installedApps.set(app.id, app);
+      this.registerInstalledAppFactory(app);
+    }
+  }
+
+  private registerInstalledAppFactory(app: InstalledApp) {
+    this.wm.registerApp(
+      app.id,
+      () => {
+        const bridge = this.handleBridgeRequest;
+        return {
+          id: app.id,
+          title: app.name,
+          icon: app.icon ? `🚀` : '📦',
+          element: document.createElement('div'),
+          mount: (container: HTMLElement) => {
+            container.innerHTML = '';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'program-app';
+            const program = new ProgramApp(bridge, app.permissions);
+            program.mount(wrapper);
+            program.setContent(app.name, app.entryContent);
+            container.appendChild(wrapper);
+          },
+        };
+      },
+      true
+    );
   }
 
   private startOnboarding() {

@@ -115,6 +115,17 @@ export class WindowManager {
     this.updateDock();
   }
 
+  unregisterApp(appId: string) {
+    // Close all open windows for this app first.
+    for (const [id, win] of this.windows) {
+      if (win.appId === appId) {
+        this.closeWindow(id);
+      }
+    }
+    this.apps.delete(appId);
+    this.updateDock();
+  }
+
   openWindow(opts: OpenWindowOptions): string {
     const entry = this.apps.get(opts.appId);
     if (!entry) throw new Error(`Unknown app: ${opts.appId}`);
