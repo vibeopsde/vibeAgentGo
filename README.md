@@ -9,7 +9,7 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
 - **Skills** stored in IndexedDB, injected into the system prompt
-- **19 Tools** including file I/O, PDF extraction, patch editing, web search, YouTube transcripts, memory, error log, system check, Git workspace sync, and code execution in a Web Worker sandbox
+- **22 Tools** including file I/O, PDF extraction, patch editing, web search, YouTube transcripts, memory, error log, system check, Git workspace sync, vAG-App Store toolkit, and code execution in a Web Worker sandbox
 - **Slash Commands** in the chat input that run locally without an LLM round-trip (`/sys_check`, `/new`, `/clear`, `/help`)
 - **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace
@@ -88,6 +88,9 @@ web/
 | `help` | Read built-in reference docs (`sandbox`, `ui`, `tools`) |
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
 | `youtube_transcript` | Fetch and summarize YouTube transcripts via your own proxy |
+| `app_store_search` | Search the vAG-App Store for available mini-apps |
+| `app_store_install` | Install a vAG-App from the store into the local workspace |
+| `app_store_publish` | Prepare a local app for publishing to the vAG-App Store |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `memory_search` | Search existing memory entries by keyword |
 | `sys_check` | Deterministic health check for IndexedDB, files, worker sandbox, and config (supports `repair` mode) |

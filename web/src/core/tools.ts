@@ -10,6 +10,7 @@ import { openDB, resetDBConnection } from './db.js';
 import { GitBackupManager, type GitCredentials } from './gitBackup.js';
 
 import { validateArgs } from '../utils/schema_validate.js';
+import { corsFetch } from './cors_fetch.js';
 import sandboxRef from './refs/sandbox.md?raw';
 import uiRef from './refs/ui.md?raw';
 import toolsRef from './refs/tools.md?raw';
@@ -774,6 +775,299 @@ const youtube_transcript: Tool = {
   },
 };
 
+// --- vAG-App Store Tools ---
+
+const APP_STORE_INDEX_URL = 'https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/index.json';
+
+interface StoreAppEntry {
+  id: string;
+  name: string;
+  version: string;
+  author: string;
+  category: string;
+  description: string;
+  icon: string | null;
+  entry: string;
+  path: string;
+  minVibeAgentGo: string | null;
+  license: string | null;
+  permissions: string[];
+}
+
+interface StoreIndex {
+  generatedAt: string;
+  count: number;
+  apps: StoreAppEntry[];
+}
+
+async function fetchStoreIndex(): Promise<StoreIndex | { error: string }> {
+  try {
+    const res = await corsFetch(APP_STORE_INDEX_URL);
+    if (!res.ok) {
+      return { error: `App Store index returned HTTP ${res.status}` };
+    }
+    const data = (await res.json()) as StoreIndex;
+    return data;
+  } catch (e) {
+    return { error: `Failed to load App Store index: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+const app_store_search: Tool = {
+  name: 'app_store_search',
+  description:
+    'Search the vAG-App Store for installable mini-apps. Returns matching apps with id, name, version, author, category, description, and permissions. Use this when the user wants to find, install, or learn about available apps.',
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'Optional search term for name, description, or id.',
+      },
+      category: {
+        type: 'string',
+        description:
+          'Optional category filter. Allowed: Productivity, Utilities, Development, Creative, Games, System.',
+      },
+      limit: {
+        type: 'number',
+        description: 'Maximum number of results to return. Default: 20.',
+      },
+    },
+  },
+  handler: async (args: Record<string, unknown>) => {
+    const index = await fetchStoreIndex();
+    if ('error' in index) return index.error;
+
+    const query = asString(args.query).toLowerCase().trim();
+    const category = asString(args.category).trim();
+    const limit = Math.max(1, Math.min(100, asNumber(args.limit, 20)));
+
+    const allowedCategories = ['Productivity', 'Utilities', 'Development', 'Creative', 'Games', 'System'];
+    if (category && !allowedCategories.includes(category)) {
+      return `Invalid category "${category}". Allowed: ${allowedCategories.join(', ')}.`;
+    }
+
+    let apps = index.apps;
+    if (category) {
+      apps = apps.filter((a) => a.category === category);
+    }
+    if (query) {
+      apps = apps.filter(
+        (a) =>
+          a.id.toLowerCase().includes(query) ||
+          a.name.toLowerCase().includes(query) ||
+          a.description.toLowerCase().includes(query) ||
+          a.author.toLowerCase().includes(query)
+      );
+    }
+    apps = apps.slice(0, limit);
+
+    if (apps.length === 0) {
+      return 'No matching apps found in the vAG-App Store.';
+    }
+
+    return apps
+      .map(
+        (a) =>
+          `- ${a.name} (${a.id})\n  Category: ${a.category} | v${a.version} | by ${a.author}\n  ${a.description}\n  Permissions: ${a.permissions.length ? a.permissions.join(', ') : 'none'}`
+      )
+      .join('\n\n');
+  },
+};
+
+const app_store_install: Tool = {
+  name: 'app_store_install',
+  description:
+    'Install an app from the vAG-App Store into the local workspace under apps/<Category>/<id>/. The app becomes visible in the Explorer and can be launched from there or via the App Store.',
+  parameters: {
+    type: 'object',
+    properties: {
+      id: {
+        type: 'string',
+        description: 'The unique app id from the vAG-App Store (e.g. "vibeops.example.calculator").',
+      },
+    },
+    required: ['id'],
+  },
+  handler: async (args: Record<string, unknown>, ctx) => {
+    const mem = getMemoryStore(ctx);
+    const id = asString(args.id).trim();
+    if (!id) return 'Error: id is required.';
+
+    const index = await fetchStoreIndex();
+    if ('error' in index) return index.error;
+
+    const app = index.apps.find((a) => a.id === id);
+    if (!app) return `App "${id}" not found in the vAG-App Store.`;
+
+    const basePath = `apps/${app.category}/${app.id}`;
+    const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/${app.entry}`;
+
+    try {
+      const res = await corsFetch(entryUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const entryContent = await res.text();
+
+      const manifest = {
+        id: app.id,
+        name: app.name,
+        version: app.version,
+        author: app.author,
+        category: app.category,
+        description: app.description,
+        icon: app.icon,
+        entry: app.entry,
+        permissions: app.permissions,
+        minVibeAgentGo: app.minVibeAgentGo,
+        license: app.license,
+      };
+
+      await mem.writeFile(`${basePath}/vAG-app.json`, JSON.stringify(manifest, null, 2));
+      await mem.writeFile(`${basePath}/${app.entry}`, entryContent);
+
+      if (app.icon) {
+        try {
+          const iconUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/${app.icon}`;
+          const iconRes = await corsFetch(iconUrl);
+          if (iconRes.ok) {
+            const iconContent = await iconRes.text();
+            await mem.writeFile(`${basePath}/${app.icon}`, iconContent);
+          }
+        } catch {
+          /* ignore icon fetch errors */
+        }
+      }
+
+      return `Installed ${app.name} (${app.id}) into workspace at ${basePath}.`;
+    } catch (e) {
+      return `Install failed: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  },
+};
+
+const app_store_publish: Tool = {
+  name: 'app_store_publish',
+  description:
+    'Prepare a local workspace app for publishing to the vAG-App Store. Reads the app from source_path (which should contain a vAG-app.json manifest and its entry HTML), copies it into a vAG-Apps-compatible repository structure under target_repo_root (default: "vAG-Apps"), and returns the files written. The user can then commit and push this repository to publish the app. If no manifest exists, a minimal one is generated from the provided id, name, category, and description.',
+  parameters: {
+    type: 'object',
+    properties: {
+      source_path: {
+        type: 'string',
+        description: 'Workspace path to the app folder (e.g. "apps/Productivity/myapp" or "myapp").',
+      },
+      target_repo_root: {
+        type: 'string',
+        description: 'Workspace path to the vAG-Apps repository root. Default: "vAG-Apps".',
+      },
+      id: {
+        type: 'string',
+        description: 'App id (reverse-domain style). Used only when creating a new manifest.',
+      },
+      name: {
+        type: 'string',
+        description: 'App display name. Used only when creating a new manifest.',
+      },
+      category: {
+        type: 'string',
+        description:
+          'App category. Used only when creating a new manifest. Allowed: Productivity, Utilities, Development, Creative, Games, System.',
+      },
+      description: {
+        type: 'string',
+        description: 'Short description. Used only when creating a new manifest.',
+      },
+      author: {
+        type: 'string',
+        description: 'App author. Used only when creating a new manifest. Default: "vibeops"',
+      },
+    },
+    required: ['source_path'],
+  },
+  handler: async (args: Record<string, unknown>, ctx) => {
+    const mem = getMemoryStore(ctx);
+    const sourcePath = asString(args.source_path).replace(/\/$/, '');
+    const targetRepoRoot = asString(args.target_repo_root, 'vAG-Apps').replace(/\/$/, '');
+
+    if (!sourcePath) return 'Error: source_path is required.';
+
+    const allFiles = await mem.listFiles();
+    const sourceFiles = allFiles.filter((f) => f.path === sourcePath || f.path.startsWith(`${sourcePath}/`));
+    if (sourceFiles.length === 0) {
+      return `Source path not found in workspace: ${sourcePath}`;
+    }
+
+    let manifest: StoreAppEntry;
+    const manifestPath = `${sourcePath}/vAG-app.json`;
+    const manifestFile = sourceFiles.find((f) => f.path === manifestPath);
+
+    if (manifestFile) {
+      try {
+        manifest = JSON.parse(manifestFile.content) as StoreAppEntry;
+      } catch (e) {
+        return `Invalid vAG-app.json manifest in ${sourcePath}: ${e instanceof Error ? e.message : String(e)}`;
+      }
+    } else {
+      const id = asString(args.id).trim();
+      const name = asString(args.name).trim();
+      const category = asString(args.category).trim();
+      const description = asString(args.description).trim();
+      const author = asString(args.author, 'vibeops').trim();
+      const allowedCategories = ['Productivity', 'Utilities', 'Development', 'Creative', 'Games', 'System'];
+      if (!id || !name || !category || !description) {
+        return 'No vAG-app.json found and missing required fields. Pass id, name, category, and description to create a manifest.';
+      }
+      if (!allowedCategories.includes(category)) {
+        return `Invalid category "${category}". Allowed: ${allowedCategories.join(', ')}.`;
+      }
+      const folderName = id.split('.').pop() || id;
+      manifest = {
+        id,
+        name,
+        version: '1.0.0',
+        author,
+        category,
+        description,
+        icon: null,
+        entry: 'index.html',
+        path: `${category}/${folderName}`,
+        minVibeAgentGo: null,
+        license: 'MIT',
+        permissions: [],
+      };
+    }
+
+    const entry = manifest.entry || 'index.html';
+    if (!sourceFiles.some((f) => f.path === `${sourcePath}/${entry}`)) {
+      return `Entry file "${entry}" not found in ${sourcePath}.`;
+    }
+
+    const targetBase = `${targetRepoRoot}/apps/${manifest.category}/${manifest.id}`;
+    const written: string[] = [];
+
+    for (const file of sourceFiles) {
+      const relativePath = file.path.slice(sourcePath.length + 1);
+      if (!relativePath) continue;
+      const targetPath = `${targetBase}/${relativePath}`;
+      // Update manifest path and entry to match the store layout when writing the manifest copy.
+      if (relativePath === 'vAG-app.json') {
+        const storeManifest = {
+          ...manifest,
+          path: `${manifest.category}/${manifest.id.split('.').pop() || manifest.id}`,
+          entry,
+        };
+        await mem.writeFile(targetPath, JSON.stringify(storeManifest, null, 2));
+      } else {
+        await mem.writeFile(targetPath, file.content);
+      }
+      written.push(targetPath);
+    }
+
+    return `Prepared app "${manifest.name}" (${manifest.id}) for publishing.\n\nFiles written to workspace:\n${written.map((p) => `  - ${p}`).join('\n')}\n\nNext steps: use git_clone/git_pull/git_push in "${targetRepoRoot}" to commit and push to the vAG-Apps repository.`;
+  },
+};
+
 // --- Memory (IndexedDB) ---
 
 const memory_save: Tool = {
@@ -1210,6 +1504,9 @@ export function createDefaultTools(): Tool[] {
     run_app,
     web_search,
     youtube_transcript,
+    app_store_search,
+    app_store_install,
+    app_store_publish,
     memory_save,
     memory_search,
     sys_check,
