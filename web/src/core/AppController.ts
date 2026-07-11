@@ -591,7 +591,7 @@ export class AppController {
         return {
           id: app.id,
           title: app.name,
-          icon: app.icon ? `🚀` : '📦',
+          icon: app.icon,
           element: document.createElement('div'),
           mount: (container: HTMLElement) => {
             container.innerHTML = '';

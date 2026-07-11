@@ -786,8 +786,7 @@ interface StoreAppEntry {
   author: string;
   category: string;
   description: string;
-  icon: string | null;
-  entry: string;
+  icon: string;
   path: string;
   minVibeAgentGo: string | null;
   license: string | null;
@@ -816,7 +815,7 @@ async function fetchStoreIndex(): Promise<StoreIndex | { error: string }> {
 const app_store_search: Tool = {
   name: 'app_store_search',
   description:
-    'Search the vAG-App Store for installable mini-apps. Returns matching apps with id, name, version, author, category, description, and permissions. Use this when the user wants to find, install, or learn about available apps.',
+    'Search the vAG-App Store for installable mini-apps. Each app is a single index.html with embedded metadata. Returns id, name, version, author, category, description, and permissions.',
   parameters: {
     type: 'object',
     properties: {
@@ -879,7 +878,7 @@ const app_store_search: Tool = {
 const app_store_install: Tool = {
   name: 'app_store_install',
   description:
-    'Install an app from the vAG-App Store into the local workspace under apps/<Category>/<id>/. The app becomes visible in the Explorer and can be launched from there or via the App Store.',
+    'Install an app from the vAG-App Store into the local workspace as a single HTML file under apps/<Category>/<id>/index.html. The app becomes visible in the Explorer and can be launched from there or via the App Store.',
   parameters: {
     type: 'object',
     properties: {
@@ -902,44 +901,14 @@ const app_store_install: Tool = {
     if (!app) return `App "${id}" not found in the vAG-App Store.`;
 
     const basePath = `apps/${app.category}/${app.id}`;
-    const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/${app.entry}`;
+    const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/index.html`;
 
     try {
       const res = await corsFetch(entryUrl);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const entryContent = await res.text();
-
-      const manifest = {
-        id: app.id,
-        name: app.name,
-        version: app.version,
-        author: app.author,
-        category: app.category,
-        description: app.description,
-        icon: app.icon,
-        entry: app.entry,
-        permissions: app.permissions,
-        minVibeAgentGo: app.minVibeAgentGo,
-        license: app.license,
-      };
-
-      await mem.writeFile(`${basePath}/vAG-app.json`, JSON.stringify(manifest, null, 2));
-      await mem.writeFile(`${basePath}/${app.entry}`, entryContent);
-
-      if (app.icon) {
-        try {
-          const iconUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/${app.icon}`;
-          const iconRes = await corsFetch(iconUrl);
-          if (iconRes.ok) {
-            const iconContent = await iconRes.text();
-            await mem.writeFile(`${basePath}/${app.icon}`, iconContent);
-          }
-        } catch {
-          /* ignore icon fetch errors */
-        }
-      }
-
-      return `Installed ${app.name} (${app.id}) into workspace at ${basePath}.`;
+      await mem.writeFile(`${basePath}/index.html`, entryContent);
+      return `Installed ${app.name} (${app.id}) into workspace at ${basePath}/index.html.`;
     } catch (e) {
       return `Install failed: ${e instanceof Error ? e.message : String(e)}`;
     }
@@ -949,13 +918,13 @@ const app_store_install: Tool = {
 const app_store_publish: Tool = {
   name: 'app_store_publish',
   description:
-    'Prepare a local workspace app for publishing to the vAG-App Store. Reads the app from source_path (which should contain a vAG-app.json manifest and its entry HTML), copies it into a vAG-Apps-compatible repository structure under target_repo_root (default: "vAG-Apps"), and returns the files written. The user can then commit and push this repository to publish the app. If no manifest exists, a minimal one is generated from the provided id, name, category, and description.',
+    'Prepare a local workspace app for publishing to the vAG-App Store. The app must be a single HTML file at source_path (e.g. "apps/Productivity/myapp/index.html") with a <script type="application/vnd.vag+json"> manifest block. The file is copied into a vAG-Apps-compatible repository structure under target_repo_root (default: "vAG-Apps"). If no manifest block exists, a minimal one is generated from the provided id, name, category, and description.',
   parameters: {
     type: 'object',
     properties: {
       source_path: {
         type: 'string',
-        description: 'Workspace path to the app folder (e.g. "apps/Productivity/myapp" or "myapp").',
+        description: 'Workspace path to the app file (e.g. "apps/Productivity/myapp/index.html") or app folder.',
       },
       target_repo_root: {
         type: 'string',
@@ -963,7 +932,7 @@ const app_store_publish: Tool = {
       },
       id: {
         type: 'string',
-        description: 'App id (reverse-domain style). Used only when creating a new manifest.',
+        description: 'App id. Used only when creating a new manifest.',
       },
       name: {
         type: 'string',
@@ -982,6 +951,10 @@ const app_store_publish: Tool = {
         type: 'string',
         description: 'App author. Used only when creating a new manifest. Default: "vibeops"',
       },
+      icon: {
+        type: 'string',
+        description: 'Emoji icon (e.g. "🌤️"). Used only when creating a new manifest. Default: "📦"',
+      },
     },
     required: ['source_path'],
   },
@@ -992,36 +965,30 @@ const app_store_publish: Tool = {
 
     if (!sourcePath) return 'Error: source_path is required.';
 
-    const allFiles = await mem.listFiles();
-    const sourceFiles = allFiles.filter((f) => f.path === sourcePath || f.path.startsWith(`${sourcePath}/`));
-    if (sourceFiles.length === 0) {
-      return `Source path not found in workspace: ${sourcePath}`;
+    const htmlPath = sourcePath.endsWith('.html') ? sourcePath : `${sourcePath}/index.html`;
+    const htmlContent = await mem.readFile(htmlPath);
+    if (htmlContent === null) {
+      return `App file not found in workspace: ${htmlPath}`;
     }
 
-    let manifest: StoreAppEntry;
-    const manifestPath = `${sourcePath}/vAG-app.json`;
-    const manifestFile = sourceFiles.find((f) => f.path === manifestPath);
+    const { parseAppManifest, injectAppManifest } = await import('./appManifest.js');
+    const parsed = parseAppManifest(htmlContent);
 
-    if (manifestFile) {
-      try {
-        manifest = JSON.parse(manifestFile.content) as StoreAppEntry;
-      } catch (e) {
-        return `Invalid vAG-app.json manifest in ${sourcePath}: ${e instanceof Error ? e.message : String(e)}`;
-      }
-    } else {
+    let manifest = parsed.manifest;
+    if (!manifest) {
       const id = asString(args.id).trim();
       const name = asString(args.name).trim();
       const category = asString(args.category).trim();
       const description = asString(args.description).trim();
       const author = asString(args.author, 'vibeops').trim();
-      const allowedCategories = ['Productivity', 'Utilities', 'Development', 'Creative', 'Games', 'System'];
+      const icon = asString(args.icon, '📦').trim();
       if (!id || !name || !category || !description) {
-        return 'No vAG-app.json found and missing required fields. Pass id, name, category, and description to create a manifest.';
+        return 'No manifest block found and missing required fields. Pass id, name, category, and description to create one.';
       }
+      const allowedCategories = ['Productivity', 'Utilities', 'Development', 'Creative', 'Games', 'System'];
       if (!allowedCategories.includes(category)) {
         return `Invalid category "${category}". Allowed: ${allowedCategories.join(', ')}.`;
       }
-      const folderName = id.split('.').pop() || id;
       manifest = {
         id,
         name,
@@ -1029,42 +996,16 @@ const app_store_publish: Tool = {
         author,
         category,
         description,
-        icon: null,
-        entry: 'index.html',
-        path: `${category}/${folderName}`,
-        minVibeAgentGo: null,
-        license: 'MIT',
+        icon,
         permissions: [],
       };
     }
 
-    const entry = manifest.entry || 'index.html';
-    if (!sourceFiles.some((f) => f.path === `${sourcePath}/${entry}`)) {
-      return `Entry file "${entry}" not found in ${sourcePath}.`;
-    }
+    const targetPath = `${targetRepoRoot}/apps/${manifest.category}/${manifest.id}/index.html`;
+    const targetHtml = injectAppManifest(htmlContent, manifest);
+    await mem.writeFile(targetPath, targetHtml);
 
-    const targetBase = `${targetRepoRoot}/apps/${manifest.category}/${manifest.id}`;
-    const written: string[] = [];
-
-    for (const file of sourceFiles) {
-      const relativePath = file.path.slice(sourcePath.length + 1);
-      if (!relativePath) continue;
-      const targetPath = `${targetBase}/${relativePath}`;
-      // Update manifest path and entry to match the store layout when writing the manifest copy.
-      if (relativePath === 'vAG-app.json') {
-        const storeManifest = {
-          ...manifest,
-          path: `${manifest.category}/${manifest.id.split('.').pop() || manifest.id}`,
-          entry,
-        };
-        await mem.writeFile(targetPath, JSON.stringify(storeManifest, null, 2));
-      } else {
-        await mem.writeFile(targetPath, file.content);
-      }
-      written.push(targetPath);
-    }
-
-    return `Prepared app "${manifest.name}" (${manifest.id}) for publishing.\n\nFiles written to workspace:\n${written.map((p) => `  - ${p}`).join('\n')}\n\nNext steps: use git_clone/git_pull/git_push in "${targetRepoRoot}" to commit and push to the vAG-Apps repository.`;
+    return `Prepared app "${manifest.name}" (${manifest.id}) for publishing.\n\nFile written:\n  - ${targetPath}\n\nNext steps: use git_clone/git_pull/git_push in "${targetRepoRoot}" to commit and push to the vAG-Apps repository.`;
   },
 };
 

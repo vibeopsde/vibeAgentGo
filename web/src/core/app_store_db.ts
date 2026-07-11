@@ -1,10 +1,11 @@
 // ============================================================
 // vibeAgentGo — InstalledAppStore
-// Apps are stored as files in the workspace under apps/<Category>/<id>/.
-// This makes them visible in the Explorer, editable, backup-able, and forkable.
+// Apps are stored as a single HTML file in the workspace under
+// apps/<Category>/<id>/index.html. Metadata is embedded in the HTML.
 // ============================================================
 
 import type { BridgeRequest, BridgeResponse, InstalledApp } from '../types/index.js';
+import { parseAppManifest, type AppManifest } from './appManifest.js';
 
 export type { InstalledApp } from '../types/index.js';
 
@@ -21,33 +22,38 @@ export class InstalledAppStore {
     return this.deps.bridge(req);
   }
 
-  private appPath(app: { category: string; id: string }): string {
-    return `${APPS_ROOT}/${app.category}/${app.id}`;
+  private static appPath(manifest: { category: string; id: string }): string {
+    return `${APPS_ROOT}/${manifest.category}/${manifest.id}`;
   }
 
   async listInstalled(): Promise<InstalledApp[]> {
     const files = await this.bridge({ type: 'listFiles' });
     if (!files.ok || !Array.isArray(files.data)) return [];
 
-    const manifests = (files.data as { path: string; content: string }[]).filter(
-      (f) => f.path.startsWith(`${APPS_ROOT}/`) && f.path.endsWith('/vAG-app.json')
+    const entries = (files.data as { path: string; content: string }[]).filter(
+      (f) => f.path.startsWith(`${APPS_ROOT}/`) && f.path.endsWith('/index.html')
     );
 
     const apps: InstalledApp[] = [];
-    for (const mf of manifests) {
-      try {
-        const manifest = JSON.parse(mf.content) as Omit<InstalledApp, 'entryContent' | 'installedAt' | 'updatedAt'>;
-        const entryPath = mf.path.replace(/vAG-app\.json$/, manifest.entry || 'index.html');
-        const entry = await this.bridge({ type: 'readFile', path: entryPath });
-        apps.push({
-          ...manifest,
-          entryContent: entry.ok && typeof entry.data === 'string' ? entry.data : '',
-          installedAt: '',
-          updatedAt: '',
-        });
-      } catch {
-        /* skip invalid manifests */
-      }
+    for (const entry of entries) {
+      const parsed = parseAppManifest(entry.content);
+      if (parsed.error || !parsed.manifest) continue;
+      const m = parsed.manifest;
+      apps.push({
+        id: m.id,
+        name: m.name,
+        version: m.version,
+        author: m.author,
+        category: m.category,
+        description: m.description,
+        icon: m.icon,
+        permissions: m.permissions,
+        minVibeAgentGo: m.minVibeAgentGo ?? null,
+        license: m.license ?? 'MIT',
+        entryContent: entry.content,
+        installedAt: '',
+        updatedAt: '',
+      });
     }
     return apps;
   }
@@ -58,31 +64,12 @@ export class InstalledAppStore {
   }
 
   async installApp(app: InstalledApp): Promise<void> {
-    const basePath = this.appPath(app);
-
-    const manifest = {
-      id: app.id,
-      name: app.name,
-      version: app.version,
-      author: app.author,
-      category: app.category,
-      description: app.description,
-      icon: app.icon,
-      entry: app.entry,
-      permissions: app.permissions,
-      minVibeAgentGo: app.minVibeAgentGo,
-      license: app.license,
-    };
-
+    const basePath = InstalledAppStore.appPath(app);
     await this.bridge({
       type: 'writeFile',
-      path: `${basePath}/vAG-app.json`,
-      content: JSON.stringify(manifest, null, 2),
+      path: `${basePath}/index.html`,
+      content: app.entryContent,
     });
-    await this.bridge({ type: 'writeFile', path: `${basePath}/${app.entry}`, content: app.entryContent });
-    if (app.icon) {
-      await this.bridge({ type: 'writeFile', path: `${basePath}/${app.icon}`, content: app.iconContent || '' });
-    }
   }
 
   async uninstallApp(id: string): Promise<void> {
@@ -90,7 +77,7 @@ export class InstalledAppStore {
     if (!app) return;
     const files = await this.bridge({ type: 'listFiles' });
     if (!files.ok || !Array.isArray(files.data)) return;
-    const basePath = this.appPath(app);
+    const basePath = InstalledAppStore.appPath(app);
     for (const file of files.data as { path: string }[]) {
       if (file.path.startsWith(`${basePath}/`)) {
         await this.bridge({ type: 'deleteFile', path: file.path });
@@ -107,5 +94,13 @@ export class InstalledAppStore {
     const app = await this.getInstalled(id);
     if (!app) return false;
     return app.version !== version;
+  }
+
+  async readManifest(category: string, id: string): Promise<AppManifest | null> {
+    const path = `${APPS_ROOT}/${category}/${id}/index.html`;
+    const res = await this.bridge({ type: 'readFile', path });
+    if (!res.ok || typeof res.data !== 'string') return null;
+    const parsed = parseAppManifest(res.data);
+    return parsed.error ? null : parsed.manifest;
   }
 }

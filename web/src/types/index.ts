@@ -124,14 +124,11 @@ export interface InstalledApp {
   author: string;
   category: string;
   description: string;
-  icon: string | null;
-  iconContent: string | null;
-  entry: string;
-  entryContent: string;
-  path: string;
+  icon: string;
+  permissions: string[];
   minVibeAgentGo: string | null;
   license: string | null;
-  permissions: string[];
+  entryContent: string;
   installedAt: string;
   updatedAt: string;
 }

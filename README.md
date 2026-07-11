@@ -88,9 +88,9 @@ web/
 | `help` | Read built-in reference docs (`sandbox`, `ui`, `tools`) |
 | `web_search` | Web search via configured provider (Tavily, CORS-dependent — use your own proxy if the endpoint lacks CORS) |
 | `youtube_transcript` | Fetch and summarize YouTube transcripts via your own proxy |
-| `app_store_search` | Search the vAG-App Store for available mini-apps |
-| `app_store_install` | Install a vAG-App from the store into the local workspace |
-| `app_store_publish` | Prepare a local app for publishing to the vAG-App Store |
+| `app_store_search` | Search the vAG-App Store for mini-apps (single HTML files with embedded metadata) |
+| `app_store_install` | Install a vAG-App from the store into the local workspace as `apps/<Category>/<id>/index.html` |
+| `app_store_publish` | Prepare a local single-HTML app for publishing to the vAG-App Store |
 | `memory_save` | Save a durable fact to IndexedDB memory |
 | `memory_search` | Search existing memory entries by keyword |
 | `sys_check` | Deterministic health check for IndexedDB, files, worker sandbox, and config (supports `repair` mode) |

@@ -1,7 +1,7 @@
 // ============================================================
 // vibeAgentGo — AppStoreApp
 // Browse available apps from the remote index and manage installed apps
-// that live as files in the workspace under apps/<Category>/<id>/.
+// that live as single HTML files in the workspace under apps/<Category>/<id>/.
 // ============================================================
 
 import type { App, BridgeRequest, BridgeResponse, InstalledApp } from '../types/index.js';
@@ -15,8 +15,7 @@ export interface StoreAppEntry {
   author: string;
   category: string;
   description: string;
-  icon: string | null;
-  entry: string;
+  icon: string;
   path: string;
   minVibeAgentGo: string | null;
   license: string | null;
@@ -92,20 +91,28 @@ export class AppStoreApp implements App {
     const files = await this.bridge({ type: 'listFiles' });
     if (!files.ok || !Array.isArray(files.data)) return;
 
-    const manifests = (files.data as { path: string; content: string }[]).filter(
-      (f) => f.path.startsWith('apps/') && f.path.endsWith('/vAG-app.json')
-    );
-
     const installed: InstalledApp[] = [];
-    for (const mf of manifests) {
+    for (const f of files.data as { path: string; content: string }[]) {
+      if (!f.path.startsWith('apps/') || !f.path.endsWith('/index.html')) continue;
+      const match = f.content.match(/<script\s+type="application\/vnd\.vag\+json"[^>]*>[\s\S]*?<\/script>/i);
+      if (!match) continue;
       try {
-        const manifest = JSON.parse(mf.content) as StoreAppEntry;
-        const entryPath = mf.path.replace(/vAG-app\.json$/, manifest.entry || 'index.html');
-        const entry = await this.bridge({ type: 'readFile', path: entryPath });
+        const manifest = JSON.parse(match[0].replace(/<[^>]+>/g, '').trim()) as StoreAppEntry;
         installed.push({
-          ...manifest,
-          entryContent: entry.ok && typeof entry.data === 'string' ? entry.data : '',
-        } as InstalledApp);
+          id: manifest.id,
+          name: manifest.name,
+          version: manifest.version,
+          author: manifest.author,
+          category: manifest.category,
+          description: manifest.description,
+          icon: manifest.icon || '📦',
+          permissions: manifest.permissions || [],
+          minVibeAgentGo: manifest.minVibeAgentGo ?? null,
+          license: manifest.license ?? 'MIT',
+          entryContent: f.content,
+          installedAt: '',
+          updatedAt: '',
+        });
       } catch {
         /* skip invalid */
       }
@@ -125,18 +132,23 @@ export class AppStoreApp implements App {
     this.render();
 
     try {
-      const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/${app.entry}`;
+      const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/index.html`;
       const res = await fetch(entryUrl);
       if (!res.ok) throw new Error(`Failed to fetch entry: ${res.status}`);
       const entryContent = await res.text();
 
-      const iconContent = await this.fetchIcon(app);
-
       const installed: InstalledApp = {
-        ...app,
+        id: app.id,
+        name: app.name,
+        version: app.version,
+        author: app.author,
+        category: app.category,
+        description: app.description,
+        icon: app.icon || '📦',
+        permissions: app.permissions,
+        minVibeAgentGo: app.minVibeAgentGo,
+        license: app.license,
         entryContent,
-        icon: iconContent,
-        iconContent,
         installedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -149,18 +161,6 @@ export class AppStoreApp implements App {
       this.message = t('appstore.installError') || `Install failed: ${e instanceof Error ? e.message : String(e)}`;
     }
     this.render();
-  }
-
-  private async fetchIcon(app: StoreAppEntry): Promise<string | null> {
-    if (!app.icon) return null;
-    try {
-      const iconUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/${app.icon}`;
-      const res = await fetch(iconUrl);
-      if (!res.ok) return null;
-      return res.text();
-    } catch {
-      return null;
-    }
   }
 
   private async uninstall(app: StoreAppEntry) {
@@ -246,13 +246,7 @@ export class AppStoreApp implements App {
 
     const icon = document.createElement('div');
     icon.className = 'appstore-card-icon';
-    if (installed?.icon) {
-      icon.innerHTML = installed.icon;
-    } else if (app.icon) {
-      icon.textContent = '📦';
-    } else {
-      icon.textContent = '📄';
-    }
+    icon.textContent = app.icon || '📦';
 
     const body = document.createElement('div');
     body.className = 'appstore-card-body';
