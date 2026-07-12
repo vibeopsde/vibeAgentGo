@@ -152,6 +152,22 @@ ${html}
   window.vibeAgentGo = bridge;
   window.config = ${JSON.stringify(safeConfig)};
 })();
+(function() {
+  const HOST_ORIGIN = ${JSON.stringify(window.location.origin)};
+  const PROXY_BASE = '/api/proxy/';
+  function proxiedUrl(target) {
+    try {
+      const url = new URL(target, HOST_ORIGIN);
+      if (url.origin === HOST_ORIGIN) return target;
+      if (url.href.startsWith(HOST_ORIGIN + PROXY_BASE)) return target;
+      return HOST_ORIGIN + PROXY_BASE + '?url=' + encodeURIComponent(url.href);
+    } catch {
+      return target;
+    }
+  }
+  window.corsFetch = (input, init) => fetch(proxiedUrl(typeof input === 'string' ? input : input.toString()), init);
+  window.proxiedUrl = proxiedUrl;
+})();
 </script>
 </body>
 </html>
