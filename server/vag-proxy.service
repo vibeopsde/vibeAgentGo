@@ -1,0 +1,16 @@
+[Unit]
+Description=vibeAgentGo generic CORS proxy
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/vibeAgentGo/server
+Environment="VAG_PROXY_HOST=127.0.0.1"
+Environment="VAG_PROXY_PORT=8002"
+ExecStart=/usr/local/lib/hermes-agent/venv/bin/python -m uvicorn proxy.proxy_server:app --host 127.0.0.1 --port 8002
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
