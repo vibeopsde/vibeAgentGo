@@ -2,7 +2,17 @@
 // Keep CACHE_NAME in sync with version.ts / package.json on every release.
 // The build does not auto-inject this value — update it manually before tagging.
 const CACHE_NAME = 'vibeAgentGo-__VERSION__';
-const ASSETS = ['./index.html', './manifest.json', './logo-192.png', './logo-512.png', './favicon.ico', './apple-touch-icon.png', './agent-worker.js'];
+const ASSETS = [
+    "./agent-worker.js",
+    "./apple-touch-icon.png",
+    "./assets/index-Ba8Q4GKR.js",
+    "./assets/index-DL1fIieG.css",
+    "./favicon.ico",
+    "./index.html",
+    "./logo-192.png",
+    "./logo-512.png",
+    "./manifest.json"
+  ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -34,6 +44,9 @@ self.addEventListener('fetch', (e) => {
   // Don't cache LLM API calls or cross-origin requests
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+
+  // Never intercept API proxy or other backend routes (they have their own CORS/headers)
+  if (url.pathname.startsWith('/api/')) return;
 
   // Network-first for navigation requests (HTML) and un-hashed files — always get latest
   if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html') ||
