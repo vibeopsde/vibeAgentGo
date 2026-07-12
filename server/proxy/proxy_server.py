@@ -47,7 +47,7 @@ async def proxy_get(request: Request):
     response_headers.pop("content-encoding", None)
     response_headers.pop("content-length", None)
     response_headers.pop("transfer-encoding", None)
-    response_headers["Access-Control-Allow-Origin"] = "https://vag.vibeops.de"
+    response_headers["Access-Control-Allow-Origin"] = "*"
     response_headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response_headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
 
@@ -64,7 +64,7 @@ async def proxy_options():
     return Response(
         status_code=204,
         headers={
-            "Access-Control-Allow-Origin": "https://vag.vibeops.de",
+            "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
