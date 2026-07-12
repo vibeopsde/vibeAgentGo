@@ -1732,12 +1732,20 @@ select {
   display: flex;
   gap: 8px;
   padding: 8px 12px;
+  max-width: 94vw;
+  overflow-x: auto;
   background: var(--dock-bg);
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 8px 24px var(--dock-shadow);
   backdrop-filter: blur(8px);
   z-index: 1000;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.wm-dock::-webkit-scrollbar {
+  display: none;
 }
 
 .wm-dock-icon {
@@ -2658,6 +2666,92 @@ select {
   width: 32px;
   height: 32px;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.appstore-update-count {
+  display: none;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: 500;
+  margin: 0 8px;
+}
+
+.appstore-update-count.visible { display: inline-block; }
+
+.appstore-update-all {
+  display: none;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.appstore-update-all.visible { display: inline-block; }
+
+.appstore-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg-elev);
+}
+
+.appstore-tab {
+  flex: 1;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.appstore-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.appstore-tab-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.appstore-tab-content .appstore-filters {
+  border-top: none;
+}
+
+.appstore-tab-content .appstore-grid {
+  padding-top: 8px;
+}
+
+.appstore-update-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.appstore-card-installed {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 .appstore-filters {
