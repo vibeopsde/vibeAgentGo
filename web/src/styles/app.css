@@ -1738,6 +1738,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 8px 24px var(--dock-shadow);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   z-index: 1000;
   scrollbar-width: none;
@@ -1795,8 +1796,8 @@ select {
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  /* Reserve space for the floating dock so it never overlaps content */
-  padding-bottom: 56px;
+  /* Reserve space for the floating dock (height + gap + safe-area) so it never overlaps content */
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0));
 }
 
 .wm-root.mobile .wm-spaces::-webkit-scrollbar {
@@ -1828,9 +1829,14 @@ select {
 }
 
 .wm-root.mobile .wm-dock {
-  bottom: 8px;
+  position: fixed;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0));
+  left: 50%;
+  transform: translateX(-50%);
   padding: 6px 10px;
   gap: 4px;
+  /* Ensure dock stays above iframe/scroll-content stacking contexts on mobile */
+  z-index: 10000;
 }
 
 .wm-root.mobile .wm-dock-icon {
