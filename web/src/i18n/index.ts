@@ -212,6 +212,28 @@ const de: Translations = {
 
   // Chat
   'chat.unknownSlashCommand': 'Unbekannter Slash-Befehl. Tippe `/help` für verfügbare Befehle.',
+
+  // App Store
+  'appstore.title': 'App Store',
+  'appstore.loading': 'App Store wird geladen...',
+  'appstore.error': 'App Store konnte nicht geladen werden',
+  'appstore.refresh': 'Aktualisieren',
+  'appstore.all': 'Alle',
+  'appstore.install': 'Installieren',
+  'appstore.installing': 'Wird installiert...',
+  'appstore.installError': 'Installation fehlgeschlagen',
+  'appstore.uninstall': 'Deinstallieren',
+  'appstore.launch': 'Starten',
+  'appstore.update': 'Update',
+  'appstore.updateAll': 'Alle updaten',
+  'appstore.updatesAvailable': '{count} Update(s) verfügbar',
+  'appstore.installedVersion': 'Installiert: v{version}',
+  'appstore.noPermissions': 'Keine Berechtigungen nötig',
+  'appstore.permissions': 'Berechtigungen',
+  'appstore.empty': 'Keine Apps verfügbar.',
+  'appstore.tabStore': 'Store',
+  'appstore.tabInstalled': 'Meine Apps',
+  'appstore.noInstalledApps': 'Noch keine Apps installiert. Im Store findest du alle.',
 };
 
 const en: Translations = {
@@ -419,6 +441,28 @@ const en: Translations = {
 
   // Chat
   'chat.unknownSlashCommand': 'Unknown slash command. Type `/help` for available commands.',
+
+  // App Store
+  'appstore.title': 'App Store',
+  'appstore.loading': 'Loading App Store...',
+  'appstore.error': 'Failed to load App Store',
+  'appstore.refresh': 'Refresh',
+  'appstore.all': 'All',
+  'appstore.install': 'Install',
+  'appstore.installing': 'Installing...',
+  'appstore.installError': 'Install failed',
+  'appstore.uninstall': 'Uninstall',
+  'appstore.launch': 'Launch',
+  'appstore.update': 'Update',
+  'appstore.updateAll': 'Update all',
+  'appstore.updatesAvailable': '{count} update(s) available',
+  'appstore.installedVersion': 'Installed: v{version}',
+  'appstore.noPermissions': 'No permissions required',
+  'appstore.permissions': 'Permissions',
+  'appstore.empty': 'No apps available.',
+  'appstore.tabStore': 'Store',
+  'appstore.tabInstalled': 'My Apps',
+  'appstore.noInstalledApps': 'No apps installed yet. Browse the Store to install some.',
 };
 
 const translations: Record<Language, Translations> = { de, en };

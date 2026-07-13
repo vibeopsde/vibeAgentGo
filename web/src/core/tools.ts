@@ -11,6 +11,7 @@ import { GitBackupManager, type GitCredentials } from './gitBackup.js';
 
 import { validateArgs } from '../utils/schema_validate.js';
 import { corsFetch } from './cors_fetch.js';
+import { parseAppManifest, injectAppManifest } from './appManifest.js';
 import sandboxRef from './refs/sandbox.md?raw';
 import uiRef from './refs/ui.md?raw';
 import toolsRef from './refs/tools.md?raw';
@@ -971,7 +972,6 @@ const app_store_publish: Tool = {
       return `App file not found in workspace: ${htmlPath}`;
     }
 
-    const { parseAppManifest, injectAppManifest } = await import('./appManifest.js');
     const parsed = parseAppManifest(htmlContent);
 
     let manifest = parsed.manifest;

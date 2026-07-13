@@ -38,9 +38,12 @@ export class AppStoreApp implements App {
   private installed: Map<string, InstalledApp> = new Map();
   private categories: string[] = [];
   private selectedCategory: string | 'all' = 'all';
+  private activeTab: 'store' | 'installed' = 'installed';
   private status = 'idle';
   private message = '';
   private onBridgeRequest: ((req: BridgeRequest) => Promise<BridgeResponse>) | null = null;
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly REFRESH_INTERVAL_MS = 30000;
 
   constructor() {
     this.element = document.createElement('div');
@@ -60,6 +63,7 @@ export class AppStoreApp implements App {
   mount(container: HTMLElement) {
     container.innerHTML = '';
     container.appendChild(this.element);
+    this.startRefreshLoop();
     this.load();
   }
 
@@ -74,7 +78,8 @@ export class AppStoreApp implements App {
     this.render();
 
     try {
-      const res = await fetch('https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/index.json');
+      const cacheBuster = Date.now();
+      const res = await fetch(`https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/index.json?nocache=${cacheBuster}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.store = (await res.json()) as StoreIndex;
       this.categories = Array.from(new Set(this.store.apps.map((a) => a.category))).sort();
@@ -85,6 +90,22 @@ export class AppStoreApp implements App {
       this.message = t('appstore.error') || `Failed to load App Store: ${e instanceof Error ? e.message : String(e)}`;
     }
     this.render();
+  }
+
+  private startRefreshLoop() {
+    this.stopRefreshLoop();
+    this.refreshTimer = setInterval(() => {
+      if (this.status !== 'installing') {
+        this.load().catch(() => {});
+      }
+    }, this.REFRESH_INTERVAL_MS);
+  }
+
+  private stopRefreshLoop() {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
   }
 
   private async refreshInstalled() {
@@ -126,13 +147,26 @@ export class AppStoreApp implements App {
     return this.store.apps.filter((a) => a.category === this.selectedCategory);
   }
 
+  private getUpdatableApps(): StoreAppEntry[] {
+    if (!this.store) return [];
+    return this.store.apps.filter((app) => {
+      const installed = this.installed.get(app.id);
+      return installed && installed.version !== app.version;
+    });
+  }
+
+  private getInstalledApps(): StoreAppEntry[] {
+    if (!this.store) return [];
+    return this.store.apps.filter((app) => this.installed.has(app.id));
+  }
+
   private async install(app: StoreAppEntry) {
     this.status = 'installing';
     this.message = t('appstore.installing') || `Installing ${app.name}...`;
     this.render();
 
     try {
-      const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/index.html`;
+      const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/index.html?nocache=${Date.now()}`;
       const res = await fetch(entryUrl);
       if (!res.ok) throw new Error(`Failed to fetch entry: ${res.status}`);
       const entryContent = await res.text();
@@ -163,6 +197,44 @@ export class AppStoreApp implements App {
     this.render();
   }
 
+  private async updateAll() {
+    const updatable = this.getUpdatableApps();
+    if (updatable.length === 0) return;
+    this.status = 'installing';
+    this.message = t('appstore.installing') || 'Updating apps...';
+    this.render();
+
+    for (const app of updatable) {
+      try {
+        const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/index.html?nocache=${Date.now()}`;
+        const res = await fetch(entryUrl);
+        if (!res.ok) continue;
+        const entryContent = await res.text();
+        const installed: InstalledApp = {
+          id: app.id,
+          name: app.name,
+          version: app.version,
+          author: app.author,
+          category: app.category,
+          description: app.description,
+          icon: app.icon || '📦',
+          permissions: app.permissions,
+          minVibeAgentGo: app.minVibeAgentGo,
+          license: app.license,
+          entryContent,
+          installedAt: this.installed.get(app.id)?.installedAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await this.bridge({ type: 'installApp', app: installed });
+      } catch {
+        /* skip failed update */
+      }
+    }
+    await this.refreshInstalled();
+    this.status = 'idle';
+    this.render();
+  }
+
   private async uninstall(app: StoreAppEntry) {
     await this.bridge({ type: 'uninstallApp', id: app.id });
     await this.refreshInstalled();
@@ -180,14 +252,56 @@ export class AppStoreApp implements App {
   private render() {
     this.element.innerHTML = '';
 
+    const updatable = this.getUpdatableApps();
+    const updateCount = updatable.length;
+
     const header = document.createElement('div');
     header.className = 'appstore-header';
     header.innerHTML = `
-      <span class="appstore-title">${t('appstore.title') || 'App Store'}</span>
+      <span class="appstore-title" title="${escapeHtml(this.store?.generatedAt || '')}">${t('appstore.title') || 'App Store'}</span>
+      <span class="appstore-update-count ${updateCount ? 'visible' : ''}">${escapeHtml(
+        (t('appstore.updatesAvailable') || '{count} update(s) available').replace('{count}', String(updateCount))
+      )}</span>
+      <button class="appstore-update-all ${updateCount ? 'visible' : ''}" title="${t('appstore.updateAll') || 'Update all'}">⬆️</button>
       <button class="appstore-refresh" title="${t('appstore.refresh') || 'Refresh'}">↻</button>
     `;
     header.querySelector('.appstore-refresh')?.addEventListener('click', () => this.load());
+    header.querySelector('.appstore-update-all')?.addEventListener('click', () => this.updateAll());
 
+    const tabs = document.createElement('div');
+    tabs.className = 'appstore-tabs';
+    const storeTab = document.createElement('button');
+    storeTab.className = `appstore-tab${this.activeTab === 'store' ? ' active' : ''}`;
+    storeTab.textContent = t('appstore.tabStore') || 'Store';
+    storeTab.addEventListener('click', () => {
+      this.activeTab = 'store';
+      this.render();
+    });
+    const installedTab = document.createElement('button');
+    installedTab.className = `appstore-tab${this.activeTab === 'installed' ? ' active' : ''}`;
+    installedTab.textContent = t('appstore.tabInstalled') || 'My Apps';
+    installedTab.addEventListener('click', () => {
+      this.activeTab = 'installed';
+      this.render();
+    });
+    tabs.appendChild(storeTab);
+    tabs.appendChild(installedTab);
+
+    const content = document.createElement('div');
+    content.className = 'appstore-tab-content';
+
+    if (this.activeTab === 'store') {
+      this.renderStoreContent(content);
+    } else {
+      this.renderInstalledContent(content);
+    }
+
+    this.element.appendChild(header);
+    this.element.appendChild(tabs);
+    this.element.appendChild(content);
+  }
+
+  private renderStoreContent(container: HTMLElement) {
     const filters = document.createElement('div');
     filters.className = 'appstore-filters';
 
@@ -215,16 +329,13 @@ export class AppStoreApp implements App {
     grid.className = 'appstore-grid';
 
     if (this.status === 'loading' || this.status === 'installing') {
-      grid.innerHTML = `<div class="appstore-status">
-        <div class="appstore-spinner"></div>
-        <span>${escapeHtml(this.message)}</span>
-      </div>`;
+      grid.innerHTML = `\u003cdiv class="appstore-status"\u003e\n        \u003cdiv class="appstore-spinner"\u003e\u003c/div\u003e\n        \u003cspan\u003e${escapeHtml(this.message)}\u003c/span\u003e\n      \u003c/div\u003e`;
     } else if (this.status === 'error') {
-      grid.innerHTML = `<div class="appstore-status appstore-error">${escapeHtml(this.message)}</div>`;
+      grid.innerHTML = `\u003cdiv class="appstore-status appstore-error"\u003e${escapeHtml(this.message)}\u003c/div\u003e`;
     } else {
       const apps = this.getFilteredApps();
       if (apps.length === 0) {
-        grid.innerHTML = `<div class="appstore-status">${t('appstore.empty') || 'No apps available.'}</div>`;
+        grid.innerHTML = `\u003cdiv class="appstore-status"\u003e${t('appstore.empty') || 'No apps available.'}\u003c/div\u003e`;
       } else {
         for (const app of apps) {
           grid.appendChild(this.renderAppCard(app));
@@ -232,9 +343,30 @@ export class AppStoreApp implements App {
       }
     }
 
-    this.element.appendChild(header);
-    this.element.appendChild(filters);
-    this.element.appendChild(grid);
+    container.appendChild(filters);
+    container.appendChild(grid);
+  }
+
+  private renderInstalledContent(container: HTMLElement) {
+    const grid = document.createElement('div');
+    grid.className = 'appstore-grid';
+
+    if (this.status === 'loading' || this.status === 'installing') {
+      grid.innerHTML = `\u003cdiv class="appstore-status"\u003e\n        \u003cdiv class="appstore-spinner"\u003e\u003c/div\u003e\n        \u003cspan\u003e${escapeHtml(this.message)}\u003c/span\u003e\n      \u003c/div\u003e`;
+    } else if (this.status === 'error') {
+      grid.innerHTML = `\u003cdiv class="appstore-status appstore-error"\u003e${escapeHtml(this.message)}\u003c/div\u003e`;
+    } else {
+      const apps = this.getInstalledApps();
+      if (apps.length === 0) {
+        grid.innerHTML = `\u003cdiv class="appstore-status"\u003e${t('appstore.noInstalledApps') || 'No apps installed yet. Browse the Store to install some.'}\u003c/div\u003e`;
+      } else {
+        for (const app of apps) {
+          grid.appendChild(this.renderAppCard(app));
+        }
+      }
+    }
+
+    container.appendChild(grid);
   }
 
   private renderAppCard(app: StoreAppEntry): HTMLElement {
@@ -251,10 +383,13 @@ export class AppStoreApp implements App {
     const body = document.createElement('div');
     body.className = 'appstore-card-body';
     body.innerHTML = `
-      <div class="appstore-card-name">${escapeHtml(app.name)}</div>
-      <div class="appstore-card-meta">${escapeHtml(app.category)} · v${escapeHtml(app.version)} · ${escapeHtml(app.author)}</div>
-      <div class="appstore-card-desc">${escapeHtml(app.description || '')}</div>
-      <div class="appstore-card-perms">${this.renderPermissions(app.permissions)}</div>
+      \u003cdiv class="appstore-card-name"\u003e${escapeHtml(app.name)}${needsUpdate ? ' \u003cspan class="appstore-update-badge"\u003eUPDATE\u003c/span\u003e' : ''}\u003c/div\u003e
+      \u003cdiv class="appstore-card-meta"\u003e${escapeHtml(app.category)} · v${escapeHtml(app.version)} · ${escapeHtml(app.author)}\u003c/div\u003e
+      \u003cdiv class="appstore-card-desc"\u003e${escapeHtml(app.description || '')}\u003c/div\u003e
+      \u003cdiv class="appstore-card-perms"\u003e${this.renderPermissions(app.permissions)}\u003c/div\u003e
+      ${installed ? `\u003cdiv class="appstore-card-installed"\u003e${escapeHtml(
+          (t('appstore.installedVersion') || 'Installed: v{version}').replace('{version}', installed.version)
+        )}\u003c/div\u003e` : ''}
     `;
 
     const actions = document.createElement('div');

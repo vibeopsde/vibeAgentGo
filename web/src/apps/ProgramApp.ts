@@ -91,6 +91,9 @@ export class ProgramApp implements App {
   private wrapHtml(html: string): string {
     const cfg = loadConfig();
     const safeConfig = { ...cfg, apiKey: cfg.apiKey ? '[REDACTED]' : '' };
+    // Escape </script> in JSON to prevent breaking out of the script tag
+    const configJson = JSON.stringify(safeConfig).replace(/<\/script>/gi, '<\\/script>');
+    const hostOrigin = JSON.stringify(window.location.origin);
     return `
 <!DOCTYPE html>
 <html>
@@ -150,10 +153,10 @@ ${html}
     sendMessage: (text) => bridge.request('sendMessage', { text }),
   };
   window.vibeAgentGo = bridge;
-  window.config = ${JSON.stringify(safeConfig)};
+  window.config = ${configJson};
 })();
 (function() {
-  const HOST_ORIGIN = ${JSON.stringify(window.location.origin)};
+  const HOST_ORIGIN = ${hostOrigin};
   const PROXY_BASE = '/api/proxy/';
   function proxiedUrl(target) {
     try {
