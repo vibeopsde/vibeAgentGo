@@ -74,6 +74,7 @@ export interface MemoryStore {
   getAllMemory(limit?: number): Promise<{ memories: MemoryEntry[]; profile: MemoryEntry[] }>;
   searchAllMemory(limit?: number): Promise<MemoryEntry[]>;
   deleteMemory(id: number): Promise<boolean>;
+  updateMemory(id: number, content: string, category?: string): Promise<boolean>;
   saveSession(session: Session): Promise<void>;
   getSession(id: string): Promise<Session | null>;
   listSessions(): Promise<{ id: string; title: string; created_at: string; updated_at: string }[]>;
@@ -106,6 +107,7 @@ export interface MemoryEntry {
   content: string;
   category: 'memory' | 'user';
   created_at: string;
+  updated_at?: string;
 }
 
 // --- Render View ---

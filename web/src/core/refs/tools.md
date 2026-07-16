@@ -18,7 +18,9 @@
 
 ## Memory
 - `memory_save({ content, category? })` — Fakt speichern (category: 'memory' oder 'user')
-- `memory_search({ query, category?, limit? })` — Memory durchsuchen
+- `memory_search({ query, category?, limit? })` — Memory durchsuchen (gibt IDs im Format [#42] zurück)
+- `memory_delete({ id })` — Memory-Eintrag per ID löschen
+- `memory_update({ id, content, category? })` — Memory-Eintrag per ID aktualisieren
 
 ## System
 - `error_log({ limit? })` — Fehler-Logs lesen
@@ -42,3 +44,5 @@
 ### Memory nutzen
 1. `memory_search({ query: 'präferenz' })` — Was weiss ich über den User?
 2. `memory_save({ content: 'User bevorzugt dunkle Themes', category: 'user' })`
+3. `memory_update({ id: 42, content: 'User bevorzugt helle Themes', category: 'user' })` — veralteten Fakt korrigieren
+4. `memory_delete({ id: 42 })` — Fakt entfernen

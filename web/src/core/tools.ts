@@ -1059,7 +1059,58 @@ const memory_search: Tool = {
     const query = asString(args.query).toLowerCase();
     const matches = filtered.filter((m) => m.content.toLowerCase().includes(query)).slice(0, limit);
     if (matches.length === 0) return `No memory entries found for "${query}".`;
-    return matches.map((m) => `§ ${m.category}: ${m.content}`).join('\n\n');
+    return matches.map((m) => `§ [#${m.id}] ${m.category}: ${m.content}`).join('\n\n');
+  },
+};
+
+const memory_delete: Tool = {
+  name: 'memory_delete',
+  description:
+    'Delete a persistent memory entry by its ID. Use memory_search first to find the ID. Returns ok or fail.',
+  parameters: {
+    type: 'object',
+    properties: {
+      id: { type: 'number', description: 'The ID of the memory entry to delete' },
+    },
+    required: ['id'],
+  },
+  handler: async (args: Record<string, unknown>, ctx) => {
+    const mem = getMemoryStore(ctx);
+    const id = asNumber(args.id);
+    if (!id) return 'Invalid or missing id.';
+    const deleted = await mem.deleteMemory(id);
+    return deleted ? `Deleted memory entry #${id}` : `Failed to delete memory entry #${id} (not found or error)`;
+  },
+};
+
+const memory_update: Tool = {
+  name: 'memory_update',
+  description:
+    'Update an existing memory entry by its ID. Use memory_search first to find the ID. Can update content and optionally category. Returns ok or fail.',
+  parameters: {
+    type: 'object',
+    properties: {
+      id: { type: 'number', description: 'The ID of the memory entry to update' },
+      content: { type: 'string', description: 'The new content for the memory entry' },
+      category: {
+        type: 'string',
+        enum: ['memory', 'user'],
+        description: 'Optional new category: "user" = about the user, "memory" = general. If omitted, keeps current category.',
+      },
+    },
+    required: ['id', 'content'],
+  },
+  handler: async (args: Record<string, unknown>, ctx) => {
+    const mem = getMemoryStore(ctx);
+    const id = asNumber(args.id);
+    const content = asString(args.content);
+    const category = asString(args.category);
+    if (!id) return 'Invalid or missing id.';
+    if (!content) return 'Content cannot be empty.';
+    const updated = await mem.updateMemory(id, content, category || undefined);
+    return updated
+      ? `Updated memory entry #${id}${category ? ` (category: ${category})` : ''}`
+      : `Failed to update memory entry #${id} (not found or error)`;
   },
 };
 
@@ -1450,6 +1501,8 @@ export function createDefaultTools(): Tool[] {
     app_store_publish,
     memory_save,
     memory_search,
+    memory_delete,
+    memory_update,
     sys_check,
     error_log,
     git_clone,

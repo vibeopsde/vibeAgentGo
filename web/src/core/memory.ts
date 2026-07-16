@@ -68,6 +68,24 @@ export class MemoryStore {
     }
   }
 
+  async updateMemory(id: number, content: string, category?: string): Promise<boolean> {
+    try {
+      const existing = await tx<MemoryEntry>('memory', 'readonly', (store) => store.get(id));
+      if (!existing) return false;
+      const updated: MemoryEntry = {
+        ...existing,
+        content,
+        category: category ? (category === 'user' ? 'user' : 'memory') : existing.category,
+        created_at: existing.created_at,
+        updated_at: new Date().toISOString(),
+      };
+      await tx('memory', 'readwrite', (store) => store.put(updated));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // --- Sessions ---
 
   async saveSession(session: Session): Promise<void> {

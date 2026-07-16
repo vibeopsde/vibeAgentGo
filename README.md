@@ -92,7 +92,9 @@ web/
 | `app_store_install` | Install a vAG-App from the store into the local workspace as `apps/<Category>/<id>/index.html` |
 | `app_store_publish` | Prepare a local single-HTML app for publishing to the vAG-App Store |
 | `memory_save` | Save a durable fact to IndexedDB memory |
-| `memory_search` | Search existing memory entries by keyword |
+| `memory_search` | Search existing memory entries by keyword (returns IDs for update/delete) |
+| `memory_delete` | Delete a memory entry by its ID |
+| `memory_update` | Update an existing memory entry by its ID (content and optionally category) |
 | `sys_check` | Deterministic health check for IndexedDB, files, worker sandbox, and config (supports `repair` mode) |
 | `error_log` | Read the local browser-side error and audit log |
 | `git_clone` | Clone a remote Git repository into the browser workspace |
@@ -121,7 +123,7 @@ The agent decides what to remember. When it learns a durable fact, it calls `mem
 - Category `"user"` → facts about the user (preferences, name, stack)
 - Category `"memory"` → general notes (environment, conventions)
 
-On each run, memory is loaded into the system prompt automatically. The `memory_search` tool lets the agent recall specific facts on demand.
+On each run, memory is loaded into the system prompt automatically. The `memory_search` tool lets the agent recall specific facts on demand. The agent can also correct outdated facts with `memory_update` or remove them with `memory_delete` — both require the entry ID, which `memory_search` returns in the format `[#42]`.
 
 After each assistant response, the agent also extracts new durable facts from the conversation in the background and stores them automatically.
 
