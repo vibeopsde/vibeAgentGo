@@ -1053,11 +1053,10 @@ const memory_search: Tool = {
     const mem = getMemoryStore(ctx);
     const limit = asNumber(args.limit, 10);
     const category = asString(args.category);
-    // Load enough entries to filter by category (if requested) then search by query.
-    const all = await mem.searchAllMemory(category ? 1000 : limit * 4);
-    const filtered = category ? all.filter((m) => m.category === category) : all;
+    // Use the IndexedDB category index when filtering, fallback to full scan for unfiltered search.
+    const all = category ? await mem.searchByCategory(category, limit * 4) : await mem.searchAllMemory(limit * 4);
     const query = asString(args.query).toLowerCase();
-    const matches = filtered.filter((m) => m.content.toLowerCase().includes(query)).slice(0, limit);
+    const matches = all.filter((m) => m.content.toLowerCase().includes(query)).slice(0, limit);
     if (matches.length === 0) return `No memory entries found for "${query}".`;
     return matches.map((m) => `§ [#${m.id}] ${m.category}: ${m.content}`).join('\n\n');
   },
@@ -1095,7 +1094,8 @@ const memory_update: Tool = {
       category: {
         type: 'string',
         enum: ['memory', 'user'],
-        description: 'Optional new category: "user" = about the user, "memory" = general. If omitted, keeps current category.',
+        description:
+          'Optional new category: "user" = about the user, "memory" = general. If omitted, keeps current category.',
       },
     },
     required: ['id', 'content'],

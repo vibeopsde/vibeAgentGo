@@ -97,11 +97,11 @@ export class WindowManager {
 
   off<K extends keyof WindowManagerEventMap>(event: K, handler: (ev: WindowManagerEventMap[K]) => void) {
     const handlers = this.listeners[event];
-    if (handlers) this.listeners[event] = handlers.filter((h) => h !== handler) as any;
+    if (handlers) this.listeners[event] = handlers.filter((h) => h !== handler) as typeof handlers;
   }
 
   private emit<K extends keyof WindowManagerEventMap>(event: K, ev: WindowManagerEventMap[K]) {
-    this.listeners[event]?.forEach((h) => h(ev as any));
+    this.listeners[event]?.forEach((h) => h(ev));
   }
 
   registerApp(appId: string, factory: AppFactory, showInDock = true) {
@@ -250,8 +250,8 @@ export class WindowManager {
 
     // If initial data was passed and the app has setData(), push it now so the
     // app can render its content immediately after mount.
-    if (opts.data && (app as any).setData) {
-      (app as any).setData(opts.data);
+    if (opts.data && app.setData) {
+      app.setData(opts.data);
     }
 
     this.focusWindow(id);
@@ -397,9 +397,10 @@ export class WindowManager {
       this.windowData.set(id, { data });
     }
     // Notify app instance if it exposes a method
-    const app = this.instances.get(id) as any;
-    if (app?.setData) {
-      app.setData(this.windowData.get(id)!.data);
+    const app = this.instances.get(id);
+    const wd = this.windowData.get(id);
+    if (app?.setData && wd?.data) {
+      app.setData(wd.data);
     }
     // Update window title
     const win = this.windows.get(id);

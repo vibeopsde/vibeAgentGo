@@ -90,6 +90,14 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir,
       emptyOutDir: true,
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('pdfjs-dist')) return 'pdfjs';
+          },
+        },
+      },
     },
     plugins: [injectHtmlVersion(), injectServiceWorkerVersion(outDir)],
     resolve: {

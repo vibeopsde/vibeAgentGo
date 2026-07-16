@@ -36,6 +36,13 @@ export function isProxiedUrl(url: string): boolean {
 }
 
 // Expose to generated mini-apps running in the same origin
-(window as any).corsFetch = corsFetch;
-(window as any).proxiedUrl = proxiedUrl;
-(window as any).isProxiedUrl = isProxiedUrl;
+declare global {
+  interface Window {
+    corsFetch: typeof corsFetch;
+    proxiedUrl: typeof proxiedUrl;
+    isProxiedUrl: typeof isProxiedUrl;
+  }
+}
+window.corsFetch = corsFetch;
+window.proxiedUrl = proxiedUrl;
+window.isProxiedUrl = isProxiedUrl;

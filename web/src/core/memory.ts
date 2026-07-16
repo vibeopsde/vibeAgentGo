@@ -59,6 +59,16 @@ export class MemoryStore {
     }
   }
 
+  /** Search memory entries filtered by category using the IndexedDB index. */
+  async searchByCategory(category: string, limit = 1000): Promise<MemoryEntry[]> {
+    try {
+      return await cursorByIndex<MemoryEntry>('memory', 'category', category, limit, 'prev');
+    } catch {
+      const all = await this.searchAllMemory(limit);
+      return all.filter((m) => m.category === category);
+    }
+  }
+
   async deleteMemory(id: number): Promise<boolean> {
     try {
       await tx('memory', 'readwrite', (store) => store.delete(id));

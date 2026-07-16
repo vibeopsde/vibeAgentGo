@@ -79,7 +79,9 @@ export class AppStoreApp implements App {
 
     try {
       const cacheBuster = Date.now();
-      const res = await fetch(`https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/index.json?nocache=${cacheBuster}`);
+      const res = await fetch(
+        `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/index.json?nocache=${cacheBuster}`
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.store = (await res.json()) as StoreIndex;
       this.categories = Array.from(new Set(this.store.apps.map((a) => a.category))).sort();
@@ -387,9 +389,13 @@ export class AppStoreApp implements App {
       \u003cdiv class="appstore-card-meta"\u003e${escapeHtml(app.category)} · v${escapeHtml(app.version)} · ${escapeHtml(app.author)}\u003c/div\u003e
       \u003cdiv class="appstore-card-desc"\u003e${escapeHtml(app.description || '')}\u003c/div\u003e
       \u003cdiv class="appstore-card-perms"\u003e${this.renderPermissions(app.permissions)}\u003c/div\u003e
-      ${installed ? `\u003cdiv class="appstore-card-installed"\u003e${escapeHtml(
-          (t('appstore.installedVersion') || 'Installed: v{version}').replace('{version}', installed.version)
-        )}\u003c/div\u003e` : ''}
+      ${
+        installed
+          ? `\u003cdiv class="appstore-card-installed"\u003e${escapeHtml(
+              (t('appstore.installedVersion') || 'Installed: v{version}').replace('{version}', installed.version)
+            )}\u003c/div\u003e`
+          : ''
+      }
     `;
 
     const actions = document.createElement('div');

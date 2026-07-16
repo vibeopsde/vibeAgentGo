@@ -6,12 +6,10 @@ interface Translations {
 
 const de: Translations = {
   // Common
-  'app.title': 'vibeAgentGo',
   'app.updateAvailable': 'Update verfügbar',
   'app.reload': 'Neu laden',
   'common.save': 'Speichern',
   'common.cancel': 'Abbrechen',
-  'common.close': 'Schließen',
   'common.delete': 'Löschen',
   'common.rename': 'Umbenennen',
   'common.loading': 'Lädt...',
@@ -20,17 +18,14 @@ const de: Translations = {
   'common.render': 'Render',
   'common.chat': 'Chat',
   'common.turn': 'Runde',
-  'common.menu': 'Menü',
   'common.thinking': 'Denkt nach...',
   'common.idle': 'Bereit',
   'common.edit': 'Bearbeiten',
 
   // Header
-  'header.settings': 'Einstellungen',
   'header.newChat': 'Neuer Chat',
   'header.memory': 'Memory',
   'header.skills': 'Skills',
-  'header.sessions': 'Sessions',
   'header.theme': 'Design',
 
   // Chat
@@ -45,10 +40,7 @@ const de: Translations = {
   'settings.title': 'Einstellungen',
   'settings.provider': 'Provider',
   'settings.providerHint': 'Fester Provider — Base URL wird automatisch gesetzt.',
-  'settings.ollamaCloud': 'Ollama Cloud',
-  'settings.ollamaCloudUrl': 'https://vag.vibeops.de/api/ollama/v1',
   'settings.model': 'Modell',
-  'settings.baseUrl': 'Base URL',
   'settings.apiKey': 'API Key',
   'settings.maxTurns': 'Max Turns',
   'settings.language': 'Sprache',
@@ -59,11 +51,6 @@ const de: Translations = {
   'settings.tabLLM': 'LLM',
   'settings.tabSearch': 'Suche',
   'settings.tabAppearance': 'Erscheinungsbild',
-  'settings.tabMemory': 'Memory',
-  'settings.tabSkills': 'Skills',
-  'settings.tabBackup': 'Backup',
-  'settings.tabDanger': 'Gefahrenzone',
-  'settings.testConnection': 'Verbindung testen',
   'settings.connectionSuccess': 'Verbindung OK',
   'settings.connectionError': 'Verbindung fehlgeschlagen',
   'settings.providerInfo': 'Jeder OpenAI-kompatible Endpoint mit CORS funktioniert.',
@@ -115,7 +102,6 @@ const de: Translations = {
   'onboarding.next': 'Weiter',
   'onboarding.back': 'Zurück',
   'onboarding.finish': 'vibeAgentGo starten',
-  'onboarding.languageTitle': 'Sprache wählen',
   'onboarding.languageHint': 'Die Sprache wird für die Benutzeroberfläche und die System-Prompts verwendet.',
   'onboarding.llmTitle': 'KI-Schnittstelle',
   'onboarding.llmHint': 'Wähle einen Provider.',
@@ -124,7 +110,6 @@ const de: Translations = {
   'onboarding.apiKeyHint': 'Bei lokalen Endpunkten kann das Feld leer bleiben.',
   'onboarding.apiKeyRequired': 'API-Key für diesen Provider erforderlich.',
   'onboarding.verifyFirst': 'Bitte zuerst Verbindung testen',
-  'onboarding.verifyFailed': 'Verifizierung fehlgeschlagen',
   'onboarding.pickModel': 'Modell wählen...',
   'onboarding.noModelsManual': 'Keine Modelle gelistet — manuell eingeben',
   'onboarding.dataSovereigntyTitle': 'Datenhoheit',
@@ -136,7 +121,6 @@ const de: Translations = {
   'onboarding.openaiTitle': 'OpenAI-kompatibel',
   'onboarding.openaiText':
     'vibeAgentGo spricht mit OpenAI-kompatiblen Endpunkten über feste Provider-Presets mit CORS-Proxy.',
-  'onboarding.modelList': 'Modelle',
   'onboarding.testConnection': 'Verbindung testen',
 
   // Memory
@@ -149,7 +133,6 @@ const de: Translations = {
   // Sessions
   'sessions.title': 'Sessions',
   'sessions.empty': 'Noch keine Sessions.',
-  'sessions.resume': 'Fortsetzen',
 
   // Render
   'render.title': 'Render View',
@@ -176,7 +159,6 @@ const de: Translations = {
   'explorer.refresh': 'Aktualisieren',
 
   // Editor
-  'editor.title': 'Editor',
   'editor.untitled': 'Unbenannt',
   'editor.save': 'Speichern',
   'editor.saved': 'Gespeichert',
@@ -238,12 +220,10 @@ const de: Translations = {
 
 const en: Translations = {
   // Common
-  'app.title': 'vibeAgentGo',
   'app.updateAvailable': 'Update available',
   'app.reload': 'Reload',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
-  'common.close': 'Close',
   'common.delete': 'Delete',
   'common.rename': 'Rename',
   'common.loading': 'Loading...',
@@ -252,17 +232,14 @@ const en: Translations = {
   'common.render': 'Render',
   'common.chat': 'Chat',
   'common.turn': 'Turn',
-  'common.menu': 'Menu',
   'common.thinking': 'Thinking...',
   'common.idle': 'Ready',
   'common.edit': 'Edit',
 
   // Header
-  'header.settings': 'Settings',
   'header.newChat': 'New Chat',
   'header.memory': 'Memory',
   'header.skills': 'Skills',
-  'header.sessions': 'Sessions',
   'header.theme': 'Theme',
 
   // Chat
@@ -277,10 +254,7 @@ const en: Translations = {
   'settings.title': 'Settings',
   'settings.provider': 'Provider',
   'settings.providerHint': 'Fixed provider — base URL is set automatically.',
-  'settings.ollamaCloud': 'Ollama Cloud',
-  'settings.ollamaCloudUrl': 'https://vag.vibeops.de/api/ollama/v1',
   'settings.model': 'Model',
-  'settings.baseUrl': 'Base URL',
   'settings.apiKey': 'API Key',
   'settings.maxTurns': 'Max Turns',
   'settings.language': 'Language',
@@ -291,11 +265,6 @@ const en: Translations = {
   'settings.tabLLM': 'LLM',
   'settings.tabSearch': 'Search',
   'settings.tabAppearance': 'Appearance',
-  'settings.tabMemory': 'Memory',
-  'settings.tabSkills': 'Skills',
-  'settings.tabBackup': 'Backup',
-  'settings.tabDanger': 'Danger Zone',
-  'settings.testConnection': 'Test Connection',
   'settings.connectionSuccess': 'Connection OK',
   'settings.connectionError': 'Connection failed',
   'settings.providerInfo': 'Any OpenAI-compatible endpoint with CORS will work.',
@@ -346,7 +315,6 @@ const en: Translations = {
   'onboarding.next': 'Next',
   'onboarding.back': 'Back',
   'onboarding.finish': 'Start vibeAgentGo',
-  'onboarding.languageTitle': 'Choose language',
   'onboarding.languageHint': 'This language will be used for the UI and system prompts.',
   'onboarding.llmTitle': 'Connect LLM',
   'onboarding.llmHint': 'Choose a provider.',
@@ -354,7 +322,6 @@ const en: Translations = {
   'onboarding.apiKeyHint': 'For local endpoints this field can be left empty.',
   'onboarding.apiKeyRequired': 'API key required for this provider.',
   'onboarding.verifyFirst': 'Please test connection first',
-  'onboarding.verifyFailed': 'Verification failed',
   'onboarding.pickModel': 'Pick model...',
   'onboarding.noModelsManual': 'No models listed — enter manually',
   'onboarding.dataSovereigntyTitle': 'Data sovereignty',
@@ -365,7 +332,6 @@ const en: Translations = {
   'onboarding.openaiTitle': 'OpenAI-compatible',
   'onboarding.openaiText':
     'vibeAgentGo connects to OpenAI-compatible endpoints via fixed provider presets with a CORS proxy.',
-  'onboarding.modelList': 'Models',
   'onboarding.testConnection': 'Test connection',
 
   // Memory
@@ -378,7 +344,6 @@ const en: Translations = {
   // Sessions
   'sessions.title': 'Sessions',
   'sessions.empty': 'No sessions yet.',
-  'sessions.resume': 'Resume',
 
   // Render
   'render.title': 'Render View',
@@ -405,7 +370,6 @@ const en: Translations = {
   'explorer.refresh': 'Refresh',
 
   // Editor
-  'editor.title': 'Editor',
   'editor.untitled': 'Untitled',
   'editor.save': 'Save',
   'editor.saved': 'Saved',

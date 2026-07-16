@@ -73,6 +73,7 @@ export interface MemoryStore {
   getUserProfile(): Promise<MemoryEntry[]>;
   getAllMemory(limit?: number): Promise<{ memories: MemoryEntry[]; profile: MemoryEntry[] }>;
   searchAllMemory(limit?: number): Promise<MemoryEntry[]>;
+  searchByCategory(category: string, limit?: number): Promise<MemoryEntry[]>;
   deleteMemory(id: number): Promise<boolean>;
   updateMemory(id: number, content: string, category?: string): Promise<boolean>;
   saveSession(session: Session): Promise<void>;
@@ -173,6 +174,8 @@ export interface App {
   onBlur?(): void;
   /** Optional: called when the window is closed. Return false to prevent closing. */
   onClose?(): boolean | Promise<boolean>;
+  /** Optional: called when new data is pushed to the window (e.g. open a file in an editor). */
+  setData?(data: Record<string, unknown>): void;
 }
 
 export interface AppWindow {

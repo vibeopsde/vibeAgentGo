@@ -95,7 +95,7 @@ const COMMANDS: SlashCommand[] = [
         const toolCtx: ToolContext = {
           workspace: ctx.workspace,
           emit: () => {},
-          env: { memoryStore: ctx.memoryStore as any },
+          env: { memoryStore: ctx.memoryStore },
         };
         const repair = ctx.args.includes('repair') || ctx.args.includes('repair=true');
         const result = await sysCheck.handler({ repair }, toolCtx);

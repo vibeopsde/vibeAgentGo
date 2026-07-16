@@ -21,7 +21,9 @@ class SoundManager {
     if (!this.enabled) return null;
     if (!this.ctx) {
       try {
-        this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const Ctor = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!Ctor) return null;
+        this.ctx = new Ctor();
       } catch {
         return null;
       }

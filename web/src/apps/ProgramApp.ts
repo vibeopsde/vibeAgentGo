@@ -61,7 +61,7 @@ export class ProgramApp implements App {
 
     this.iframe = document.createElement('iframe');
     this.iframe.className = 'program-iframe';
-    this.iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals allow-downloads allow-popups');
+    this.iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals allow-downloads');
     this.iframe.srcdoc = this.wrapHtml(this.state.html);
     this.iframe.style.width = '100%';
     this.iframe.style.height = '100%';
@@ -128,7 +128,7 @@ ${html}
 (function() {
   const bridge = {
     request: (type, payload) => {
-      const id = Math.random().toString(36).slice(2);
+      const id = (crypto?.randomUUID?.() || Math.random().toString(36).slice(2)).slice(0, 8);
       return new Promise((resolve) => {
         const handler = (e) => {
           if (e.data && e.data.type === 'vibeAgentGo' && e.data.id === id) {
