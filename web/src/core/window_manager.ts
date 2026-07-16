@@ -63,7 +63,10 @@ export class WindowManager {
       this.scrollTimer = setTimeout(() => this.updateActiveSpaceOnScroll(), 120);
     });
     this.updateModeClass();
-    window.addEventListener('resize', () => this.updateModeClass());
+    window.addEventListener('resize', () => {
+      this.updateModeClass();
+      this.reflowMaximizedWindows();
+    });
   }
 
   private updateModeClass() {
@@ -171,8 +174,10 @@ export class WindowManager {
       element = document.createElement('div');
       element.className = 'wm-window';
       element.dataset.windowId = id;
+      const preBounds = this.chromeBounds();
+      const preHeight = Math.min(opts.height ?? 300, preBounds.availableHeight);
       element.style.width = `${opts.width ?? 400}px`;
-      element.style.height = `${opts.height ?? 300}px`;
+      element.style.height = `${preHeight}px`;
       element.style.left = `${opts.x ?? 40 + this.windows.size * 20}px`;
       element.style.top = `${opts.y ?? 40 + this.windows.size * 20}px`;
       element.style.zIndex = String(++this.zCounter);
@@ -228,6 +233,11 @@ export class WindowManager {
       contentEl.appendChild(app.element);
     }
 
+    // Clamp window height so it never extends into the dock area.
+    const bounds = this.chromeBounds();
+    const clampedHeight = Math.min(opts.height ?? 300, bounds.availableHeight);
+    const clampedY = Math.min(opts.y ?? bounds.desktopTop, bounds.desktopTop + bounds.availableHeight - clampedHeight);
+
     const win: AppWindow = {
       id,
       appId: opts.appId,
@@ -236,9 +246,9 @@ export class WindowManager {
       element,
       contentEl,
       x: opts.x ?? 40,
-      y: opts.y ?? this.chromeBounds().desktopTop,
+      y: clampedY,
       width: opts.width ?? 400,
-      height: opts.height ?? 300,
+      height: clampedHeight,
       zIndex: this.zCounter,
       minimized: false,
       maximized: false,
@@ -446,6 +456,26 @@ export class WindowManager {
       btn.style.opacity = isActive ? '1' : '0.85';
       this.dock.appendChild(btn);
     }
+
+    // After the dock content changes, its height may change (e.g. icons added
+    // asynchronously after a reload). Reflow maximized windows so they respect
+    // the new dock height and don't overlap it.
+    this.reflowMaximizedWindows();
+  }
+
+  /** Recalculate geometry for all maximized windows using current chromeBounds. */
+  private reflowMaximizedWindows() {
+    if (this.element.classList.contains('mobile')) return;
+    const { desktopTop, availableHeight } = this.chromeBounds();
+    const vw = window.innerWidth;
+    for (const win of this.windows.values()) {
+      if (!win.maximized) continue;
+      win.element.style.top = `${desktopTop}px`;
+      win.element.style.width = `${vw}px`;
+      win.element.style.height = `${Math.max(availableHeight, 200)}px`;
+      win.y = desktopTop;
+      win.height = Math.max(availableHeight, 200);
+    }
   }
 
   private createDockIcon(icon: string, title: string, onClick: () => void): HTMLButtonElement {
@@ -530,7 +560,10 @@ export class WindowManager {
   private chromeBounds() {
     const dockBottom = 12; // CSS bottom of .wm-dock
     const dockGap = 8; // visual clearance above the dock
-    const dockTop = window.innerHeight - dockBottom - this.dock.offsetHeight;
+    // Fallback dock height when the dock has no icons yet (e.g. right after reload
+    // before updateDock() runs). 56px matches the CSS padding-bottom on mobile spaces.
+    const dockHeight = this.dock.offsetHeight || 56;
+    const dockTop = window.innerHeight - dockBottom - dockHeight;
     // No more app header — desktop starts at top of viewport.
     const desktopTop = 0;
     const availableHeight = dockTop - desktopTop - dockGap;
