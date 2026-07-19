@@ -8,7 +8,7 @@
   {
     "id": "vibeops.vibemail",
     "name": "vibeMail",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "author": "vibeops",
     "category": "Productivity",
     "description": "JMAP Mail & Kalender Client für Stalwart",
@@ -356,8 +356,13 @@
       jmapUser = document.getElementById('setupUser').value;
       jmapPass = document.getElementById('setupPass').value;
 
-      // Test connection
-      jmapRequest('Mailbox/get', { accountId: 'x', ids: null })
+      // Test connection: fetch the real accountId from the session first
+      jmapSession()
+        .then(session => {
+          accountId = session.primaryAccounts['urn:ietf:params:jmap:mail'];
+          if (!accountId) throw new Error('Kein Mail-Account in der JMAP-Session gefunden');
+          return jmapRequest('Mailbox/get', { accountId, ids: null });
+        })
         .then(() => {
           document.getElementById('setupScreen').style.display = 'none';
           document.getElementById('mainApp').style.display = 'flex';
