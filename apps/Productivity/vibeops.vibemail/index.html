@@ -593,6 +593,43 @@
 
     // --- Calendar ---
 
+    // Parse JMAP CalendarEvent datetimes per RFC 8984.
+    // - `start` with Z or ±HH:MM offset → use it directly
+    // - `start` naive + `timeZone` present → interpret in that IANA zone
+    // - `start` naive, no `timeZone` → legacy Stalwart normalization → UTC
+    function parseJmapDateTime(start, timeZone) {
+      if (!start) return null;
+      // Has explicit offset or Z? Browser handles it.
+      if (/Z$|[+-]\d{2}:\d{2}$/.test(start)) return new Date(start);
+      // Naive string: resolve via timeZone, defaulting to UTC
+      const tz = timeZone || 'UTC';
+      try {
+        // Trick: format the naive wall time AS IF in `tz`, then compute the
+        // corresponding UTC instant via Intl round-trip.
+        const [datePart, timePart] = start.split('T');
+        const [y, mo, d] = datePart.split('-').map(Number);
+        const [h, mi, s = 0] = timePart.split(':').map(Number);
+        // Start with a guess: treat as UTC
+        const guess = Date.UTC(y, mo - 1, d, h, mi, s);
+        // What does that UTC instant look like in `tz`?
+        const fmt = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+        });
+        const parts = Object.fromEntries(fmt.formatToParts(guess).map(p => [p.type, p.value]));
+        const asInTz = Date.UTC(
+          +parts.year, +parts.month - 1, +parts.day,
+          +parts.hour === 24 ? 0 : +parts.hour, +parts.minute, +parts.second
+        );
+        // Offset between the zones tells us how far to shift
+        const offset = asInTz - guess;
+        return new Date(guess - offset);
+      } catch (e) {
+        console.warn('parseJmapDateTime fallback for', start, timeZone, e);
+        return new Date(start);
+      }
+    }
+
     async function loadCalendar() {
       const weekEl = document.getElementById('calendarWeek');
       weekEl.innerHTML = '';
@@ -634,7 +671,9 @@
         });
 
         events.list.forEach(ev => {
-          const startDt = new Date(ev.start);
+          // RFC 8984: naive `start` + `timeZone` → interpret in that zone (not browser-local, not UTC)
+          const startDt = parseJmapDateTime(ev.start, ev.timeZone);
+          if (!startDt) return;
           const dayIndex = Math.floor((startDt - dayDates[0]) / (1000 * 60 * 60 * 24));
           if (dayIndex >= 0 && dayIndex < 7) {
             const dayEl = weekEl.children[dayIndex];
