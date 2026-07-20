@@ -185,8 +185,6 @@ export class GitBackupManager {
       onAuth: () => ({ username: creds.username, password: creds.token }),
     });
 
-    const beforeFiles = await this.memory.listFiles();
-    const beforePaths = new Set(beforeFiles.map((f) => f.path));
     const pulledFiles = await this.readFilesFromFS(WORKDIR);
     const pulledPaths = new Set(pulledFiles.map((f) => f.path));
 
@@ -196,13 +194,13 @@ export class GitBackupManager {
       imported++;
     }
 
-    let deleted = 0;
-    for (const path of beforePaths) {
-      if (!pulledPaths.has(path)) {
-        await this.memory.deleteFile(path);
-        deleted++;
-      }
-    }
+    // Do NOT delete local-only files. Workspace files that are not in
+    // the Git repo (e.g. app config.json with credentials, app data
+    // files) are user-created and must be preserved. Only repo files
+    // that were explicitly removed should be deleted — but detecting
+    // that reliably requires tracking the previous repo state, which
+    // we don't do. Safer to leave local-only files untouched.
+    const deleted = 0;
 
     return { imported, deleted };
   }
