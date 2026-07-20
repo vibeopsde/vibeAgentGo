@@ -80,7 +80,8 @@ export class AppStoreApp implements App {
     try {
       const cacheBuster = Date.now();
       const res = await fetch(
-        `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/index.json?nocache=${cacheBuster}`
+        `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/index.json?nocache=${cacheBuster}`,
+        { cache: 'no-store' }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.store = (await res.json()) as StoreIndex;
@@ -169,7 +170,7 @@ export class AppStoreApp implements App {
 
     try {
       const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/index.html?nocache=${Date.now()}`;
-      const res = await fetch(entryUrl);
+      const res = await fetch(entryUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Failed to fetch entry: ${res.status}`);
       const entryContent = await res.text();
 
@@ -209,7 +210,7 @@ export class AppStoreApp implements App {
     for (const app of updatable) {
       try {
         const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/index.html?nocache=${Date.now()}`;
-        const res = await fetch(entryUrl);
+        const res = await fetch(entryUrl, { cache: 'no-store' });
         if (!res.ok) continue;
         const entryContent = await res.text();
         const installed: InstalledApp = {
