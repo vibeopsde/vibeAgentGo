@@ -37,14 +37,16 @@ export class SessionPanel {
         this.element.innerHTML = `
           <div class="session-header">
             <h2 class="session-title-header">🗃️ ${t('sessions.title')}</h2>
-            <div class="session-header-actions">
-              <button class="session-header-btn" data-action="new-chat" title="${t('header.newChat') || 'New chat'}">➕</button>
-              <button class="session-header-btn" data-action="attach" title="${t('chat.attachFile') || 'Attach file'}">📎</button>
-            </div>
           </div>
-          <p class="empty">${t('sessions.empty')}</p>
+          <div class="session-body">
+            <p class="empty">${t('sessions.empty')}</p>
+          </div>
+          <div class="session-footer">
+            <button class="session-footer-btn" data-action="new-chat" title="${t('header.newChat') || 'New chat'}">➕</button>
+            <button class="session-footer-btn" data-action="attach" title="${t('chat.attachFile') || 'Attach file'}">📎</button>
+          </div>
         `;
-        this.wireHeaderActions();
+        this.wireFooterActions();
         return;
       }
 
@@ -75,15 +77,17 @@ export class SessionPanel {
       this.element.innerHTML = `
         <div class="session-header">
           <h2 class="session-title-header">🗃️ ${t('sessions.title')}</h2>
-          <div class="session-header-actions">
-            <button class="session-header-btn" data-action="new-chat" title="${t('header.newChat') || 'New chat'}">➕</button>
-            <button class="session-header-btn" data-action="attach" title="${t('chat.attachFile') || 'Attach file'}">📎</button>
-          </div>
         </div>
-        <div class="session-list">${sessionsHtml}</div>
+        <div class="session-body">
+          <div class="session-list">${sessionsHtml}</div>
+        </div>
+        <div class="session-footer">
+          <button class="session-footer-btn" data-action="new-chat" title="${t('header.newChat') || 'New chat'}">➕</button>
+          <button class="session-footer-btn" data-action="attach" title="${t('chat.attachFile') || 'Attach file'}">📎</button>
+        </div>
       `;
 
-      this.wireHeaderActions();
+      this.wireFooterActions();
 
       this.element.querySelectorAll('.session-resume').forEach((btn) => {
         btn.addEventListener('click', (e) => {
@@ -114,8 +118,8 @@ export class SessionPanel {
     }
   }
 
-  private wireHeaderActions() {
-    this.element.querySelectorAll('.session-header-btn').forEach((btn) => {
+  private wireFooterActions() {
+    this.element.querySelectorAll('.session-footer-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const action = (e.currentTarget as HTMLElement).dataset.action;

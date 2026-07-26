@@ -1202,28 +1202,33 @@ select {
   font-size: 14px;
 }
 
-.session-header-actions {
+.session-footer {
   display: flex;
-  gap: 4px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elev);
+  flex-shrink: 0;
+  justify-content: center;
 }
 
-.session-header-btn {
+.session-footer-btn {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 4px 8px;
-  min-width: 32px;
-  min-height: 32px;
+  padding: 6px 16px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.15s, border-color 0.15s;
 }
 
-.session-header-btn:hover {
+.session-footer-btn:hover {
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -2170,13 +2175,20 @@ select {
   flex-shrink: 0;
   transition: width 0.2s ease, border-right-width 0.2s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-session-drawer.open {
   width: 280px;
   max-width: 80vw;
   border-right: 1px solid var(--border);
-  overflow: auto;
+}
+
+.session-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .chat-session-backdrop {
