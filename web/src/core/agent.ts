@@ -263,6 +263,22 @@ export class Agent {
       history[0] = { role: 'system', content: systemPrompt };
     }
     history.push({ role: 'user', content: finalUserContent });
+    // Strip image_url content parts from the full history — the current model may not
+    // support image input (e.g. text-only models), and image attachments (either from
+    // earlier turns in a resumed session or from the current message) would cause a
+    // 400 error. Replace with a text placeholder so the conversation context is preserved.
+    for (const msg of history) {
+      if (typeof msg.content !== 'string' && Array.isArray(msg.content)) {
+        const hasImage = msg.content.some((p) => p.type === 'image_url');
+        if (hasImage) {
+          msg.content = msg.content.map((p) =>
+            p.type === 'image_url'
+              ? { type: 'text' as const, text: '[Image attachment — not visible to this model]' }
+              : p
+          );
+        }
+      }
+    }
     this.currentHistory = history;
 
     const toolSchemas = toolsToSchemas(this.tools);
