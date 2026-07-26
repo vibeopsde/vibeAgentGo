@@ -50,10 +50,11 @@ export class AppController {
     this.registerServiceWorker();
     this.registerPageLifecycle();
     this.registerApps();
-    // Migrate legacy DB to workspace-aware DB before any DB access
-    this.initWorkspace();
   }
 
+  private migrationPromise: Promise<void> | null = null;
+
+  /** Run legacy DB migration. Called from start() before any DB access. */
   private async initWorkspace() {
     await migrateLegacyWorkspace();
   }
@@ -84,7 +85,9 @@ export class AppController {
     });
   }
 
-  start() {
+  async start() {
+    // Migrate legacy DB before any DB access happens
+    await this.initWorkspace();
     const config = loadConfig();
     setLanguage(config.language);
     document.documentElement.lang = config.language;
