@@ -7,12 +7,15 @@ import type { Session, MemoryEntry, SkillRecord } from '../types/index.js';
 import JSZip from 'jszip';
 import { MemoryStore, SkillStore, CONFIG_KEY, loadConfig } from './memory.js';
 import { tx } from './db.js';
+import { getActiveWorkspace } from './workspace.js';
 
 export interface BackupManifest {
   version: number;
   exported_at: string;
   app_version: string;
   includes_api_keys: boolean;
+  workspace_id: string;
+  workspace_name: string;
 }
 
 export interface AppBackup {
@@ -68,12 +71,15 @@ export class BackupManager {
       configClone.searchApiKey = '[REDACTED]';
     }
 
+    const ws = getActiveWorkspace();
     const backup: AppBackup = {
       manifest: {
         version: 1,
         exported_at: new Date().toISOString(),
         app_version: this.appVersion,
         includes_api_keys: includeApiKeys,
+        workspace_id: ws.id,
+        workspace_name: ws.name,
       },
       memory,
       sessions: fullSessions.filter((s): s is Session => Boolean(s)),

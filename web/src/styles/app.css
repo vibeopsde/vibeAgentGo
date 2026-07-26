@@ -2915,3 +2915,82 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Workspace Management --- */
+
+.settings-workspace-badge {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.ws-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ws-input-row input {
+  flex: 1;
+}
+
+.ws-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  transition: border-color 0.15s;
+}
+
+.ws-item-active {
+  border-color: var(--accent-color, #4a9eff);
+  background: var(--bg-accent, rgba(74, 158, 255, 0.06));
+}
+
+.ws-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ws-item-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-badge-active {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent-color, #4a9eff);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.ws-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}

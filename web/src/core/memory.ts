@@ -8,7 +8,7 @@ import { logger } from './logger.js';
 import { tx, txAll, cursorAll, cursorByIndex } from './db.js';
 
 // Re-export for callers that still import from memory.ts
-export { tx, txAll, cursorAll, cursorByIndex, resetLocalData, DB_NAME, openDB } from './db.js';
+export { tx, txAll, cursorAll, cursorByIndex, resetLocalData, getDbName, LEGACY_DB_NAME, openDB } from './db.js';
 
 // --- Memory ---
 

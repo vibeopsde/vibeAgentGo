@@ -23,6 +23,8 @@ import { initTheme } from './theme.js';
 import { setLanguage, t } from '../i18n/index.js';
 import { WindowManager } from './window_manager.js';
 import { sounds } from './sounds.js';
+import { migrateLegacyWorkspace, getActiveWorkspace } from './workspace.js';
+import { resetDBConnection } from './db.js';
 import type { BridgeRequest, BridgeResponse, ChatAttachment, App } from '../types/index.js';
 
 export class AppController {
@@ -48,6 +50,12 @@ export class AppController {
     this.registerServiceWorker();
     this.registerPageLifecycle();
     this.registerApps();
+    // Migrate legacy DB to workspace-aware DB before any DB access
+    this.initWorkspace();
+  }
+
+  private async initWorkspace() {
+    await migrateLegacyWorkspace();
   }
 
   private registerPageLifecycle() {
@@ -467,6 +475,7 @@ export class AppController {
     this.wm.registerApp('settings', () => {
       const app = new SettingsApp();
       app.element.addEventListener('settings:reload', () => window.location.reload());
+      app.element.addEventListener('settings:switch-workspace', () => window.location.reload());
       return app;
     });
 

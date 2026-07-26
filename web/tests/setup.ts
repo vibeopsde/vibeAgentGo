@@ -64,8 +64,14 @@ beforeEach(async () => {
   // Pre-open the database with the expected schema so every store exists.
   // Must match DB_VERSION in db.ts — if the version is lower, the cached
   // connection triggers a versionchange, closes itself, and causes timeouts.
+  // Use a workspace-prefixed DB name to match the workspace-aware db.ts logic.
+  localStorage.setItem('vibeAgentGo-activeWorkspace', 'default');
+  localStorage.setItem(
+    'vibeAgentGo-workspaces',
+    JSON.stringify([{ id: 'default', name: 'Default', createdAt: '2026-01-01T00:00:00.000Z' }])
+  );
   await new Promise<void>((resolve, reject) => {
-    const req = indexedDB.open('vibeAgentGo-agent', 4);
+    const req = indexedDB.open('vibeAgentGo-agent-default', 5);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('memory')) {

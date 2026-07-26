@@ -216,6 +216,21 @@ const de: Translations = {
   'appstore.tabStore': 'Store',
   'appstore.tabInstalled': 'Meine Apps',
   'appstore.noInstalledApps': 'Noch keine Apps installiert. Im Store findest du alle.',
+
+  // Workspaces
+  'workspace.tabLabel': 'Workspaces',
+  'workspace.title': 'Workspaces',
+  'workspace.hint': 'Jeder Workspace hat eine eigene Datenbank mit Sessions, Dateien, Memory und Skills. Provider-Einstellungen bleiben geteilt.',
+  'workspace.create': 'Erstellen',
+  'workspace.newName': 'Neuer Workspace',
+  'workspace.newNamePlaceholder': 'z. B. Projekt Alpha',
+  'workspace.switch': 'Wechseln',
+  'workspace.active': 'Aktiv',
+  'workspace.renamePrompt': 'Workspace umbenennen:',
+  'workspace.deleteConfirm': 'Workspace "{name}" und alle darin enthaltenen Daten (Sessions, Dateien, Memory) wirklich löschen?',
+  'workspace.cannotDeleteLast': 'Der letzte Workspace kann nicht gelöscht werden.',
+  'workspace.current': 'Aktuell: {name}',
+  'settings.dangerZone': 'Gefahrenzone',
 };
 
 const en: Translations = {
@@ -427,6 +442,21 @@ const en: Translations = {
   'appstore.tabStore': 'Store',
   'appstore.tabInstalled': 'My Apps',
   'appstore.noInstalledApps': 'No apps installed yet. Browse the Store to install some.',
+
+  // Workspaces
+  'workspace.tabLabel': 'Workspaces',
+  'workspace.title': 'Workspaces',
+  'workspace.hint': 'Each workspace has its own database with sessions, files, memory and skills. Provider settings stay shared.',
+  'workspace.create': 'Create',
+  'workspace.newName': 'New Workspace',
+  'workspace.newNamePlaceholder': 'e.g. Project Alpha',
+  'workspace.switch': 'Switch',
+  'workspace.active': 'Active',
+  'workspace.renamePrompt': 'Rename workspace:',
+  'workspace.deleteConfirm': 'Delete workspace "{name}" and all its data (sessions, files, memory)?',
+  'workspace.cannotDeleteLast': 'Cannot delete the last workspace.',
+  'workspace.current': 'Current: {name}',
+  'settings.dangerZone': 'Danger Zone',
 };
 
 const translations: Record<Language, Translations> = { de, en };

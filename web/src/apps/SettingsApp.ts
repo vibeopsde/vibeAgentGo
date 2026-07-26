@@ -16,11 +16,13 @@ import { renderSearchConfigSection } from '../components/SettingsSearchSection.j
 import { renderYouTubeConfigSection } from '../components/SettingsYouTubeSection.js';
 import { renderBackupSection } from '../components/SettingsBackupSection.js';
 import { renderDangerZoneSection } from '../components/SettingsDangerZoneSection.js';
+import { renderWorkspaceSection } from '../components/SettingsWorkspaceSection.js';
+import { getActiveWorkspace } from '../core/workspace.js';
 import { MemoryPanel } from '../components/MemoryPanel.js';
 import { SkillsPanel } from '../components/SkillsPanel.js';
 import type { App } from '../types/index.js';
 
-type TabKey = 'llm' | 'search' | 'appearance' | 'youtube' | 'memory' | 'skills' | 'backup' | 'danger';
+type TabKey = 'workspaces' | 'llm' | 'search' | 'appearance' | 'youtube' | 'memory' | 'skills' | 'backup' | 'danger';
 
 interface TabDef {
   id: TabKey;
@@ -29,6 +31,7 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
+  { id: 'workspaces', icon: '🗂️', label: 'workspace.tabLabel' },
   { id: 'llm', icon: '🤖', label: 'settings.tabLLM' },
   { id: 'search', icon: '🔍', label: 'settings.tabSearch' },
   { id: 'appearance', icon: '🎨', label: 'settings.tabAppearance' },
@@ -78,6 +81,7 @@ export class SettingsApp implements App {
           <div>
             <h2>vibeAgentGo</h2>
             <span class="settings-version">${VERSION}</span>
+            <div class="settings-workspace-badge">🗂️ ${escapeHtml(getActiveWorkspace().name)}</div>
           </div>
         </div>
         <nav class="settings-tabs" role="tablist">
@@ -125,6 +129,9 @@ export class SettingsApp implements App {
     panel.innerHTML = '';
 
     switch (tab) {
+      case 'workspaces':
+        this.renderWorkspaceTab(panel);
+        break;
       case 'llm':
         this.renderLLMTab(panel);
         break;
@@ -150,6 +157,12 @@ export class SettingsApp implements App {
         this.renderDangerTab(panel);
         break;
     }
+  }
+
+  private renderWorkspaceTab(panel: HTMLElement) {
+    renderWorkspaceSection(panel, () => {
+      this.element.dispatchEvent(new CustomEvent('settings:switch-workspace', { bubbles: true }));
+    });
   }
 
   private renderLLMTab(panel: HTMLElement) {

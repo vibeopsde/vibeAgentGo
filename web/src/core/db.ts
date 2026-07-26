@@ -1,19 +1,47 @@
 // ============================================================
 // vibeAgentGo — IndexedDB single source of truth
-// One connection, one schema, one version. All modules
-// (memory.ts, logger.ts, backup.ts) route through this.
+// One connection per workspace, one schema, one version.
+// All modules (memory.ts, logger.ts, backup.ts) route through this.
 // Never call indexedDB.open() elsewhere.
 // ============================================================
 
-export const DB_NAME = 'vibeAgentGo-agent';
+import { getActiveWorkspaceId } from './workspace.js';
+
 export const DB_VERSION = 5; // kept at 5 — installedApps store removed, apps now live as workspace files
 
+/** Build the DB name for a given workspace ID. */
+export function getDbName(workspaceId?: string): string {
+  const wsId = workspaceId ?? getActiveWorkspaceId();
+  return `vibeAgentGo-agent-${wsId}`;
+}
+
+/** Legacy DB name (pre-workspace era). Used for migration. */
+export const LEGACY_DB_NAME = 'vibeAgentGo-agent';
+
 let dbPromise: Promise<IDBDatabase> | null = null;
+let currentDbName: string | null = null;
 
 export function openDB(): Promise<IDBDatabase> {
+  const dbName = getDbName();
+  // If the workspace changed, reset the cached connection
+  if (currentDbName !== null && currentDbName !== dbName) {
+    if (dbPromise) {
+      dbPromise
+        .then((db) => {
+          try {
+            db.close();
+          } catch {
+            /* ignore */
+          }
+        })
+        .catch(() => {});
+      dbPromise = null;
+    }
+  }
+  currentDbName = dbName;
   if (dbPromise) return dbPromise;
   dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    const req = indexedDB.open(dbName, DB_VERSION);
     req.onerror = () => {
       dbPromise = null;
       reject(req.error);
@@ -213,9 +241,14 @@ export async function resetLocalData(): Promise<void> {
   localStorage.removeItem('vibeAgentGo-config');
   localStorage.removeItem('vibeAgentGo-onboarding');
   localStorage.removeItem('vibeAgentGo-theme');
+  localStorage.removeItem('vibeAgentGo-workspaces');
+  localStorage.removeItem('vibeAgentGo-activeWorkspace');
+  localStorage.removeItem('vibeAgentGo-lastSession');
   await resetDBConnection();
+  // Delete all workspace databases
+  const dbName = getDbName();
   return new Promise((resolve) => {
-    const req = indexedDB.deleteDatabase(DB_NAME);
+    const req = indexedDB.deleteDatabase(dbName);
     req.onsuccess = () => resolve();
     req.onerror = () => resolve();
     req.onblocked = () => resolve();

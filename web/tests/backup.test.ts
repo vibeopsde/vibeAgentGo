@@ -7,6 +7,12 @@ import JSZip from 'jszip';
 describe('BackupManager', () => {
   beforeEach(() => {
     localStorage.clear();
+    // Re-initialize workspace registry so getActiveWorkspace() works
+    localStorage.setItem('vibeAgentGo-activeWorkspace', 'default');
+    localStorage.setItem(
+      'vibeAgentGo-workspaces',
+      JSON.stringify([{ id: 'default', name: 'Default', createdAt: '2026-01-01T00:00:00.000Z' }])
+    );
   });
 
   it('exports memory, sessions, skills, files and config into a zip', async () => {
@@ -51,7 +57,7 @@ describe('BackupManager', () => {
     const manager = new BackupManager('v2607.3.0');
     const zip = new JSZip();
     const backup: AppBackup = {
-      manifest: { version: 1, exported_at: new Date().toISOString(), app_version: 'v2607.3.0', includes_api_keys: false },
+      manifest: { version: 1, exported_at: new Date().toISOString(), app_version: 'v2607.3.0', includes_api_keys: false, workspace_id: 'default', workspace_name: 'Default' },
       memory: [{ id: 1, content: 'I love coffee', category: 'user', created_at: '2024-01-01T00:00:00.000Z' }],
       sessions: [{ id: 'session-1', title: 'Test', messages: [], created_at: '2024-01-01T00:00:00.000Z', updated_at: '2024-01-01T00:00:00.000Z' }],
       skills: [{ id: 's1', name: 'Skill1', description: '', content: 'body', created_at: '2024-01-01T00:00:00.000Z', updated_at: '2024-01-01T00:00:00.000Z' }],
