@@ -89,6 +89,7 @@ export class Agent {
       env: {
         memoryStore: this.memory,
         isDark: document.documentElement.getAttribute('data-theme') !== 'light',
+        sessionId: this.sessionId ?? undefined,
         ...this.extraEnv,
       },
     };

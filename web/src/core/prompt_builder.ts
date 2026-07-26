@@ -81,6 +81,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   |- read_file, write_file, search_files, patch: manage files in the browser workspace
   |- git_clone, git_pull, git_push, git_status: sync workspace files with a Git remote (Settings → Backup; sessions/memory/config stay local)
   |- app_store_search, app_store_install, app_store_publish: browse, install, and prepare apps for the vAG-App Store
+  |- rename_session: give the current session a concise descriptive title after the first user message (e.g. "Git-Backup einrichten" not the truncated first message). Use early in the conversation.
   |- File conventions for the workspace: put complete mini-apps under 'apps/', reusable scripts under 'scripts/', everything else in the root. No need for a 'src/' hierarchy.
   |- Console output from run and run_code is returned to you and also visible in a dedicated window
   |- CORS: Never use public third-party CORS proxies (allorigins, corsproxy.io, etc.). The app provides its own proxy at /api/proxy/?url=ENCODED_URL. For generated mini-apps that fetch external resources, use window.corsFetch(url) or /api/proxy/?url=... instead of raw fetch for cross-origin requests.`);

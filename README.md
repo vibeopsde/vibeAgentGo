@@ -95,6 +95,7 @@ web/
 | `memory_search` | Search existing memory entries by keyword (returns IDs for update/delete) |
 | `memory_delete` | Delete a memory entry by its ID |
 | `memory_update` | Update an existing memory entry by its ID (content and optionally category) |
+| `rename_session` | Rename the current chat session with a concise, descriptive title |
 | `sys_check` | Deterministic health check for IndexedDB, files, worker sandbox, and config (supports `repair` mode) |
 | `error_log` | Read the local browser-side error and audit log |
 | `git_clone` | Clone a remote Git repository into the browser workspace |

@@ -63,6 +63,7 @@ export interface ToolContext {
   env: {
     memoryStore?: MemoryStore;
     isDark?: boolean;
+    sessionId?: string;
     [key: string]: unknown;
   };
 }
