@@ -167,6 +167,10 @@ export class ChatApp implements App {
     this.panel.clear();
   }
 
+  clearAttachments() {
+    this.panel.clearAttachments();
+  }
+
   isStreaming(): boolean {
     return this.panel.isStreaming();
   }

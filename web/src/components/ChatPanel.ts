@@ -107,10 +107,16 @@ export class ChatPanel {
     if (!text && this.attachments.length === 0) return;
     this.inputEl.value = '';
     this.inputEl.style.height = 'auto';
-    const attachments = this.attachments;
+    // Attachments are NOT cleared here — the caller (AppController)
+    // clears them via clearAttachments() after the submit is accepted
+    // (API key check, isRunning guard). Otherwise a rejected submit
+    // would silently discard the user's attached files.
+    if (this.onSubmit) this.onSubmit(text, this.attachments);
+  }
+
+  clearAttachments() {
     this.attachments = [];
     this.renderAttachments();
-    if (this.onSubmit) this.onSubmit(text, attachments);
   }
 
   private handleFiles(event: Event) {

@@ -221,11 +221,13 @@ export class AppController {
             return { ok: false, error: 'No API key configured' };
           }
           if (!this.activeChatWindowId) {
-            this.wm.openWindow({ appId: 'chat', width: 720, height: 520, x: 40, y: 40 });
+            const winId = this.wm.openWindow({ appId: 'chat' });
+            this.activeChatWindowId = winId;
           }
           const chat = this.getChatApp();
           chat?.appendUser(req.text);
           chat?.setStatus('thinking');
+          chat?.setRunning(true);
           chat?.startStream();
           this.isRunning = true;
           try {
@@ -236,6 +238,7 @@ export class AppController {
             });
             chat?.appendError(e instanceof Error ? e.message : String(e));
             chat?.setStatus('idle');
+            chat?.setRunning(false);
           } finally {
             this.isRunning = false;
           }
@@ -466,6 +469,7 @@ export class AppController {
           return;
         }
         chatApp.appendUser(text, attachments);
+        chatApp.clearAttachments();
         chatApp.setStatus('thinking');
         chatApp.startStream();
         chatApp.setRunning(true);
