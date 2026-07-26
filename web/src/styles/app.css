@@ -2185,6 +2185,15 @@ select {
   border-right: 1px solid var(--border);
 }
 
+/* SessionPanel fills the drawer and provides the scroll/fixed structure */
+.session-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
 .session-body {
   flex: 1;
   overflow-y: auto;
@@ -2210,6 +2219,7 @@ select {
     position: absolute;
     top: 0;
     left: 0;
+    bottom: 0;
     z-index: 2000;
     width: 0;
     max-width: 85vw;
@@ -2218,6 +2228,10 @@ select {
 
   .chat-session-drawer.open {
     width: 85vw;
+  }
+
+  .session-panel {
+    min-height: 0;
   }
 }
 
