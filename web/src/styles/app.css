@@ -1186,6 +1186,48 @@ select {
   font-weight: 600;
 }
 
+.session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+  flex-shrink: 0;
+}
+
+.session-header .session-title-header {
+  padding: 0;
+  text-align: left;
+  font-size: 14px;
+}
+
+.session-header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.session-header-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.session-header-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .session-item {
   display: flex;
   align-items: center;

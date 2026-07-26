@@ -10,6 +10,8 @@ export class SessionPanel {
   element: HTMLElement;
   private memory: MemoryStore;
   onResume: ((sessionId: string) => void) | null = null;
+  onNewChat: (() => void) | null = null;
+  onAttachFile: (() => void) | null = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -33,9 +35,16 @@ export class SessionPanel {
 
       if (sessions.length === 0) {
         this.element.innerHTML = `
-          <h2 class="session-title-header">🗃️ ${t('sessions.title')}</h2>
+          <div class="session-header">
+            <h2 class="session-title-header">🗃️ ${t('sessions.title')}</h2>
+            <div class="session-header-actions">
+              <button class="session-header-btn" data-action="new-chat" title="${t('header.newChat') || 'New chat'}">➕</button>
+              <button class="session-header-btn" data-action="attach" title="${t('chat.attachFile') || 'Attach file'}">📎</button>
+            </div>
+          </div>
           <p class="empty">${t('sessions.empty')}</p>
         `;
+        this.wireHeaderActions();
         return;
       }
 
@@ -64,9 +73,17 @@ export class SessionPanel {
         .join('');
 
       this.element.innerHTML = `
-        <h2 class="session-title-header">🗃️ ${t('sessions.title')}</h2>
+        <div class="session-header">
+          <h2 class="session-title-header">🗃️ ${t('sessions.title')}</h2>
+          <div class="session-header-actions">
+            <button class="session-header-btn" data-action="new-chat" title="${t('header.newChat') || 'New chat'}">➕</button>
+            <button class="session-header-btn" data-action="attach" title="${t('chat.attachFile') || 'Attach file'}">📎</button>
+          </div>
+        </div>
         <div class="session-list">${sessionsHtml}</div>
       `;
+
+      this.wireHeaderActions();
 
       this.element.querySelectorAll('.session-resume').forEach((btn) => {
         btn.addEventListener('click', (e) => {
@@ -95,5 +112,16 @@ export class SessionPanel {
     } catch (e) {
       this.element.innerHTML = `<p>${t('common.error')}: ${escapeHtml(String(e))}</p>`;
     }
+  }
+
+  private wireHeaderActions() {
+    this.element.querySelectorAll('.session-header-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = (e.currentTarget as HTMLElement).dataset.action;
+        if (action === 'new-chat') this.onNewChat?.();
+        if (action === 'attach') this.onAttachFile?.();
+      });
+    });
   }
 }

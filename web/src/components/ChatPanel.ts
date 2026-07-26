@@ -20,8 +20,7 @@ export class ChatPanel {
   onToggleSessions: (() => void) | null = null;
   onNewChat: (() => void) | null = null;
   onStop: (() => void) | null = null;
-  private menuDocClickListener: ((e: MouseEvent) => void) | null = null;
-  private stopBtn: HTMLButtonElement | null = null;
+  private fileInput: HTMLInputElement;
   private streamRenderTimer: ReturnType<typeof setTimeout> | null = null;
   private isStopped = false;
 
@@ -59,47 +58,12 @@ export class ChatPanel {
       }
     });
 
-    this.stopBtn = this.sendBtn; // same button, toggled via setRunning()
-
+    // Hamburger button toggles the session drawer directly
     const menuBtn = document.createElement('button');
     menuBtn.className = 'menu-btn';
-    menuBtn.title = t('chat.menu') || 'Menu';
+    menuBtn.title = t('chat.sessions') || 'Sessions';
     menuBtn.textContent = '☰';
-
-    const menuEl = document.createElement('div');
-    menuEl.className = 'chat-menu';
-    menuEl.style.display = 'none';
-    menuEl.innerHTML = `
-      <button class="chat-menu-item" data-action="new-chat">
-        <span class="chat-menu-icon">➕</span>
-        <span>${t('header.newChat') || 'New chat'}</span>
-      </button>
-      <button class="chat-menu-item" data-action="sessions">
-        <span class="chat-menu-icon">🗃️</span>
-        <span>${t('chat.sessions')}</span>
-      </button>
-      <button class="chat-menu-item" data-action="attach">
-        <span class="chat-menu-icon">📎</span>
-        <span>${t('chat.attachFile') || 'Attach file'}</span>
-      </button>
-    `;
-
-    menuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = menuEl.style.display === 'block';
-      this.closeMenu();
-      if (!isOpen) this.openMenu(menuBtn, menuEl);
-    });
-
-    menuEl.addEventListener('click', (e) => {
-      const item = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
-      if (!item) return;
-      const action = item.dataset.action;
-      this.closeMenu();
-      if (action === 'new-chat') this.onNewChat?.();
-      if (action === 'sessions') this.onToggleSessions?.();
-      if (action === 'attach') fileInput.click();
-    });
+    menuBtn.addEventListener('click', () => this.onToggleSessions?.());
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -107,6 +71,7 @@ export class ChatPanel {
     fileInput.accept = 'image/*,.pdf,.txt,.md,.json,.js,.ts,.html,.css,.py,.csv,.xml,.yaml,.yml,.log';
     fileInput.style.display = 'none';
     fileInput.addEventListener('change', (e) => this.handleFiles(e));
+    this.fileInput = fileInput;
 
     this.attachmentsEl = document.createElement('div');
     this.attachmentsEl.className = 'chat-attachments';
@@ -125,42 +90,11 @@ export class ChatPanel {
     this.element.appendChild(this.attachmentsEl);
     this.element.appendChild(inputArea);
 
-    // Fixed-positioned menu, aligned to the hamburger button via JS.
-    this.element.appendChild(menuEl);
-
     this.setStatus('idle');
   }
 
-  private openMenu(trigger: HTMLElement, menu: HTMLElement) {
-    const rect = trigger.getBoundingClientRect();
-    menu.style.position = 'fixed';
-    menu.style.left = `${rect.left}px`;
-    menu.style.bottom = `${window.innerHeight - rect.top + 8}px`;
-    menu.style.display = 'block';
-    menu.style.zIndex = '10000';
-
-    // Remove any previous listener before adding a new one
-    if (this.menuDocClickListener) {
-      document.removeEventListener('click', this.menuDocClickListener);
-    }
-    const onDocClick = (e: MouseEvent) => {
-      if (menu.contains(e.target as Node)) return;
-      this.closeMenu();
-      document.removeEventListener('click', onDocClick);
-      this.menuDocClickListener = null;
-    };
-    this.menuDocClickListener = onDocClick;
-    document.addEventListener('click', onDocClick);
-  }
-
-  private closeMenu() {
-    this.element.querySelectorAll('.chat-menu').forEach((el) => {
-      (el as HTMLElement).style.display = 'none';
-    });
-    if (this.menuDocClickListener) {
-      document.removeEventListener('click', this.menuDocClickListener);
-      this.menuDocClickListener = null;
-    }
+  triggerFileInput() {
+    this.fileInput.click();
   }
 
   private autoResize() {

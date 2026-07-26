@@ -29,6 +29,13 @@ export class ChatApp implements App {
       this.toggleSessions(false);
       this.onResumeSession?.(sessionId);
     };
+    this.sessionPanel.onNewChat = () => {
+      this.toggleSessions(false);
+      this.onNewChat?.();
+    };
+    this.sessionPanel.onAttachFile = () => {
+      this.panel.triggerFileInput();
+    };
 
     this.buildLayout();
   }
