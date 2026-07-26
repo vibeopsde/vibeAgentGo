@@ -26,11 +26,12 @@ export class ChatApp implements App {
     this.panel = new ChatPanel();
     this.sessionPanel = new SessionPanel();
     this.sessionPanel.onResume = (sessionId) => {
-      this.toggleSessions(false);
+      // On desktop the drawer stays pinned open; on mobile it collapses.
+      if (window.innerWidth <= 640) this.toggleSessions(false);
       this.onResumeSession?.(sessionId);
     };
     this.sessionPanel.onNewChat = () => {
-      this.toggleSessions(false);
+      if (window.innerWidth <= 640) this.toggleSessions(false);
       this.onNewChat?.();
     };
     this.sessionPanel.onAttachFile = () => {
