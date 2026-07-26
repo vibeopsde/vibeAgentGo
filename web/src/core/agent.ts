@@ -16,8 +16,8 @@ import { captureFunctionError } from './global_errors.js';
 export interface AgentEventMap {
   message: { role: string; content: string };
   stream_delta: { delta: string };
-  tool_call: { name: string; args: Record<string, unknown> };
-  tool_result: { name: string; result: string };
+  tool_call: { id: string; name: string; args: Record<string, unknown> };
+  tool_result: { id: string; name: string; result: string };
   render_view: { title: string; html: string };
   error: { message: string };
   turn: { turn: number; total: number };
@@ -346,7 +346,7 @@ export class Agent {
             args = {};
           }
 
-          this.emit('tool_call', { name: toolName, args });
+          this.emit('tool_call', { id: tc.id, name: toolName, args });
 
           // Audit log: record the tool call BEFORE execution, so if the tool
           // crashes the tab, error_log shows exactly what was called with
@@ -387,7 +387,7 @@ export class Agent {
             ok: !result.startsWith('Tool error:'),
           });
 
-          this.emit('tool_result', { name: toolName, result });
+          this.emit('tool_result', { id: tc.id, name: toolName, result });
 
           history.push({
             role: 'tool',

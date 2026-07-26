@@ -80,8 +80,8 @@ describe('Agent', () => {
     const result = await agent.run('call echo', mockConfig);
 
     expect(result).toBe('Result received');
-    expect(toolCalls).toContainEqual({ name: 'echo', args: { message: 'world' } });
-    expect(toolResults).toContainEqual({ name: 'echo', result: 'echo: world' });
+    expect(toolCalls).toContainEqual({ id: 'call_1', name: 'echo', args: { message: 'world' } });
+    expect(toolResults).toContainEqual({ id: 'call_1', name: 'echo', result: 'echo: world' });
   });
 
   it('runs a single-turn assistant response', async () => {

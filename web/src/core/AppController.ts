@@ -303,16 +303,17 @@ export class AppController {
     a.on('stream_delta', ({ delta }) => {
       this.getChatApp()?.appendStreamDelta(delta);
     });
-    a.on('tool_call', ({ name, args }) => {
-      this.getChatApp()?.appendToolCall(name, args);
+    a.on('tool_call', ({ id, name, args }) => {
+      this.getChatApp()?.appendToolCall(id, name, args);
       sounds.play('tool_call');
     });
-    a.on('tool_result', ({ name, result }) => {
-      this.getChatApp()?.appendToolResult(name, result);
+    a.on('tool_result', ({ id, name, result }) => {
+      this.getChatApp()?.appendToolResult(id, name, result);
     });
     a.on('error', ({ message }) => {
       this.getChatApp()?.appendError(message);
       this.getChatApp()?.setStatus('idle');
+      this.getChatApp()?.setRunning(false);
       this.isRunning = false;
       sounds.play('error');
     });
@@ -329,13 +330,16 @@ export class AppController {
     a.on('done', ({ sessionId }) => {
       this.getChatApp()?.finalizeStream();
       this.getChatApp()?.setStatus('idle');
+      this.getChatApp()?.setRunning(false);
       this.currentSessionId = sessionId;
       this.persistLastSession(sessionId);
       this.isRunning = false;
       sounds.play('done');
     });
     a.on('abort', () => {
+      this.getChatApp()?.finalizeStream();
       this.getChatApp()?.setStatus('idle');
+      this.getChatApp()?.setRunning(false);
       this.isRunning = false;
     });
   }
@@ -385,7 +389,7 @@ export class AppController {
                 } catch {
                   /* ignore */
                 }
-                this.getChatApp()?.appendToolCall(tc.function.name, args);
+                this.getChatApp()?.appendToolCall(tc.id || '', tc.function.name, args);
               }
             } else if (msg.content) {
               const assistantText =
@@ -414,6 +418,11 @@ export class AppController {
       const chatApp = new ChatApp();
       chatApp.setOnResumeSession((sessionId) => this.resumeSession(sessionId));
       chatApp.setOnNewChat(() => this.newChat());
+      chatApp.setOnStop(() => {
+        this.agent?.abort();
+        this.isRunning = false;
+        chatApp.setRunning(false);
+      });
       chatApp.setOnSubmit(async (text: string, attachments: ChatAttachment[]) => {
         // Slash commands bypass the LLM entirely.
         if (isSlashCommand(text) && attachments.length === 0) {
@@ -459,6 +468,7 @@ export class AppController {
         chatApp.appendUser(text, attachments);
         chatApp.setStatus('thinking');
         chatApp.startStream();
+        chatApp.setRunning(true);
         this.isRunning = true;
         if (!this.agent || this.agent.getLastSessionId() !== this.currentSessionId) {
           this.agent = this.createAgent();
@@ -469,6 +479,7 @@ export class AppController {
           captureFunctionError('AppController.onSubmit', e, { sessionId: this.currentSessionId });
           chatApp.appendError(e instanceof Error ? e.message : String(e));
           chatApp.setStatus('idle');
+          chatApp.setRunning(false);
           this.isRunning = false;
         }
       });

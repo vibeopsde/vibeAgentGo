@@ -274,6 +274,31 @@ body {
   padding: 10px 12px;
   overflow-x: auto;
   margin: 8px 0;
+  position: relative;
+}
+
+.copy-code-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.msg-content pre:hover .copy-code-btn {
+  opacity: 1;
+}
+
+.copy-code-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .msg-content code {
@@ -460,6 +485,15 @@ body {
 
 .send-btn:active {
   background: var(--accent-hover);
+}
+
+.send-btn.stop-active {
+  background: var(--red);
+  color: #fff;
+}
+
+.send-btn.stop-active:hover {
+  background: #d32f2f;
 }
 
 .menu-btn {

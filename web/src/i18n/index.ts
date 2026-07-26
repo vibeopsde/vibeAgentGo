@@ -35,6 +35,11 @@ const de: Translations = {
   'chat.menu': 'Menü',
   'chat.removeAttachment': 'Anhang entfernen',
   'chat.toolCall': 'Tool-Aufruf',
+  'chat.send': 'Senden',
+  'chat.stop': 'Stopp',
+  'chat.fileTooLarge': 'Datei zu groß (max 10 MB)',
+  'chat.fileReadError': 'Datei konnte nicht gelesen werden',
+  'chat.copyCode': 'Kopieren',
 
   // Settings
   'settings.title': 'Einstellungen',
@@ -264,6 +269,11 @@ const en: Translations = {
   'chat.menu': 'Menu',
   'chat.removeAttachment': 'Remove attachment',
   'chat.toolCall': 'Tool call',
+  'chat.send': 'Send',
+  'chat.stop': 'Stop',
+  'chat.fileTooLarge': 'File too large (max 10 MB)',
+  'chat.fileReadError': 'Failed to read file',
+  'chat.copyCode': 'Copy',
 
   // Settings
   'settings.title': 'Settings',

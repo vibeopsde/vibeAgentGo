@@ -19,6 +19,11 @@ export class ChatPanel {
   onSubmit: ((text: string, attachments: ChatAttachment[]) => void) | null = null;
   onToggleSessions: (() => void) | null = null;
   onNewChat: (() => void) | null = null;
+  onStop: (() => void) | null = null;
+  private menuDocClickListener: ((e: MouseEvent) => void) | null = null;
+  private stopBtn: HTMLButtonElement | null = null;
+  private streamRenderTimer: ReturnType<typeof setTimeout> | null = null;
+  private isStopped = false;
 
   constructor() {
     this.element = document.createElement('div');
@@ -45,7 +50,16 @@ export class ChatPanel {
     this.sendBtn = document.createElement('button');
     this.sendBtn.className = 'send-btn';
     this.sendBtn.textContent = '➤';
-    this.sendBtn.addEventListener('click', () => this.send());
+    this.sendBtn.title = t('chat.send') || 'Send';
+    this.sendBtn.addEventListener('click', () => {
+      if (this.isStopped) {
+        this.onStop?.();
+      } else {
+        this.send();
+      }
+    });
+
+    this.stopBtn = this.sendBtn; // same button, toggled via setRunning()
 
     const menuBtn = document.createElement('button');
     menuBtn.className = 'menu-btn';
@@ -125,11 +139,17 @@ export class ChatPanel {
     menu.style.display = 'block';
     menu.style.zIndex = '10000';
 
+    // Remove any previous listener before adding a new one
+    if (this.menuDocClickListener) {
+      document.removeEventListener('click', this.menuDocClickListener);
+    }
     const onDocClick = (e: MouseEvent) => {
       if (menu.contains(e.target as Node)) return;
       this.closeMenu();
       document.removeEventListener('click', onDocClick);
+      this.menuDocClickListener = null;
     };
+    this.menuDocClickListener = onDocClick;
     document.addEventListener('click', onDocClick);
   }
 
@@ -137,6 +157,10 @@ export class ChatPanel {
     this.element.querySelectorAll('.chat-menu').forEach((el) => {
       (el as HTMLElement).style.display = 'none';
     });
+    if (this.menuDocClickListener) {
+      document.removeEventListener('click', this.menuDocClickListener);
+      this.menuDocClickListener = null;
+    }
   }
 
   private autoResize() {
@@ -161,7 +185,15 @@ export class ChatPanel {
     input.value = '';
     if (!files.length) return;
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
     for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        this.appendError(
+          `${file.name}: ${t('chat.fileTooLarge') || 'File too large (max 10 MB)'}`
+        );
+        continue;
+      }
       const isImage = file.type.startsWith('image/');
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const reader = new FileReader();
@@ -177,6 +209,11 @@ export class ChatPanel {
         };
         this.attachments.push(attachment);
         this.renderAttachments();
+      };
+      reader.onerror = () => {
+        this.appendError(
+          `${file.name}: ${t('chat.fileReadError') || 'Failed to read file'}`
+        );
       };
 
       if (isImage || isPdf) {
@@ -237,7 +274,7 @@ export class ChatPanel {
     }
     el.innerHTML = html;
     this.messagesEl.appendChild(el);
-    this.scrollToBottom();
+    this.scrollToBottom(true);
   }
 
   appendSystem(text: string) {
@@ -246,18 +283,24 @@ export class ChatPanel {
     el.className = 'msg msg-system';
     el.innerHTML = `<div class="msg-content" data-raw="${escapeHtml(text)}">${renderMarkdown(text)}</div>`;
     this.messagesEl.appendChild(el);
+    this.addCopyButtons(el);
     this.scrollToBottom();
   }
 
   appendToolMessage(toolCallId: string, content: string) {
     this.finalizeStream();
+    // Try to find the tool name from a matching tool-call element
+    let toolName = t('chat.toolCall');
+    if (toolCallId) {
+      const toolEl = this.messagesEl.querySelector(`.msg-tool[data-tool-call-id="${CSS.escape(toolCallId)}"] .tool-name`) as HTMLElement | null;
+      if (toolEl) toolName = toolEl.textContent || toolName;
+    }
     const el = document.createElement('details');
     el.className = 'msg msg-tool';
     el.innerHTML = `
       <summary>
         <span class="tool-icon">🔧</span>
-        <span class="tool-name">${t('chat.toolCall')}</span>
-        <span class="tool-args">${escapeHtml(toolCallId)}</span>
+        <span class="tool-name">${escapeHtml(toolName)}</span>
       </summary>
       <div class="tool-result-body">${escapeHtml(content)}</div>
     `;
@@ -272,6 +315,7 @@ export class ChatPanel {
     el.className = 'msg msg-assistant';
     el.innerHTML = `<div class="msg-content" data-raw="${escapeHtml(text)}">${renderMarkdown(text)}</div>`;
     this.messagesEl.appendChild(el);
+    this.addCopyButtons(el);
     this.scrollToBottom();
   }
 
@@ -283,6 +327,7 @@ export class ChatPanel {
     el.dataset.raw = '';
     el.innerHTML = '<div class="msg-content"></div>';
     this.messagesEl.appendChild(el);
+    this.scrollToBottom(true);
     this.streamEl = el;
     this.scrollToBottom();
   }
@@ -297,7 +342,15 @@ export class ChatPanel {
     const current = stream.dataset.raw || '';
     const next = current + delta;
     stream.dataset.raw = next;
-    contentEl.innerHTML = renderMarkdown(next);
+    // Debounce markdown re-render to avoid re-parsing the entire response on every token
+    if (this.streamRenderTimer) clearTimeout(this.streamRenderTimer);
+    this.streamRenderTimer = setTimeout(() => {
+      if (this.streamEl) {
+        const ce = this.streamEl.querySelector('.msg-content') as HTMLElement;
+        ce.innerHTML = renderMarkdown(this.streamEl.dataset.raw || '');
+      }
+      this.streamRenderTimer = null;
+    }, 50);
     this.scrollToBottom();
   }
 
@@ -306,23 +359,34 @@ export class ChatPanel {
   }
 
   finalizeStream() {
+    // Flush any pending debounced render before finalizing
+    if (this.streamRenderTimer) {
+      clearTimeout(this.streamRenderTimer);
+      this.streamRenderTimer = null;
+      if (this.streamEl) {
+        const ce = this.streamEl.querySelector('.msg-content') as HTMLElement;
+        ce.innerHTML = renderMarkdown(this.streamEl.dataset.raw || '');
+      }
+    }
     if (this.streamEl) {
       delete this.streamEl.dataset.streaming;
+      this.addCopyButtons(this.streamEl);
       this.streamEl = null;
     }
   }
 
-  appendToolCall(name: string, args: Record<string, unknown>) {
+  appendToolCall(id: string, name: string, args: Record<string, unknown>) {
     // Finalize any streaming content before tool call
     this.finalizeStream();
 
     const argStr = Object.keys(args).length > 0 ? escapeHtml(JSON.stringify(args).slice(0, 120)) : '';
     const el = document.createElement('details');
     el.className = 'msg msg-tool';
+    el.dataset.toolCallId = id;
     el.innerHTML = `
       <summary>
         <span class="tool-icon">🔧</span>
-        <span class="tool-name">${name}</span>
+        <span class="tool-name">${escapeHtml(name)}</span>
         <span class="tool-args">${argStr}</span>
       </summary>
     `;
@@ -330,9 +394,23 @@ export class ChatPanel {
     this.scrollToBottom();
   }
 
-  appendToolResult(name: string, result: string) {
-    const el = this.messagesEl.lastElementChild as HTMLElement;
-    if (el && el.tagName === 'DETAILS' && el.classList.contains('msg-tool')) {
+  appendToolResult(id: string, name: string, result: string) {
+    // Find the matching tool-call element by ID
+    let el: HTMLElement | null = null;
+    if (id) {
+      el = this.messagesEl.querySelector(`.msg-tool[data-tool-call-id="${CSS.escape(id)}"]`) as HTMLElement | null;
+    }
+    // Fallback: last tool element without a result body yet
+    if (!el) {
+      el = this.messagesEl.lastElementChild as HTMLElement;
+      if (!el || el.tagName !== 'DETAILS' || !el.classList.contains('msg-tool')) {
+        el = null;
+      }
+    }
+    if (el) {
+      // Avoid duplicate result bodies
+      const existing = el.querySelector('.tool-result-body');
+      if (existing) existing.remove();
       const body = document.createElement('div');
       body.className = 'tool-result-body';
       const preview = result.length > 400 ? result.slice(0, 400) + '...' : result;
@@ -345,7 +423,7 @@ export class ChatPanel {
       fallback.innerHTML = `<span class="tool-result-icon">↳</span> <span class="tool-result-text">${escapeHtml(preview)}</span>`;
       this.messagesEl.appendChild(fallback);
     }
-    this.scrollToBottom();
+    this.scrollToBottom(true);
   }
 
   appendError(message: string) {
@@ -354,7 +432,7 @@ export class ChatPanel {
     el.className = 'msg msg-error';
     el.textContent = `❌ ${message}`;
     this.messagesEl.appendChild(el);
-    this.scrollToBottom();
+    this.scrollToBottom(true);
   }
 
   setStatus(status: string) {
@@ -368,16 +446,53 @@ export class ChatPanel {
     this.statusEl.className = `status-bar status-${status}`;
   }
 
+  setRunning(running: boolean) {
+    this.isStopped = running;
+    if (this.sendBtn) {
+      this.sendBtn.textContent = running ? '⏹' : '➤';
+      this.sendBtn.title = running ? (t('chat.stop') || 'Stop') : (t('chat.send') || 'Send');
+      this.sendBtn.classList.toggle('stop-active', running);
+    }
+  }
+
   setTurn(turn: number, total: number) {
     this.statusEl.textContent = `${t('common.turn')} ${turn}/${total}`;
   }
 
-  setConnectionStatus(connected: boolean) {
-    this.sendBtn.disabled = !connected;
-    this.sendBtn.style.opacity = connected ? '1' : '0.4';
+  private addCopyButtons(container: HTMLElement) {
+    const preBlocks = container.querySelectorAll('pre');
+    preBlocks.forEach((pre) => {
+      if (pre.querySelector('.copy-code-btn')) return; // already added
+      const btn = document.createElement('button');
+      btn.className = 'copy-code-btn';
+      btn.textContent = t('chat.copyCode') || 'Copy';
+      btn.addEventListener('click', () => {
+        const code = pre.querySelector('code');
+        const text = code ? code.textContent : pre.textContent;
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+          btn.textContent = '✓';
+          setTimeout(() => {
+            btn.textContent = t('chat.copyCode') || 'Copy';
+          }, 1500);
+        }).catch(() => {
+          btn.textContent = '✗';
+          setTimeout(() => {
+            btn.textContent = t('chat.copyCode') || 'Copy';
+          }, 1500);
+        });
+      });
+      pre.appendChild(btn);
+    });
   }
 
-  private scrollToBottom() {
+  private isNearBottom(): boolean {
+    const el = this.messagesEl;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }
+
+  private scrollToBottom(force = false) {
+    if (!force && !this.isNearBottom()) return;
     this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
   }
 }

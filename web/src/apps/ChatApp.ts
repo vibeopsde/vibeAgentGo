@@ -91,6 +91,10 @@ export class ChatApp implements App {
     this.onNewChat = handler;
   }
 
+  setOnStop(handler: () => void) {
+    this.panel.onStop = handler;
+  }
+
   appendUser(text: string, attachments?: ChatAttachment[]) {
     this.panel.appendUser(text, attachments);
   }
@@ -107,12 +111,12 @@ export class ChatApp implements App {
     this.panel.finalizeStream();
   }
 
-  appendToolCall(name: string, args: Record<string, unknown>) {
-    this.panel.appendToolCall(name, args);
+  appendToolCall(id: string, name: string, args: Record<string, unknown>) {
+    this.panel.appendToolCall(id, name, args);
   }
 
-  appendToolResult(name: string, result: string) {
-    this.panel.appendToolResult(name, result);
+  appendToolResult(id: string, name: string, result: string) {
+    this.panel.appendToolResult(id, name, result);
   }
 
   appendToolMessage(id: string, content: string) {
@@ -129,6 +133,10 @@ export class ChatApp implements App {
 
   setStatus(status: 'idle' | 'thinking') {
     this.panel.setStatus(status);
+  }
+
+  setRunning(running: boolean) {
+    this.panel.setRunning(running);
   }
 
   startStream() {
