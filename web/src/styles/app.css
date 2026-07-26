@@ -1789,13 +1789,6 @@ select {
   position: relative;
 }
 
-/* Chat windows must not scroll at the window level — the chat-panel
-   handles its own scrolling. Without this, height:100% on .chat-app
-   resolves to the scrollable content height, breaking the session drawer. */
-.wm-window-content:has(.chat-app) {
-  overflow: hidden;
-}
-
 .wm-resize-handle {
   position: absolute;
   right: 0;
@@ -2162,7 +2155,6 @@ select {
 .chat-app {
   display: flex;
   height: 100%;
-  max-height: 100%;
   overflow: hidden;
   position: relative;
 }

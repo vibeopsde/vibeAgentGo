@@ -83,7 +83,11 @@ export class ChatApp implements App {
   }
 
   onFocus() {
-    this.sessionPanel.open();
+    // Do NOT reload sessions here. On desktop, pointerdown on a session item
+    // triggers focusWindow → window_focused → onFocus before the click event
+    // fires. If we reload sessions here, innerHTML destroys the click handlers
+    // and the session switch fails. Sessions are loaded when the drawer opens
+    // via toggleSessions(true) → sessionPanel.open().
   }
 
   setOnSubmit(handler: (text: string, attachments: ChatAttachment[]) => void) {
