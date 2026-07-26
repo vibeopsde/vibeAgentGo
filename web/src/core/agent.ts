@@ -263,26 +263,35 @@ export class Agent {
       history[0] = { role: 'system', content: systemPrompt };
     }
     history.push({ role: 'user', content: finalUserContent });
-    // Strip image_url content parts from the full history — the current model may not
-    // support image input (e.g. text-only models), and image attachments (either from
-    // earlier turns in a resumed session or from the current message) would cause a
-    // 400 error. Replace with a text placeholder so the conversation context is preserved.
-    for (const msg of history) {
-      if (typeof msg.content !== 'string' && Array.isArray(msg.content)) {
-        const hasImage = msg.content.some((p) => p.type === 'image_url');
-        if (hasImage) {
-          msg.content = msg.content.map((p) =>
-            p.type === 'image_url'
-              ? { type: 'text' as const, text: '[Image attachment — not visible to this model]' }
-              : p
-          );
-        }
-      }
-    }
     this.currentHistory = history;
 
     const toolSchemas = toolsToSchemas(this.tools);
     const ctx = this.buildToolContext();
+
+    // Helper: check if history contains image_url parts
+    const historyHasImages = (msgs: Message[]): boolean =>
+      msgs.some(
+        (m) =>
+          typeof m.content !== 'string' &&
+          Array.isArray(m.content) &&
+          m.content.some((p) => p.type === 'image_url')
+      );
+
+    // Helper: strip image_url parts → text placeholder (used on retry after 400)
+    const stripImages = (msgs: Message[]): void => {
+      for (const msg of msgs) {
+        if (typeof msg.content !== 'string' && Array.isArray(msg.content)) {
+          const hasImage = msg.content.some((p) => p.type === 'image_url');
+          if (hasImage) {
+            msg.content = msg.content.map((p) =>
+              p.type === 'image_url'
+                ? { type: 'text' as const, text: '[Image attachment — not visible to this model]' }
+                : p
+            );
+          }
+        }
+      }
+    };
 
     for (let turn = 0; turn < config.maxTurns; turn++) {
       this.emit('turn', { turn: turn + 1, total: config.maxTurns });
@@ -305,16 +314,59 @@ export class Agent {
           return 'Aborted';
         }
         const errMsg = e instanceof Error ? e.message : String(e);
-        logger.error('agent.llm', `LLM request failed on turn ${turn + 1}: ${errMsg}`, {
-          sessionId: runSessionId,
-          turn: turn + 1,
-          model: config.model,
-          baseUrl: config.baseUrl,
-        });
-        this.emit('error', { message: errMsg });
-        // Save what we have so the user can inspect / retry in the same session
-        await this.saveCurrentSession(history, runSessionId);
-        return `Error during LLM request: ${errMsg}`;
+
+        // Retry: if the model doesn't support image input (HTTP 400 mentioning
+        // image), strip image_url parts from history and retry once.
+        if (
+          errMsg.includes('400') &&
+          (errMsg.includes('image') || errMsg.includes('Image')) &&
+          historyHasImages(history) &&
+          turn === 0
+        ) {
+          logger.warn('agent.llm', 'Model rejected image input — stripping images and retrying', {
+            sessionId: runSessionId,
+            model: config.model,
+          });
+          stripImages(history);
+          this.currentHistory = history;
+          try {
+            response = await llmChatStream({
+              messages: history,
+              tools: toolSchemas,
+              model: config.model,
+              baseUrl: config.baseUrl,
+              apiKey: config.apiKey,
+              onDelta: (delta) => this.emit('stream_delta', { delta }),
+              signal: controller.signal,
+            });
+          } catch (retryErr) {
+            if (retryErr instanceof Error && retryErr.name === 'AbortError') {
+              this.emit('error', { message: 'Request aborted' });
+              return 'Aborted';
+            }
+            const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+            logger.error('agent.llm', `LLM retry also failed: ${retryMsg}`, {
+              sessionId: runSessionId,
+              turn: turn + 1,
+              model: config.model,
+              baseUrl: config.baseUrl,
+            });
+            this.emit('error', { message: retryMsg });
+            await this.saveCurrentSession(history, runSessionId);
+            return `Error during LLM request: ${retryMsg}`;
+          }
+        } else {
+          logger.error('agent.llm', `LLM request failed on turn ${turn + 1}: ${errMsg}`, {
+            sessionId: runSessionId,
+            turn: turn + 1,
+            model: config.model,
+            baseUrl: config.baseUrl,
+          });
+          this.emit('error', { message: errMsg });
+          // Save what we have so the user can inspect / retry in the same session
+          await this.saveCurrentSession(history, runSessionId);
+          return `Error during LLM request: ${errMsg}`;
+        }
       }
 
       // Tool calls
