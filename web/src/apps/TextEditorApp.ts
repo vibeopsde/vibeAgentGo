@@ -5,7 +5,6 @@
 
 import type { App, BridgeRequest, BridgeResponse } from '../types/index.js';
 import { t } from '../i18n/index.js';
-import { escapeHtml } from '../utils/escape.js';
 import { loadConfig } from '../core/memory.js';
 import { GitBackupManager } from '../core/gitBackup.js';
 
@@ -23,10 +22,15 @@ export class TextEditorApp implements App {
   private onSave: ((path: string) => void) | null = null;
   private currentPath: string | null = null;
   private dirty = false;
+  private savedContent = '';
   private undoStack: string[] = [];
   private redoStack: string[] = [];
   private lastInputTime = 0;
   private readonly UNDO_DEBOUNCE_MS = 300;
+  private lastGutterLines = 0;
+  private findReplaceOverlay: HTMLElement | null = null;
+  private findReplaceMode: 'find' | 'replace' = 'find';
+  private runFind: (() => void) | null = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -58,7 +62,7 @@ export class TextEditorApp implements App {
 
     this.textarea.addEventListener('input', () => {
       this.recordInput();
-      this.markDirty();
+      this.refreshDirty();
       this.updateGutter();
     });
     this.textarea.addEventListener('keydown', (e) => this.handleKeydown(e));
@@ -67,11 +71,13 @@ export class TextEditorApp implements App {
     this.element.querySelector('.editor-new')?.addEventListener('click', () => this.newFile());
     this.element.querySelector('.editor-save')?.addEventListener('click', () => this.save());
     this.element.querySelector('.editor-save-as')?.addEventListener('click', () => this.saveAs());
+
+    this.updateGutter();
   }
 
-  private recordInput() {
+  private recordInput(force = false) {
     const now = Date.now();
-    if (this.undoStack.length === 0 || now - this.lastInputTime > this.UNDO_DEBOUNCE_MS) {
+    if (force || this.undoStack.length === 0 || now - this.lastInputTime > this.UNDO_DEBOUNCE_MS) {
       this.undoStack.push(this.textarea.value);
       if (this.undoStack.length > 50) this.undoStack.shift();
     } else {
@@ -87,7 +93,7 @@ export class TextEditorApp implements App {
     this.redoStack.push(current);
     const previous = this.undoStack[this.undoStack.length - 1];
     this.textarea.value = previous;
-    this.markDirty();
+    this.refreshDirty();
     this.updateGutter();
   }
 
@@ -96,12 +102,9 @@ export class TextEditorApp implements App {
     const next = this.redoStack.pop()!;
     this.undoStack.push(next);
     this.textarea.value = next;
-    this.markDirty();
+    this.refreshDirty();
     this.updateGutter();
   }
-
-  private findReplaceOverlay: HTMLElement | null = null;
-  private findReplaceMode: 'find' | 'replace' = 'find';
 
   private openFindReplace(mode: 'find' | 'replace') {
     this.findReplaceMode = mode;
@@ -110,16 +113,16 @@ export class TextEditorApp implements App {
       this.findReplaceOverlay.className = 'editor-find-overlay';
       this.findReplaceOverlay.innerHTML = `
         <div class="find-row">
-          <input type="text" class="find-input" placeholder="Find..." />
-          <button class="find-prev" title="Previous">▲</button>
-          <button class="find-next" title="Next">▼</button>
+          <input type="text" class="find-input" placeholder="${t('editor.findPlaceholder') || 'Find...'}" />
+          <button class="find-prev" title="${t('editor.findPrev') || 'Previous'}">▲</button>
+          <button class="find-next" title="${t('editor.findNext') || 'Next'}">▼</button>
           <span class="find-match-count"></span>
-          <button class="find-close" title="Close (Esc)">×</button>
+          <button class="find-close" title="${t('editor.closeFind') || 'Close (Esc)'}">×</button>
         </div>
         <div class="replace-row">
-          <input type="text" class="replace-input" placeholder="Replace..." />
-          <button class="replace-one">Replace</button>
-          <button class="replace-all">Replace All</button>
+          <input type="text" class="replace-input" placeholder="${t('editor.replacePlaceholder') || 'Replace...'}" />
+          <button class="replace-one">${t('editor.replaceOne') || 'Replace'}</button>
+          <button class="replace-all">${t('editor.replaceAll') || 'Replace All'}</button>
         </div>
       `;
       this.element.appendChild(this.findReplaceOverlay);
@@ -156,10 +159,11 @@ export class TextEditorApp implements App {
         if (!matches.length) return;
         currentIndex = (idx + matches.length) % matches.length;
         const pos = matches[currentIndex];
-        this.textarea.focus();
         this.textarea.setSelectionRange(pos, pos + findInput.value.length);
         findAll();
       };
+
+      this.runFind = findAll;
 
       findInput.addEventListener('input', () => {
         currentIndex = 0;
@@ -177,7 +181,8 @@ export class TextEditorApp implements App {
         const end = this.textarea.selectionEnd;
         if (this.textarea.value.slice(start, end) === query) {
           this.textarea.setRangeText(replacement, start, end, 'end');
-          this.markDirty();
+          this.recordInput(true);
+          this.refreshDirty();
           this.updateGutter();
         }
         findAll();
@@ -192,7 +197,8 @@ export class TextEditorApp implements App {
         const newText = text.split(query).join(replacement);
         if (newText !== text) {
           this.textarea.value = newText;
-          this.markDirty();
+          this.recordInput(true);
+          this.refreshDirty();
           this.updateGutter();
         }
         findAll();
@@ -202,6 +208,10 @@ export class TextEditorApp implements App {
         if (e.key === 'Enter') {
           e.preventDefault();
           replaceOneBtn.click();
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          this.closeFindReplace();
         }
       });
       findInput.addEventListener('keydown', (e) => {
@@ -225,7 +235,10 @@ export class TextEditorApp implements App {
     if (selected) findInput.value = selected;
     findInput.focus();
     findInput.select();
-    (this.findReplaceOverlay.querySelector('.find-next') as HTMLButtonElement)?.click();
+    // Run the search directly instead of simulating a button click: a click
+    // would move focus out of the find input (and a stale match list could
+    // even pull focus into the textarea, so typing would edit the document).
+    this.runFind?.();
   }
 
   private closeFindReplace() {
@@ -239,6 +252,20 @@ export class TextEditorApp implements App {
     if (!matches.length || !queryLength) return;
     const pos = matches[currentIndex] ?? matches[0];
     this.textarea.setSelectionRange(pos, pos + queryLength);
+    this.scrollToPosition(pos);
+  }
+
+  // Scroll the textarea so the given offset is visible without stealing focus
+  // from the find input. Line-based estimate using the CSS line-height.
+  private scrollToPosition(pos: number) {
+    const line = this.textarea.value.slice(0, pos).split('\n').length;
+    const lineHeight = parseFloat(getComputedStyle(this.textarea).lineHeight) || 20;
+    const visibleLines = this.textarea.clientHeight / lineHeight;
+    const topLine = this.textarea.scrollTop / lineHeight;
+    if (line < topLine + 1 || line > topLine + visibleLines - 1) {
+      this.textarea.scrollTop = Math.max(0, (line - 3) * lineHeight);
+    }
+    this.syncGutter();
   }
 
   private handleKeydown(e: KeyboardEvent) {
@@ -262,9 +289,13 @@ export class TextEditorApp implements App {
       e.preventDefault();
       this.openFindReplace('replace');
     }
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
-      this.undo();
+      if (e.shiftKey) {
+        this.redo();
+      } else {
+        this.undo();
+      }
     }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
       e.preventDefault();
@@ -279,19 +310,28 @@ export class TextEditorApp implements App {
       const start = this.textarea.selectionStart;
       const end = this.textarea.selectionEnd;
       const value = this.textarea.value;
+      const tabSize = loadConfig().editorTabSize ?? 2;
       if (e.shiftKey) {
         const lineStart = value.lastIndexOf('\n', start - 1) + 1;
         const before = value.slice(lineStart, start);
-        if (before.startsWith('  ')) {
-          this.textarea.setRangeText(before.slice(2), lineStart, start, 'end');
+        if (before.startsWith(' '.repeat(tabSize))) {
+          this.textarea.setRangeText(before.slice(tabSize), lineStart, start, 'end');
         } else if (before.startsWith('\t')) {
           this.textarea.setRangeText(before.slice(1), lineStart, start, 'end');
+        } else {
+          // Fewer than tabSize leading spaces: remove what is there.
+          const leading = before.match(/^ +/);
+          if (leading) {
+            this.textarea.setRangeText(before.slice(leading[0].length), lineStart, start, 'end');
+          }
         }
       } else {
-        const tabSize = loadConfig().editorTabSize ?? 2;
         this.textarea.setRangeText(' '.repeat(tabSize), start, end, 'end');
       }
-      this.markDirty();
+      if (this.textarea.value !== value) {
+        this.recordInput(true);
+        this.refreshDirty();
+      }
     }
   }
 
@@ -321,6 +361,11 @@ export class TextEditorApp implements App {
     }
     this.currentPath = path;
     this.textarea.value = '';
+    this.savedContent = '';
+    this.undoStack = [''];
+    this.redoStack = [];
+    this.lastInputTime = 0;
+    this.updateGutter();
     this.setDirty(false);
     this.setPathDisplay();
     this.setStatus(t('editor.newFileCreated') || 'New file created');
@@ -361,8 +406,13 @@ export class TextEditorApp implements App {
   }
 
   openFile(path: string) {
+    // Defensive guard: callers should avoid reusing dirty editors, but a
+    // direct call must never silently discard unsaved content.
+    if (this.dirty && this.currentPath !== path) {
+      if (!window.confirm(t('editor.unsavedChanges') || 'Unsaved changes. Discard?')) return;
+    }
     this.currentPath = path;
-    this.pathEl.textContent = path;
+    this.setPathDisplay();
     this.onOpenFile?.(path);
     this.load();
   }
@@ -371,6 +421,7 @@ export class TextEditorApp implements App {
     if (!this.currentPath) return;
     const res = await this.onBridgeRequest?.({ type: 'readFile', path: this.currentPath });
     this.textarea.value = (res?.ok ? String(res.data ?? '') : '') || '';
+    this.savedContent = this.textarea.value;
     this.undoStack = [this.textarea.value];
     this.redoStack = [];
     this.lastInputTime = 0;
@@ -385,23 +436,31 @@ export class TextEditorApp implements App {
     this.currentPath = path;
     this.setPathDisplay();
     const content = this.textarea.value;
-    const res = await this.onBridgeRequest?.({ type: 'writeFile', path: this.currentPath, content });
-    if (res?.ok) {
-      this.setDirty(false);
-      this.setStatus(t('editor.saved') || 'Saved');
-      this.onSave?.(this.currentPath);
-      this.autoGitBackup();
-    } else {
+    try {
+      const res = await this.onBridgeRequest?.({ type: 'writeFile', path: this.currentPath, content });
+      if (res?.ok) {
+        this.savedContent = content;
+        this.setDirty(false);
+        this.setStatus(t('editor.saved') || 'Saved');
+        this.onSave?.(this.currentPath);
+        this.autoGitBackup();
+      } else {
+        this.setStatus(t('editor.saveError') || 'Save failed', true);
+      }
+    } catch (err) {
+      console.warn('Editor save failed', err);
       this.setStatus(t('editor.saveError') || 'Save failed', true);
     }
   }
 
-  private markDirty() {
-    this.setDirty(true);
+  private refreshDirty() {
+    this.setDirty(this.textarea.value !== this.savedContent);
   }
 
   private updateGutter() {
     const lines = this.textarea.value.split('\n').length;
+    if (lines === this.lastGutterLines) return;
+    this.lastGutterLines = lines;
     this.gutterEl.innerHTML = Array.from({ length: lines }, (_, i) => `<div>${i + 1}</div>`).join('');
   }
 

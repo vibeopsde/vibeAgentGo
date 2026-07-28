@@ -180,6 +180,13 @@ const de: Translations = {
   'editor.saveAsPrompt': 'Dateiname zum Speichern?',
   'editor.fileExists': 'Datei existiert bereits. Überschreiben?',
   'editor.newFileCreated': 'Neue Datei erstellt',
+  'editor.findPlaceholder': 'Suchen...',
+  'editor.replacePlaceholder': 'Ersetzen...',
+  'editor.findPrev': 'Vorheriger Treffer',
+  'editor.findNext': 'Nächster Treffer',
+  'editor.closeFind': 'Schließen (Esc)',
+  'editor.replaceOne': 'Ersetzen',
+  'editor.replaceAll': 'Alle ersetzen',
 
   // Skills
   'skills.title': 'Skills',
@@ -415,6 +422,13 @@ const en: Translations = {
   'editor.saveAsPrompt': 'File name to save?',
   'editor.fileExists': 'File already exists. Overwrite?',
   'editor.newFileCreated': 'New file created',
+  'editor.findPlaceholder': 'Find...',
+  'editor.replacePlaceholder': 'Replace...',
+  'editor.findPrev': 'Previous match',
+  'editor.findNext': 'Next match',
+  'editor.closeFind': 'Close (Esc)',
+  'editor.replaceOne': 'Replace',
+  'editor.replaceAll': 'Replace All',
 
   // Skills
   'skills.title': 'Skills',
