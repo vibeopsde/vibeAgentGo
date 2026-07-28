@@ -7,7 +7,7 @@
 import { t } from '../i18n/index.js';
 import { escapeHtml } from '../utils/escape.js';
 import { testConnection } from '../core/llm_client.js';
-import { PROVIDER_PRESETS, findPresetByKey, type ProviderPreset } from '../core/presets.js';
+import { PROVIDER_PRESETS, findPresetByKey, findPresetByUrlAndModel, type ProviderPreset } from '../core/presets.js';
 import type { ClientConfig } from '../core/memory.js';
 
 export interface LLMConfigResult {
@@ -32,6 +32,7 @@ export function renderLLMConfigSection(
   container.insertAdjacentHTML(
     'beforeend',
     `
+    <div id="cfg-provider-warning"></div>
     <div class="form-group">
       <label for="cfg-provider">${t('settings.provider')}</label>
       <select id="cfg-provider">
@@ -73,6 +74,18 @@ export function renderLLMConfigSection(
 
   let currentBaseUrl = initialPreset.baseUrl;
 
+  // ── Warn if the stored config doesn't match any known preset ──
+  // Without this, hitting "Save" would silently switch the provider.
+  const warningEl = container.querySelector('#cfg-provider-warning') as HTMLElement;
+  if (config.baseUrl && !findPresetByUrlAndModel(config.baseUrl, config.model)) {
+    warningEl.innerHTML = `<p class="field-hint settings-warning">⚠️ ${t('settings.unknownProvider').replace('{url}', escapeHtml(config.baseUrl))}</p>`;
+  }
+
+  // ── API keys cached per preset — switching the provider dropdown
+  // back and forth must not lose an entered key. ──
+  const apiKeyCache = new Map<string, string>();
+  let currentPresetKey = initialPreset.key;
+
   // ── Preset switching ──────────────────────────────────────
   const updateVerifyButton = () => {
     const preset = findPresetByKey(providerSelect.value);
@@ -86,11 +99,17 @@ export function renderLLMConfigSection(
   const applyProviderPreset = (key: string, isInitial = false) => {
     const preset = findPresetByKey(key);
     if (!preset) return;
+    // Cache the key of the preset we are leaving, restore the one for the new preset.
+    if (!isInitial) {
+      apiKeyCache.set(currentPresetKey, apiKeyInput.value);
+    }
+    currentPresetKey = key;
     currentBaseUrl = preset.baseUrl;
     apiKeyInput.placeholder = preset.apiKeyPlaceholder;
-    // Beim Initial-Render gespeicherten API-Key behalten; beim Wechsel des Providers Feld leeren.
+    // Beim Initial-Render gespeicherten API-Key behalten; beim Wechsel den
+    // gecachten Key des Ziel-Presets laden (oder leeren, wenn nie einer eingegeben wurde).
     if (!isInitial) {
-      apiKeyInput.value = '';
+      apiKeyInput.value = apiKeyCache.get(key) ?? '';
     }
     apiKeyGroup.style.display = preset.apiKeyRequired ? 'block' : 'none';
     apiKeyHint.textContent = preset.apiKeyRequired ? t('onboarding.apiKeyRequired') : t('onboarding.apiKeyHint');

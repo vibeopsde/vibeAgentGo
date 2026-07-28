@@ -981,6 +981,15 @@ select {
   color: var(--text-muted);
 }
 
+.settings-warning {
+  color: var(--warning, #e6a23c);
+  background: color-mix(in srgb, var(--warning, #e6a23c) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, #e6a23c) 40%, transparent);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
 .field-hint a {
   color: var(--accent);
   text-decoration: none;

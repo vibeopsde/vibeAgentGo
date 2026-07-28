@@ -239,14 +239,14 @@ export class SettingsApp implements App {
           </select>
         </div>
         <div class="form-group">
-          <label>System-Sounds</label>
+          <label>${t('settings.sounds')}</label>
           <label class="toggle-row">
             <input type="checkbox" id="cfg-sounds" ${config.sounds !== false ? 'checked' : ''} />
-            <span>🔊 Akustische Signale bei Tool-Aufrufen und Fertig-Meldung</span>
+            <span>${t('settings.soundsHint')}</span>
           </label>
         </div>
         <div class="form-group">
-          <label for="cfg-tab-size">Editor Tab Size</label>
+          <label for="cfg-tab-size">${t('settings.editorTabSize')}</label>
           <input type="number" id="cfg-tab-size" min="1" max="8" value="${config.editorTabSize ?? 2}" />
         </div>
       </div>
