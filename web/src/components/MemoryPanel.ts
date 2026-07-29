@@ -49,7 +49,6 @@ export class MemoryPanel {
         .join('');
 
       this.element.innerHTML = `
-        <h2>🧠 ${t('memory.title')} <span class="mem-location-hint">(IndexedDB — ${t('memory.local')})</span></h2>
         <div class="memory-section">
           <h3>${t('memory.userProfile')} (${data.profile.length})</h3>
           <div class="memory-list">${profileHtml || `<p class="empty">${t('memory.empty')}</p>`}</div>
