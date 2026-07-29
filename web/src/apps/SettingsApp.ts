@@ -20,7 +20,7 @@ import { getActiveWorkspace } from '../core/workspace.js';
 import { MemoryPanel } from '../components/MemoryPanel.js';
 import type { App } from '../types/index.js';
 
-type TabKey = 'workspaces' | 'llm' | 'search' | 'appearance' | 'memory' | 'data';
+type TabKey = 'workspaces' | 'llm' | 'appearance' | 'memory' | 'data';
 
 interface TabDef {
   id: TabKey;
@@ -31,7 +31,6 @@ interface TabDef {
 const TABS: TabDef[] = [
   { id: 'workspaces', icon: '🗂️', label: 'workspace.tabLabel' },
   { id: 'llm', icon: '🤖', label: 'settings.tabLLM' },
-  { id: 'search', icon: '🔍', label: 'settings.tabSearch' },
   { id: 'appearance', icon: '🎨', label: 'settings.tabAppearance' },
   { id: 'memory', icon: '🧠', label: 'header.memory' },
   { id: 'data', icon: '💾', label: 'settings.data' },
@@ -130,9 +129,6 @@ export class SettingsApp implements App {
       case 'llm':
         this.renderLLMTab(panel);
         break;
-      case 'search':
-        this.renderSearchTab(panel);
-        break;
       case 'appearance':
         this.renderAppearanceTab(panel);
         break;
@@ -159,10 +155,15 @@ export class SettingsApp implements App {
       <h3 class="settings-panel-title">🤖 ${t('settings.tabLLM')}</h3>
       <p class="settings-panel-hint">${t('settings.providerInfo')}</p>
       <div class="settings-form" id="llm-form"></div>
+      <div class="settings-section-separator"></div>
+      <div class="settings-form" id="search-form"></div>
     `;
 
-    const form = panel.querySelector('#llm-form') as HTMLElement;
-    const llm = renderLLMConfigSection(form, config, initialPreset);
+    const llmForm = panel.querySelector('#llm-form') as HTMLElement;
+    const llm = renderLLMConfigSection(llmForm, config, initialPreset);
+
+    const searchForm = panel.querySelector('#search-form') as HTMLElement;
+    const search = renderSearchConfigSection(searchForm, config);
 
     this.addSaveAction(panel, () => {
       saveConfig({
@@ -171,26 +172,6 @@ export class SettingsApp implements App {
         model: llm.model,
         apiKey: llm.apiKey,
         maxTurns: llm.maxTurns,
-      });
-      this.emitReload();
-    });
-  }
-
-  private renderSearchTab(panel: HTMLElement) {
-    const config = loadConfig();
-
-    panel.innerHTML = `
-      <h3 class="settings-panel-title">🔍 ${t('settings.tabSearch')}</h3>
-      <p class="settings-panel-hint">${t('onboarding.searchHint')}</p>
-      <div class="settings-form" id="search-form"></div>
-    `;
-
-    const form = panel.querySelector('#search-form') as HTMLElement;
-    const search = renderSearchConfigSection(form, config);
-
-    this.addSaveAction(panel, () => {
-      saveConfig({
-        ...config,
         searchProvider: search.searchProvider,
         searchApiKey: search.searchApiKey,
       });
