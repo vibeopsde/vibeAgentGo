@@ -177,4 +177,6 @@ This project was created with assistance from AI models including:
 - llama3.2 (Meta / Ollama Cloud)
 - OpenCode Go/Zen inference stack
 
+- Prism.js (PrismJS) — syntax highlighting for the text editor
+
 AI-generated code and content are used under the MIT license terms.

@@ -1,7 +1,7 @@
 {
   "name": "vibeagentgo",
-  "version": "2607.11.0",
-  "description": "vibeAgentGo \u2014 Fully client-side AI agent PWA with memory and Web Worker code sandbox",
+  "version": "2607.11.1",
+  "description": "vibeAgentGo — Fully client-side AI agent PWA with memory and Web Worker code sandbox",
   "type": "module",
   "private": true,
   "scripts": {
@@ -32,6 +32,7 @@
     "jszip": "^3.10.1",
     "marked": "^15.0.0",
     "pdfjs-dist": "^6.1.200",
+    "prismjs": "^1.30.0",
     "sql.js": "^1.14.1"
   },
   "devDependencies": {
@@ -40,6 +41,7 @@
     "@types/jszip": "^3.4.0",
     "@types/node": "^22.0.0",
     "@types/pdfjs-dist": "^2.10.377",
+    "@types/prismjs": "^1.26.6",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",

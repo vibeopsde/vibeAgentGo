@@ -2560,6 +2560,7 @@ select {
   display: flex;
   overflow: hidden;
   min-height: 0;
+  position: relative;
 }
 
 .editor-gutter {
@@ -2567,7 +2568,7 @@ select {
   min-width: 42px;
   background: var(--bg-elev);
   border-right: 1px solid var(--border);
-  color: var(--fg-sub);
+  color: var(--text-muted);
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 12px;
   line-height: 20px;
@@ -2587,9 +2588,47 @@ select {
   display: none;
 }
 
-.editor-textarea {
+/* Syntax-highlight overlay: <pre> behind transparent textarea */
+.editor-code-wrap {
   flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.editor-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100%;
+  margin: 0;
+  border: none;
+  padding: 12px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 14px;
+  line-height: 20px;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  pointer-events: none;
+  background: transparent;
+  color: var(--text);
+  z-index: 1;
+}
+
+.editor-highlight code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.editor-textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   border: none;
   outline: none;
   resize: none;
@@ -2597,9 +2636,134 @@ select {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 14px;
   line-height: 20px;
-  color: var(--fg, #222);
-  background: var(--bg, #fff);
+  tab-size: 2;
+  color: transparent;
+  background: transparent;
+  caret-color: var(--text);
+  -webkit-text-fill-color: transparent;
   overflow: auto;
+  z-index: 2;
+  white-space: pre;
+}
+
+/* When no language is detected, show plain text color */
+.editor-textarea.plain {
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+}
+
+/* Prism token colors — dark theme (default) */
+.token.tag,
+.token.keyword,
+.token.selector,
+.token.atrule,
+.token.attr-name,
+.token.boolean,
+.token.constant,
+.token.deleted,
+.token.function,
+.token.class-name,
+.token.namespace,
+.token.symbol,
+.token.property-name {
+  color: var(--accent);
+}
+
+.token.attr-value,
+.token.string,
+.token.char,
+.token.url,
+.token.inserted,
+.token.property,
+.token.unit,
+.token.number {
+  color: var(--green);
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.token.punctuation,
+.token.operator,
+.token.property-access {
+  color: var(--text-muted);
+}
+
+.token.function-definition,
+.token.function-call {
+  color: var(--yellow);
+}
+
+.token.builtin,
+.token.class,
+.token.regex,
+.token.variable {
+  color: var(--accent-hover);
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+/* Light theme adjustments for Prism tokens */
+:root[data-theme='light'] .token.tag,
+:root[data-theme='light'] .token.keyword,
+:root[data-theme='light'] .token.selector,
+:root[data-theme='light'] .token.atrule,
+:root[data-theme='light'] .token.attr-name,
+:root[data-theme='light'] .token.boolean,
+:root[data-theme='light'] .token.constant,
+:root[data-theme='light'] .token.deleted,
+:root[data-theme='light'] .token.function,
+:root[data-theme='light'] .token.class-name {
+  color: var(--accent);
+}
+
+:root[data-theme='light'] .token.attr-value,
+:root[data-theme='light'] .token.string,
+:root[data-theme='light'] .token.char,
+:root[data-theme='light'] .token.url,
+:root[data-theme='light'] .token.inserted,
+:root[data-theme='light'] .token.property,
+:root[data-theme='light'] .token.unit,
+:root[data-theme='light'] .token.number {
+  color: var(--green);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) .token.tag,
+  :root:not([data-theme='dark']) .token.keyword,
+  :root:not([data-theme='dark']) .token.selector,
+  :root:not([data-theme='dark']) .token.atrule,
+  :root:not([data-theme='dark']) .token.attr-name,
+  :root:not([data-theme='dark']) .token.boolean,
+  :root:not([data-theme='dark']) .token.constant,
+  :root:not([data-theme='dark']) .token.deleted,
+  :root:not([data-theme='dark']) .token.function,
+  :root:not([data-theme='dark']) .token.class-name {
+    color: var(--accent);
+  }
+
+  :root:not([data-theme='dark']) .token.attr-value,
+  :root:not([data-theme='dark']) .token.string,
+  :root:not([data-theme='dark']) .token.char,
+  :root:not([data-theme='dark']) .token.url,
+  :root:not([data-theme='dark']) .token.inserted,
+  :root:not([data-theme='dark']) .token.property,
+  :root:not([data-theme='dark']) .token.unit,
+  :root:not([data-theme='dark']) .token.number {
+    color: var(--green);
+  }
 }
 
 .editor-find-overlay {

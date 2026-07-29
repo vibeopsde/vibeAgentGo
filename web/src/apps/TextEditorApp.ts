@@ -1,11 +1,48 @@
 // ============================================================
 // vibeAgentGo — TextEditorApp
 // Simple text editor for workspace files (IndexedDB via bridge).
+// Syntax highlighting via Prism.js overlay.
 // ============================================================
 
 import type { App, BridgeRequest, BridgeResponse } from '../types/index.js';
 import { t } from '../i18n/index.js';
 import { loadConfig } from '../core/memory.js';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-markup.js'; // html/xml
+import 'prismjs/components/prism-css.js';
+import 'prismjs/components/prism-javascript.js';
+import 'prismjs/components/prism-json.js';
+import 'prismjs/components/prism-typescript.js';
+import 'prismjs/components/prism-markdown.js';
+import 'prismjs/components/prism-python.js';
+import 'prismjs/components/prism-yaml.js';
+import 'prismjs/components/prism-bash.js';
+
+/** Map file extensions to Prism language identifiers. */
+function languageForPath(path: string): string | null {
+  const ext = path.match(/\.([^.]+)$/)?.[1]?.toLowerCase();
+  if (!ext) return null;
+  const map: Record<string, string> = {
+    html: 'markup',
+    htm: 'markup',
+    xml: 'markup',
+    svg: 'markup',
+    css: 'css',
+    js: 'javascript',
+    mjs: 'javascript',
+    cjs: 'javascript',
+    ts: 'typescript',
+    json: 'json',
+    md: 'markdown',
+    markdown: 'markdown',
+    py: 'python',
+    yml: 'yaml',
+    yaml: 'yaml',
+    sh: 'bash',
+    bash: 'bash',
+  };
+  return map[ext] ?? null;
+}
 
 export class TextEditorApp implements App {
   id = 'editor';
@@ -16,10 +53,12 @@ export class TextEditorApp implements App {
   private statusEl!: HTMLElement;
   private pathEl!: HTMLElement;
   private gutterEl!: HTMLElement;
+  private highlightEl!: HTMLPreElement;
   private onBridgeRequest: ((req: BridgeRequest) => Promise<BridgeResponse>) | null = null;
   private onOpenFile: ((path: string) => void) | null = null;
   private onSave: ((path: string) => void) | null = null;
   private currentPath: string | null = null;
+  private currentLang: string | null = null;
   private dirty = false;
   private savedContent = '';
   private undoStack: string[] = [];
@@ -49,7 +88,10 @@ export class TextEditorApp implements App {
       </div>
       <div class="editor-body">
         <div class="editor-gutter" aria-hidden="true"></div>
-        <textarea class="editor-textarea" spellcheck="false" style="tab-size: ${tabSize}"></textarea>
+        <div class="editor-code-wrap">
+          <pre class="editor-highlight" aria-hidden="true"><code></code></pre>
+          <textarea class="editor-textarea plain" spellcheck="false" style="tab-size: ${tabSize}"></textarea>
+        </div>
       </div>
       <div class="editor-status"></div>
     `;
@@ -57,21 +99,54 @@ export class TextEditorApp implements App {
     this.pathEl = this.element.querySelector('.editor-path') as HTMLElement;
     this.textarea = this.element.querySelector('.editor-textarea') as HTMLTextAreaElement;
     this.gutterEl = this.element.querySelector('.editor-gutter') as HTMLElement;
+    this.highlightEl = this.element.querySelector('.editor-highlight') as HTMLPreElement;
     this.statusEl = this.element.querySelector('.editor-status') as HTMLElement;
+    // Set tab-size on the pre element too
+    this.highlightEl.style.tabSize = String(tabSize);
 
     this.textarea.addEventListener('input', () => {
       this.recordInput();
       this.refreshDirty();
       this.updateGutter();
+      this.highlightCode();
     });
     this.textarea.addEventListener('keydown', (e) => this.handleKeydown(e));
-    this.textarea.addEventListener('scroll', () => this.syncGutter());
+    this.textarea.addEventListener('scroll', () => {
+      this.syncGutter();
+      this.syncHighlightScroll();
+    });
 
     this.element.querySelector('.editor-new')?.addEventListener('click', () => this.newFile());
     this.element.querySelector('.editor-save')?.addEventListener('click', () => this.save());
     this.element.querySelector('.editor-save-as')?.addEventListener('click', () => this.saveAs());
 
     this.updateGutter();
+  }
+
+  /** Highlight the textarea content using Prism and update the overlay. */
+  private highlightCode() {
+    const code = this.textarea.value;
+    if (this.currentLang && Prism.languages[this.currentLang]) {
+      this.textarea.classList.remove('plain');
+      const highlighted = Prism.highlight(code, Prism.languages[this.currentLang], this.currentLang);
+      this.highlightEl.querySelector('code')!.innerHTML = highlighted;
+    } else {
+      // No language: show plain text, no highlighting
+      this.textarea.classList.add('plain');
+      this.highlightEl.querySelector('code')!.textContent = code;
+    }
+  }
+
+  /** Keep the highlight overlay scrolled in sync with the textarea. */
+  private syncHighlightScroll() {
+    this.highlightEl.scrollTop = this.textarea.scrollTop;
+    this.highlightEl.scrollLeft = this.textarea.scrollLeft;
+  }
+
+  /** Update the current language based on the file path and re-highlight. */
+  private updateLanguage() {
+    this.currentLang = this.currentPath ? languageForPath(this.currentPath) : null;
+    this.highlightCode();
   }
 
   private recordInput(force = false) {
@@ -94,6 +169,7 @@ export class TextEditorApp implements App {
     this.textarea.value = previous;
     this.refreshDirty();
     this.updateGutter();
+    this.highlightCode();
   }
 
   private redo() {
@@ -103,6 +179,7 @@ export class TextEditorApp implements App {
     this.textarea.value = next;
     this.refreshDirty();
     this.updateGutter();
+    this.highlightCode();
   }
 
   private openFindReplace(mode: 'find' | 'replace') {
@@ -183,6 +260,7 @@ export class TextEditorApp implements App {
           this.recordInput(true);
           this.refreshDirty();
           this.updateGutter();
+          this.highlightCode();
         }
         findAll();
         selectMatch(currentIndex + 1);
@@ -199,6 +277,7 @@ export class TextEditorApp implements App {
           this.recordInput(true);
           this.refreshDirty();
           this.updateGutter();
+          this.highlightCode();
         }
         findAll();
       });
@@ -330,6 +409,7 @@ export class TextEditorApp implements App {
       if (this.textarea.value !== value) {
         this.recordInput(true);
         this.refreshDirty();
+        this.highlightCode();
       }
     }
   }
@@ -365,6 +445,7 @@ export class TextEditorApp implements App {
     this.redoStack = [];
     this.lastInputTime = 0;
     this.updateGutter();
+    this.updateLanguage();
     this.setDirty(false);
     this.setPathDisplay();
     this.setStatus(t('editor.newFileCreated') || 'New file created');
@@ -376,6 +457,7 @@ export class TextEditorApp implements App {
     if (!path) return;
     this.currentPath = path;
     this.setPathDisplay();
+    this.updateLanguage();
     await this.save();
   }
 
@@ -412,6 +494,7 @@ export class TextEditorApp implements App {
     }
     this.currentPath = path;
     this.setPathDisplay();
+    this.updateLanguage();
     this.onOpenFile?.(path);
     this.load();
   }
@@ -425,6 +508,7 @@ export class TextEditorApp implements App {
     this.redoStack = [];
     this.lastInputTime = 0;
     this.updateGutter();
+    this.highlightCode();
     this.setDirty(false);
     this.setStatus(t('editor.loaded') || 'Loaded');
   }
