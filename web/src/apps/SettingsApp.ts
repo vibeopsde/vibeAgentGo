@@ -13,7 +13,6 @@ import { sounds } from '../core/sounds.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 import { renderLLMConfigSection } from '../components/SettingsLLMSection.js';
 import { renderSearchConfigSection } from '../components/SettingsSearchSection.js';
-import { renderYouTubeConfigSection } from '../components/SettingsYouTubeSection.js';
 import { renderBackupSection } from '../components/SettingsBackupSection.js';
 import { renderDangerZoneSection } from '../components/SettingsDangerZoneSection.js';
 import { renderWorkspaceSection } from '../components/SettingsWorkspaceSection.js';
@@ -21,7 +20,7 @@ import { getActiveWorkspace } from '../core/workspace.js';
 import { MemoryPanel } from '../components/MemoryPanel.js';
 import type { App } from '../types/index.js';
 
-type TabKey = 'workspaces' | 'llm' | 'search' | 'appearance' | 'youtube' | 'memory' | 'backup' | 'danger';
+type TabKey = 'workspaces' | 'llm' | 'search' | 'appearance' | 'memory' | 'backup' | 'danger';
 
 interface TabDef {
   id: TabKey;
@@ -34,7 +33,6 @@ const TABS: TabDef[] = [
   { id: 'llm', icon: '🤖', label: 'settings.tabLLM' },
   { id: 'search', icon: '🔍', label: 'settings.tabSearch' },
   { id: 'appearance', icon: '🎨', label: 'settings.tabAppearance' },
-  { id: 'youtube', icon: '▶️', label: 'settings.youtube' },
   { id: 'memory', icon: '🧠', label: 'header.memory' },
   { id: 'backup', icon: '🗄️', label: 'settings.backup' },
   { id: 'danger', icon: '⚠️', label: 'settings.dangerZone' },
@@ -138,9 +136,6 @@ export class SettingsApp implements App {
         break;
       case 'appearance':
         this.renderAppearanceTab(panel);
-        break;
-      case 'youtube':
-        this.renderYouTubeTab(panel);
         break;
       case 'memory':
         this.renderMemoryTab(panel);
@@ -259,26 +254,6 @@ export class SettingsApp implements App {
       setTheme(themeValue);
       sounds.setEnabled(soundsEnabled);
       saveConfig({ ...config, language, sounds: soundsEnabled, editorTabSize });
-      this.emitReload();
-    });
-  }
-
-  private renderYouTubeTab(panel: HTMLElement) {
-    const config = loadConfig();
-
-    panel.innerHTML = `
-      <h3 class="settings-panel-title">▶️ ${t('settings.youtube')}</h3>
-      <div class="settings-form" id="youtube-form"></div>
-    `;
-
-    const form = panel.querySelector('#youtube-form') as HTMLElement;
-    const youtube = renderYouTubeConfigSection(form, config);
-
-    this.addSaveAction(panel, () => {
-      saveConfig({
-        ...config,
-        youtubeLanguage: youtube.youtubeLanguage,
-      });
       this.emitReload();
     });
   }

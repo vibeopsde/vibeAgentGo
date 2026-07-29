@@ -10,7 +10,6 @@ import { VERSION } from '../version.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 import { renderLLMConfigSection } from './SettingsLLMSection.js';
 import { renderSearchConfigSection } from './SettingsSearchSection.js';
-import { renderYouTubeConfigSection } from './SettingsYouTubeSection.js';
 import { renderBackupSection } from './SettingsBackupSection.js';
 import { renderDangerZoneSection } from './SettingsDangerZoneSection.js';
 
@@ -110,7 +109,6 @@ export class SettingsModal {
       onReload: () => window.location.reload(),
     });
     const search = renderSearchConfigSection(this.modal, config);
-    const youtube = renderYouTubeConfigSection(this.modal, config);
     renderDangerZoneSection(this.modal, () => window.location.reload());
 
     this.modal.insertAdjacentHTML(
@@ -135,7 +133,6 @@ export class SettingsModal {
         language: appearance.language,
         searchProvider: search.searchProvider,
         searchApiKey: search.searchApiKey,
-        youtubeLanguage: youtube.youtubeLanguage,
       });
       this.close();
       window.location.reload();

@@ -226,7 +226,6 @@ export interface ClientConfig {
   searchApiKey: string;
   sounds?: boolean;
   editorTabSize?: number;
-  youtubeLanguage?: string;
 }
 
 export function loadConfig(): ClientConfig {
@@ -249,12 +248,12 @@ export function loadConfig(): ClientConfig {
     searchProvider: 'none',
     searchApiKey: '',
     editorTabSize: 2,
-    youtubeLanguage: defaultLanguage,
   };
-  // Strip legacy keys from old stored configs (e.g. maxTokens was removed in V2607.1.9)
-  const stripped = (parsed || {}) as Partial<ClientConfig> & { maxTokens?: number; youtubeProxyUrl?: string };
+  // Strip legacy keys from old stored configs
+  const stripped = (parsed || {}) as Partial<ClientConfig> & { maxTokens?: number; youtubeProxyUrl?: string; youtubeLanguage?: string };
   delete stripped.maxTokens;
   delete stripped.youtubeProxyUrl;
+  delete stripped.youtubeLanguage;
 
   const config: ClientConfig = { ...DEFAULT_CONFIG, ...stripped };
   // Normalize language to a valid value for old/invalid configs

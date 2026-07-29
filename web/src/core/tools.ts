@@ -729,7 +729,7 @@ const youtube_transcript: Tool = {
       return `Could not extract a valid YouTube video ID from "${asString(args.url)}". Please provide a standard youtube.com/watch?v=... link, a youtu.be/... short link, or the 11-character video ID.`;
     }
 
-    const defaultLanguage = config.youtubeLanguage || config.language || 'en';
+    const defaultLanguage = config.language || 'en';
     const requestedLanguage = asString(args.language, defaultLanguage);
     const withTimestamps = asBoolean(args.with_timestamps);
 

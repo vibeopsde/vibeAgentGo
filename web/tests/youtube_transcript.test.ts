@@ -73,7 +73,6 @@ describe('youtube_transcript tool', () => {
   it('returns an error for an invalid URL', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeLanguage: 'de',
     });
 
     const result = await callHandler({ url: 'https://example.com' });
@@ -84,7 +83,6 @@ describe('youtube_transcript tool', () => {
   it('formats plain text without timestamps', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeLanguage: 'de',
     });
 
     mockFetch.mockResolvedValue({
@@ -116,7 +114,6 @@ describe('youtube_transcript tool', () => {
   it('formats timestamps when requested', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeLanguage: 'de',
     });
 
     mockFetch.mockResolvedValue({
@@ -139,7 +136,6 @@ describe('youtube_transcript tool', () => {
   it('reports HTTP errors from the proxy', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeLanguage: 'de',
     });
 
     mockFetch.mockResolvedValue({
@@ -156,7 +152,6 @@ describe('youtube_transcript tool', () => {
   it('reports an empty transcript', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeLanguage: 'de',
     });
 
     mockFetch.mockResolvedValue({

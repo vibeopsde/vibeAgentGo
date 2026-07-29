@@ -62,9 +62,6 @@ const de: Translations = {
   'settings.connectionSuccess': 'Verbindung OK',
   'settings.connectionError': 'Verbindung fehlgeschlagen',
   'settings.providerInfo': 'Jeder OpenAI-kompatible Endpoint mit CORS funktioniert.',
-  'settings.youtube': 'YouTube',
-  'settings.youtubeLanguage': 'Standard-Sprache',
-  'settings.youtubeLanguageHint': 'Bevorzugte Sprache für Transkripte, z. B. "de" oder "en". Fallback automatisch.',
   'settings.resetData': 'Alle lokalen Daten löschen',
   'settings.resetConfirm':
     'Das löscht alle Sessions, Dateien, Memory-Einträge und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.',
@@ -269,9 +266,6 @@ const en: Translations = {
   'settings.connectionSuccess': 'Connection OK',
   'settings.connectionError': 'Connection failed',
   'settings.providerInfo': 'Any OpenAI-compatible endpoint with CORS will work.',
-  'settings.youtube': 'YouTube',
-  'settings.youtubeLanguage': 'Default Language',
-  'settings.youtubeLanguageHint': 'Preferred transcript language, e.g. "de" or "en". Fallback is automatic.',
   'settings.resetData': 'Delete all local data',
   'settings.resetConfirm':
     'This deletes all sessions, files, memories and settings from this browser. Cannot be undone.',
