@@ -20,7 +20,7 @@ import { getActiveWorkspace } from '../core/workspace.js';
 import { MemoryPanel } from '../components/MemoryPanel.js';
 import type { App } from '../types/index.js';
 
-type TabKey = 'workspaces' | 'llm' | 'appearance' | 'memory' | 'data';
+type TabKey = 'llm' | 'workspaces' | 'appearance' | 'memory' | 'data' | 'about';
 
 interface TabDef {
   id: TabKey;
@@ -34,6 +34,7 @@ const TABS: TabDef[] = [
   { id: 'appearance', icon: '🎨', label: 'settings.tabAppearance' },
   { id: 'memory', icon: '🧠', label: 'header.memory' },
   { id: 'data', icon: '💾', label: 'settings.data' },
+  { id: 'about', icon: 'ℹ️', label: 'settings.about' },
 ];
 
 export class SettingsApp implements App {
@@ -137,6 +138,9 @@ export class SettingsApp implements App {
         break;
       case 'data':
         this.renderDataTab(panel);
+        break;
+      case 'about':
+        this.renderAboutTab(panel);
         break;
     }
   }
@@ -253,6 +257,52 @@ export class SettingsApp implements App {
     sep.className = 'settings-section-separator';
     panel.appendChild(sep);
     renderDangerZoneSection(panel, () => this.emitReload());
+  }
+
+  private renderAboutTab(panel: HTMLElement) {
+    panel.innerHTML = `
+      <h3 class="settings-panel-title">ℹ️ ${t('settings.about')}</h3>
+      <div class="about-section">
+        <div class="about-brand">
+          <img class="about-logo" src="./logo-192.png" alt="vibeAgentGo" width="64" height="64" />
+          <div>
+            <h2 class="about-name">vibeAgentGo</h2>
+            <span class="about-version">${VERSION}</span>
+          </div>
+        </div>
+        <p class="about-tagline">${t('about.tagline')}</p>
+      </div>
+      <div class="settings-section-separator"></div>
+      <div class="about-section">
+        <h3 class="settings-section-subtitle">${t('about.techStack')}</h3>
+        <ul class="about-list">
+          <li><strong>TypeScript</strong> + Vite</li>
+          <li><strong>IndexedDB</strong> — lokale Datenspeicherung</li>
+          <li><strong>Web Worker</strong> — Code-Sandbox</li>
+          <li><strong>Prism.js</strong> — Syntax-Highlighting</li>
+          <li><strong>Service Worker</strong> — Offline-PWA</li>
+        </ul>
+      </div>
+      <div class="settings-section-separator"></div>
+      <div class="about-section">
+        <h3 class="settings-section-subtitle">${t('about.builtWith')}</h3>
+        <p class="about-text">${t('about.builtWithText')}</p>
+      </div>
+      <div class="settings-section-separator"></div>
+      <div class="about-section">
+        <h3 class="settings-section-subtitle">${t('about.links')}</h3>
+        <p class="about-text">
+          <a href="https://github.com/vibeopsde/vibeAgentGo" target="_blank" rel="noopener">📦 GitHub Repository</a>
+        </p>
+        <p class="about-text">
+          <a href="https://vibeops.de" target="_blank" rel="noopener">🌐 vibeops.de</a>
+        </p>
+      </div>
+      <div class="settings-section-separator"></div>
+      <div class="about-section">
+        <p class="about-license">MIT License — Copyright Lars Greipl — vibeops.de</p>
+      </div>
+    `;
   }
 
   private addSaveAction(panel: HTMLElement, onSave: () => void) {
