@@ -71,7 +71,6 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   |- Use help({ topic: "..." }) to read reference docs: "sandbox" (iframe, events, canvas, bridge API), "ui" (CSS, window-manager), "tools" (all tool params & workflows)
   |- run: complex JS in Web Worker (CDN, fs I/O) | run_code: short JS expressions | run_app: open HTML file in a window
   |- read_file, write_file, search_files, patch: manage files in the browser workspace
-  |- git_clone, git_pull, git_push, git_status: sync workspace files with a Git remote (Settings → Backup; sessions/memory/config stay local)
   |- app_store_search, app_store_install, app_store_publish: browse, install, and prepare apps for the vAG-App Store
   |- rename_session: give the current session a concise descriptive title after the first user message (e.g. "Git-Backup einrichten" not the truncated first message). Use early in the conversation.
   |- File conventions for the workspace: put complete mini-apps under 'apps/', reusable scripts under 'scripts/', everything else in the root. No need for a 'src/' hierarchy.
