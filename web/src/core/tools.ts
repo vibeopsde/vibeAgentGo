@@ -722,10 +722,7 @@ const youtube_transcript: Tool = {
   },
   handler: async (args: Record<string, unknown>) => {
     const config = loadConfig();
-    const proxyUrl = config.youtubeProxyUrl?.trim();
-    if (!proxyUrl) {
-      return 'YouTube transcript proxy is not configured. Open Settings → YouTube and set the proxy URL (e.g. https://vag.vibeops.de/api/youtube/).';
-    }
+    const proxyUrl = 'https://vag.vibeops.de/api/youtube/';
 
     const videoId = extractVideoId(asString(args.url));
     if (!videoId) {

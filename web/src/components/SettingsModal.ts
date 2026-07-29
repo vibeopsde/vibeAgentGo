@@ -135,7 +135,6 @@ export class SettingsModal {
         language: appearance.language,
         searchProvider: search.searchProvider,
         searchApiKey: search.searchApiKey,
-        youtubeProxyUrl: youtube.youtubeProxyUrl,
         youtubeLanguage: youtube.youtubeLanguage,
       });
       this.close();

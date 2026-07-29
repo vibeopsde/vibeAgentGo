@@ -70,23 +70,9 @@ describe('youtube_transcript tool', () => {
     vi.clearAllMocks();
   });
 
-  it('returns an error when no proxy is configured', async () => {
-    (loadConfig as any).mockReturnValue({
-      language: 'de',
-      youtubeProxyUrl: '',
-      youtubeLanguage: '',
-    });
-
-    const result = await callHandler({ url: 'https://youtu.be/dQw4w9WgXcQ' });
-
-    expect(result).toContain('not configured');
-    expect(result).toContain('Settings');
-  });
-
   it('returns an error for an invalid URL', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeProxyUrl: 'https://vag.vibeops.de/api/youtube/',
       youtubeLanguage: 'de',
     });
 
@@ -98,7 +84,6 @@ describe('youtube_transcript tool', () => {
   it('formats plain text without timestamps', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeProxyUrl: 'https://vag.vibeops.de/api/youtube/',
       youtubeLanguage: 'de',
     });
 
@@ -131,7 +116,6 @@ describe('youtube_transcript tool', () => {
   it('formats timestamps when requested', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeProxyUrl: 'https://vag.vibeops.de/api/youtube/',
       youtubeLanguage: 'de',
     });
 
@@ -155,7 +139,6 @@ describe('youtube_transcript tool', () => {
   it('reports HTTP errors from the proxy', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeProxyUrl: 'https://vag.vibeops.de/api/youtube/',
       youtubeLanguage: 'de',
     });
 
@@ -173,7 +156,6 @@ describe('youtube_transcript tool', () => {
   it('reports an empty transcript', async () => {
     (loadConfig as any).mockReturnValue({
       language: 'de',
-      youtubeProxyUrl: 'https://vag.vibeops.de/api/youtube/',
       youtubeLanguage: 'de',
     });
 

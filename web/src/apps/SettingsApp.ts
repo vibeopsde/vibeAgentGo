@@ -268,7 +268,6 @@ export class SettingsApp implements App {
 
     panel.innerHTML = `
       <h3 class="settings-panel-title">▶️ ${t('settings.youtube')}</h3>
-      <p class="settings-panel-hint">${t('settings.youtubeProxyHint')}</p>
       <div class="settings-form" id="youtube-form"></div>
     `;
 
@@ -278,7 +277,6 @@ export class SettingsApp implements App {
     this.addSaveAction(panel, () => {
       saveConfig({
         ...config,
-        youtubeProxyUrl: youtube.youtubeProxyUrl,
         youtubeLanguage: youtube.youtubeLanguage,
       });
       this.emitReload();

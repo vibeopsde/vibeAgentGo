@@ -226,7 +226,6 @@ export interface ClientConfig {
   searchApiKey: string;
   sounds?: boolean;
   editorTabSize?: number;
-  youtubeProxyUrl?: string;
   youtubeLanguage?: string;
 }
 
@@ -250,20 +249,16 @@ export function loadConfig(): ClientConfig {
     searchProvider: 'none',
     searchApiKey: '',
     editorTabSize: 2,
-    youtubeProxyUrl: 'https://vag.vibeops.de/api/youtube/',
     youtubeLanguage: defaultLanguage,
   };
   // Strip legacy keys from old stored configs (e.g. maxTokens was removed in V2607.1.9)
-  const stripped = (parsed || {}) as Partial<ClientConfig> & { maxTokens?: number };
+  const stripped = (parsed || {}) as Partial<ClientConfig> & { maxTokens?: number; youtubeProxyUrl?: string };
   delete stripped.maxTokens;
+  delete stripped.youtubeProxyUrl;
 
   const config: ClientConfig = { ...DEFAULT_CONFIG, ...stripped };
   // Normalize language to a valid value for old/invalid configs
   config.language = config.language === 'en' ? 'en' : 'de';
-  // If no YouTube proxy is configured, default to the built-in instance proxy.
-  if (!config.youtubeProxyUrl?.trim()) {
-    config.youtubeProxyUrl = DEFAULT_CONFIG.youtubeProxyUrl;
-  }
   return config;
 }
 

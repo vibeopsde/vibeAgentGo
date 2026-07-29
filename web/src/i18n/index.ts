@@ -63,9 +63,6 @@ const de: Translations = {
   'settings.connectionError': 'Verbindung fehlgeschlagen',
   'settings.providerInfo': 'Jeder OpenAI-kompatible Endpoint mit CORS funktioniert.',
   'settings.youtube': 'YouTube',
-  'settings.youtubeProxyUrl': 'Transcript-Proxy URL',
-  'settings.youtubeProxyHint':
-    'Eigener Proxy-Endpoint für YouTube-Transkripte (z. B. https://vag.vibeops.de/api/youtube/).',
   'settings.youtubeLanguage': 'Standard-Sprache',
   'settings.youtubeLanguageHint': 'Bevorzugte Sprache für Transkripte, z. B. "de" oder "en". Fallback automatisch.',
   'settings.resetData': 'Alle lokalen Daten löschen',
@@ -273,8 +270,6 @@ const en: Translations = {
   'settings.connectionError': 'Connection failed',
   'settings.providerInfo': 'Any OpenAI-compatible endpoint with CORS will work.',
   'settings.youtube': 'YouTube',
-  'settings.youtubeProxyUrl': 'Transcript Proxy URL',
-  'settings.youtubeProxyHint': 'Own proxy endpoint for YouTube transcripts (e.g. https://vag.vibeops.de/api/youtube/).',
   'settings.youtubeLanguage': 'Default Language',
   'settings.youtubeLanguageHint': 'Preferred transcript language, e.g. "de" or "en". Fallback is automatic.',
   'settings.resetData': 'Delete all local data',
