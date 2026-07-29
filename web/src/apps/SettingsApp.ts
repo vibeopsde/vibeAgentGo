@@ -29,8 +29,8 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: 'workspaces', icon: '🗂️', label: 'workspace.tabLabel' },
   { id: 'llm', icon: '🤖', label: 'settings.tabLLM' },
+  { id: 'workspaces', icon: '🗂️', label: 'workspace.tabLabel' },
   { id: 'appearance', icon: '🎨', label: 'settings.tabAppearance' },
   { id: 'memory', icon: '🧠', label: 'header.memory' },
   { id: 'data', icon: '💾', label: 'settings.data' },
