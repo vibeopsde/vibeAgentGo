@@ -1,7 +1,7 @@
 // ============================================================
 // vibeAgentGo — Git Backup Manager (isomorphic-git in browser)
 // Syncs only workspace files (MemoryStore.files) to a remote Git repo.
-// Sessions, memory entries, skills and config are never synced.
+// Sessions, memory entries, and config are never synced.
 // ============================================================
 
 import git from 'isomorphic-git';

@@ -3,9 +3,9 @@
 // Bundle all IndexedDB + localStorage data into a single ZIP.
 // ============================================================
 
-import type { Session, MemoryEntry, SkillRecord } from '../types/index.js';
+import type { Session, MemoryEntry } from '../types/index.js';
 import JSZip from 'jszip';
-import { MemoryStore, SkillStore, CONFIG_KEY, loadConfig } from './memory.js';
+import { MemoryStore, CONFIG_KEY, loadConfig } from './memory.js';
 import { tx } from './db.js';
 import { getActiveWorkspace } from './workspace.js';
 
@@ -22,7 +22,6 @@ export interface AppBackup {
   manifest: BackupManifest;
   memory: MemoryEntry[];
   sessions: Session[];
-  skills: SkillRecord[];
   files: ImportedFile[];
   config: Record<string, unknown>;
   theme: string | null;
@@ -42,22 +41,19 @@ interface SessionLike {
 
 export class BackupManager {
   private memory: MemoryStore;
-  private skillStore: SkillStore;
   private appVersion: string;
 
   constructor(appVersion: string) {
     this.memory = new MemoryStore();
-    this.skillStore = new SkillStore();
     this.appVersion = appVersion;
   }
 
   async exportZip(includeApiKeys = false): Promise<Blob> {
     const zip = new JSZip();
 
-    const [memory, sessions, skills, files] = await Promise.all([
+    const [memory, sessions, files] = await Promise.all([
       this.memory.searchAllMemory(10000),
       this.memory.listSessions().then((list) => list.map((s) => ({ ...s, messages: [] }))),
-      this.skillStore.listSkills(),
       this.memory.listFiles(),
     ]);
 
@@ -83,7 +79,6 @@ export class BackupManager {
       },
       memory,
       sessions: fullSessions.filter((s): s is Session => Boolean(s)),
-      skills,
       files,
       config: configClone,
       theme: localStorage.getItem('vibeAgentGo-theme'),
@@ -93,7 +88,6 @@ export class BackupManager {
     zip.file('manifest.json', JSON.stringify(backup.manifest, null, 2));
     zip.file('memory.json', JSON.stringify(backup.memory, null, 2));
     zip.file('sessions.json', JSON.stringify(backup.sessions, null, 2));
-    zip.file('skills.json', JSON.stringify(backup.skills, null, 2));
     zip.file('config.json', JSON.stringify(backup.config, null, 2));
     zip.file('theme.json', JSON.stringify(backup.theme, null, 2));
     zip.file('onboarding.json', JSON.stringify(backup.onboarding, null, 2));
@@ -121,7 +115,6 @@ export class BackupManager {
 
     const memory: MemoryEntry[] = (await loadJson('memory.json')) || [];
     const sessions: SessionLike[] = (await loadJson('sessions.json')) || [];
-    const skills: SkillRecord[] = (await loadJson('skills.json')) || [];
     const config: Record<string, unknown> = (await loadJson('config.json')) || {};
     const theme: string | null = (await loadJson('theme.json')) ?? null;
     const onboarding: string | null = (await loadJson('onboarding.json')) ?? null;
@@ -153,9 +146,6 @@ export class BackupManager {
     // Restore IndexedDB
     await Promise.all(memory.map((m) => this.saveMemoryRaw(m)));
     await Promise.all(sessions.map((s) => this.memory.saveSession(s as unknown as Session)));
-    await Promise.all(
-      skills.map((s) => this.skillStore.saveSkill(s as Omit<SkillRecord, 'created_at' | 'updated_at'> & { id: string }))
-    );
     await Promise.all(files.map((f) => this.memory.writeFile(f.path, f.content)));
   }
 

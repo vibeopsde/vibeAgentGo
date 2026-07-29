@@ -5,10 +5,9 @@
 import type { Message, Tool, ToolContext, LLMResponse, AgentConfig, ChatAttachment } from '../types/index.js';
 import { isTextContentPart } from '../types/index.js';
 import { llmChatStream } from './llm_client.js';
-import { buildSystemPrompt, toolsToSchemas, loadSkills, type PromptContext } from './prompt_builder.js';
+import { buildSystemPrompt, toolsToSchemas, type PromptContext } from './prompt_builder.js';
 import { MemoryStore } from './memory.js';
 import { randomUUID } from './uuid.js';
-import { filterSkillsByTrigger } from './skill_parser.js';
 import { validateArgs } from '../utils/schema_validate.js';
 import { logger, readLogs } from './logger.js';
 import { captureFunctionError } from './global_errors.js';
@@ -198,7 +197,7 @@ export class Agent {
       }
     }
 
-    // Load memory and skills
+    // Load memory
     let memories: import('../types/index.js').MemoryEntry[] = [];
     let profile: import('../types/index.js').MemoryEntry[] = [];
     try {
@@ -207,17 +206,6 @@ export class Agent {
       profile = all.profile;
     } catch (e) {
       logger.error('agent.memory', 'Failed to load memory for run', {
-        sessionId: runSessionId,
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
-
-    let skills: import('../types/index.js').Skill[] = [];
-    try {
-      const allSkills = await loadSkills();
-      skills = filterSkillsByTrigger(allSkills, userMessage, true);
-    } catch (e) {
-      logger.error('agent.skills', 'Failed to load skills', {
         sessionId: runSessionId,
         error: e instanceof Error ? e.message : String(e),
       });
@@ -249,7 +237,6 @@ export class Agent {
     const promptCtx: PromptContext = {
       memories,
       profile,
-      skills,
       tools: this.tools,
       language: config.language,
     };

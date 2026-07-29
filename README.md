@@ -1,6 +1,6 @@
 # vibeAgentGo
 
-A fully client-side AI agent PWA. Memory, sessions, files, and skills live in your browser. Only LLM API calls leave the device.
+A fully client-side AI agent PWA. Memory, sessions, and files live in your browser. Only LLM API calls leave the device.
 
 ## What is this?
 
@@ -8,7 +8,6 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
-- **Skills** stored in IndexedDB, injected into the system prompt
 - **24 Tools** including file I/O, PDF extraction, patch editing, web search, YouTube transcripts, memory, error log, system check, Git workspace sync, vAG-App Store toolkit, and code execution in a Web Worker sandbox
 - **Slash Commands** in the chat input that run locally without an LLM round-trip (`/sys_check`, `/new`, `/clear`, `/help`)
 - **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
@@ -54,16 +53,15 @@ web/
 │   ├── core/
 │   │   ├── agent.ts        # Multi-turn browser agent loop
 │   │   ├── llm_client.ts   # SSE streaming fetch client + connection test
-│   │   ├── memory.ts       # IndexedDB memory, sessions, files, skills, config
+│   │   ├── memory.ts       # IndexedDB memory, sessions, files, config
 │   │   ├── slash_commands.ts # Local slash-command registry
 │   │   ├── prompt_builder.ts
 │   │   ├── tools.ts        # Browser tool implementations
 │   │   ├── backup.ts       # ZIP export/import of all local data
 │   │   ├── presets.ts      # OpenAI-compatible provider presets
-│   │   ├── skill_parser.ts # Skill markdown + YAML frontmatter parsing
 │   │   ├── theme.ts        # Light/dark/system theme handling
 │   │   └── uuid.ts         # Random ID helpers
-│   ├── components/         # ChatPanel, RenderPanel, SettingsModal, MemoryPanel, SessionPanel, SkillsPanel, MobileNav, OnboardingWizard
+│   ├── components/         # ChatPanel, RenderPanel, SettingsModal, MemoryPanel, SessionPanel, MobileNav, OnboardingWizard
 │   ├── i18n/               # UI + system-prompt language handling
 │   ├── styles/             # Mobile-first dark/light CSS
 │   ├── utils/              # Markdown, sandbox, HTML escaping
@@ -128,10 +126,6 @@ On each run, memory is loaded into the system prompt automatically. The `memory_
 
 After each assistant response, the agent also extracts new durable facts from the conversation in the background and stores them automatically.
 
-## Skills
-
-Skills are Markdown files with optional YAML frontmatter (`name`, `description`, `triggers`). They are stored in IndexedDB and loaded into the system prompt on every run. When a user message contains a trigger word, the matching skill is automatically injected. The **Skills** panel lets you create, edit, and delete skills.
-
 ## Code Sandbox
 
 The agent can write and execute JavaScript in a Web Worker sandbox. It can also render interactive HTML/CSS/JS views via `render(title, html)` inside the `run` tool:
@@ -159,7 +153,6 @@ vibeAgentGo-backup-YYYY-MM-DD.zip
 ├── manifest.json
 ├── memory.json
 ├── sessions.json
-├── skills.json
 ├── config.json
 ├── theme.json
 ├── onboarding.json

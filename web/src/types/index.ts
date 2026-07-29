@@ -225,17 +225,4 @@ export interface Session {
   updated_at: string;
 }
 
-// --- Skills ---
 
-export interface SkillRecord {
-  id?: string;
-  name: string;
-  description: string;
-  content: string;
-  trigger?: string[];
-  created_at?: string;
-  updated_at?: string;
-}
-
-/** @deprecated Use SkillRecord instead. */
-export type Skill = SkillRecord;

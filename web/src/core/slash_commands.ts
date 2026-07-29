@@ -14,7 +14,6 @@ export interface SlashCommandContext {
   onNewChat(): void;
   onStopAgent(): void;
   getAgentStatus(): 'idle' | 'thinking';
-  listSkills(): Promise<{ name: string; description: string }[]>;
 }
 
 type SlashCommand = {
@@ -45,11 +44,10 @@ const COMMANDS: SlashCommand[] = [
     description: 'Show local app status (model, memory, sessions, files)',
     async handler(ctx) {
       const config = loadConfig();
-      const [sessions, memories, files, skills] = await Promise.all([
+      const [sessions, memories, files] = await Promise.all([
         ctx.memoryStore.listSessions().catch(() => []),
         ctx.memoryStore.getAllMemory(1000).catch(() => ({ memories: [], profile: [] })),
         ctx.memoryStore.listFiles().catch(() => []),
-        ctx.listSkills().catch(() => []),
       ]);
       const allMemory = [...memories.memories, ...memories.profile];
       const lines: string[] = [
@@ -59,7 +57,6 @@ const COMMANDS: SlashCommand[] = [
         `Agent: ${ctx.getAgentStatus()}`,
         `Sessions: ${sessions.length}`,
         `Memory entries: ${allMemory.length}`,
-        `Skills: ${skills.length}`,
         `Workspace files: ${files.length}`,
       ];
       ctx.appendSystem(`**Status**\n\n${lines.join('\n')}`);

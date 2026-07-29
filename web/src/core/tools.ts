@@ -1170,7 +1170,7 @@ const sys_check: Tool = {
       const storeNames = Array.from(db.objectStoreNames);
       add('db_connection', 'ok', { version: db.version, stores: storeNames });
 
-      const expectedStores = ['memory', 'sessions', 'skills', 'files', 'logs'];
+      const expectedStores = ['memory', 'sessions', 'files', 'logs'];
       const missing = expectedStores.filter((s) => !storeNames.includes(s));
       if (missing.length > 0) add('db_schema', 'fail', { missingStores: missing });
       else add('db_schema', 'ok');
@@ -1426,7 +1426,7 @@ const git_pull: Tool = {
 const git_push: Tool = {
   name: 'git_push',
   description:
-    'Push the current browser workspace files to the configured Git remote as a new commit. Only Explorer files are synced; sessions, memory, skills, and config stay local. Credentials can be configured in Settings → Backup or passed as arguments.',
+    'Push the current browser workspace files to the configured Git remote as a new commit. Only Explorer files are synced; sessions, memory, and config stay local. Credentials can be configured in Settings → Backup or passed as arguments.',
   parameters: {
     type: 'object',
     properties: {

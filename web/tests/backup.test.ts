@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { BackupManager, type AppBackup } from '../src/core/backup';
-import { MemoryStore, SkillStore, saveConfig, loadConfig, CONFIG_KEY } from '../src/core/memory';
+import { MemoryStore, saveConfig, loadConfig, CONFIG_KEY } from '../src/core/memory';
 import JSZip from 'jszip';
 
 describe('BackupManager', () => {
@@ -15,14 +15,12 @@ describe('BackupManager', () => {
     );
   });
 
-  it('exports memory, sessions, skills, files and config into a zip', async () => {
+  it('exports memory, sessions, files and config into a zip', async () => {
     const memory = new MemoryStore();
-    const skills = new SkillStore();
 
     await memory.saveMemory('I love coffee', 'user');
     await memory.writeFile('hello.txt', 'world');
-    await skills.saveSkill({ id: 's1', name: 'Skill1', description: '', content: 'body' });
-    saveConfig({ model: 'test-model', baseUrl: 'http://localhost', apiKey: 'secret123' });
+    saveConfig({ model: 'test-model', baseUrl: 'http://localhost', apiKey: 'sk-test-123', maxTurns: 10, language: 'de', searchProvider: 'none' });
 
     const manager = new BackupManager('v2607.3.0');
     const blob = await manager.exportZip();
@@ -31,7 +29,6 @@ describe('BackupManager', () => {
     expect(zip.file('manifest.json')).toBeTruthy();
     expect(zip.file('memory.json')).toBeTruthy();
     expect(zip.file('sessions.json')).toBeTruthy();
-    expect(zip.file('skills.json')).toBeTruthy();
     expect(zip.file('config.json')).toBeTruthy();
     expect(zip.file('files/hello.txt')).toBeTruthy();
 
@@ -44,7 +41,7 @@ describe('BackupManager', () => {
   });
 
   it('can include API keys when requested', async () => {
-    saveConfig({ apiKey: 'secret123', searchApiKey: 'search-secret' });
+    saveConfig({ apiKey: 'secret123', searchApiKey: 'search-secret', model: 'test', baseUrl: 'http://localhost', maxTurns: 10, language: 'de', searchProvider: 'none' });
     const manager = new BackupManager('v2607.3.0');
     const blob = await manager.exportZip(true);
     const zip = await JSZip.loadAsync(blob);
@@ -60,7 +57,6 @@ describe('BackupManager', () => {
       manifest: { version: 1, exported_at: new Date().toISOString(), app_version: 'v2607.3.0', includes_api_keys: false, workspace_id: 'default', workspace_name: 'Default' },
       memory: [{ id: 1, content: 'I love coffee', category: 'user', created_at: '2024-01-01T00:00:00.000Z' }],
       sessions: [{ id: 'session-1', title: 'Test', messages: [], created_at: '2024-01-01T00:00:00.000Z', updated_at: '2024-01-01T00:00:00.000Z' }],
-      skills: [{ id: 's1', name: 'Skill1', description: '', content: 'body', created_at: '2024-01-01T00:00:00.000Z', updated_at: '2024-01-01T00:00:00.000Z' }],
       files: [],
       config: { model: 'imported', baseUrl: 'http://localhost', apiKey: '[REDACTED]', searchApiKey: '[REDACTED]', maxTurns: 10, language: 'de', searchProvider: 'none' },
       theme: 'dark',
@@ -69,7 +65,6 @@ describe('BackupManager', () => {
     zip.file('manifest.json', JSON.stringify(backup.manifest));
     zip.file('memory.json', JSON.stringify(backup.memory));
     zip.file('sessions.json', JSON.stringify(backup.sessions));
-    zip.file('skills.json', JSON.stringify(backup.skills));
     zip.file('config.json', JSON.stringify(backup.config));
     zip.file('theme.json', JSON.stringify(backup.theme));
     zip.file('onboarding.json', JSON.stringify(backup.onboarding));
@@ -87,11 +82,6 @@ describe('BackupManager', () => {
     const sessions = await memory.listSessions();
     expect(sessions.length).toBe(1);
     expect(sessions[0].title).toBe('Test');
-
-    const skills = new SkillStore();
-    const allSkills = await skills.listSkills();
-    expect(allSkills.length).toBe(1);
-    expect(allSkills[0].name).toBe('Skill1');
 
     const config = loadConfig();
     expect(config.model).toBe('imported');

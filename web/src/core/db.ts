@@ -7,7 +7,7 @@
 
 import { getActiveWorkspaceId } from './workspace.js';
 
-export const DB_VERSION = 5; // kept at 5 — installedApps store removed, apps now live as workspace files
+export const DB_VERSION = 6; // v6: skills store removed (feature deleted)
 
 /** Build the DB name for a given workspace ID. */
 export function getDbName(workspaceId?: string): string {
@@ -67,9 +67,6 @@ export function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('sessions')) {
         const sessStore = db.createObjectStore('sessions', { keyPath: 'id' });
         sessStore.createIndex('updated_at', 'updated_at', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('skills')) {
-        db.createObjectStore('skills', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('files')) {
         db.createObjectStore('files', { keyPath: 'path' });

@@ -1,7 +1,7 @@
 // ============================================================
 // vibeAgentGo — SettingsApp
 // First-class window-manager app with a tabbed settings UI.
-// Includes LLM, Search, Appearance, Memory, Skills, Backup and Danger Zone.
+// Includes LLM, Search, Appearance, Memory, Backup and Danger Zone.
 // ============================================================
 
 import { loadConfig, saveConfig, type ClientConfig } from '../core/memory.js';
@@ -19,10 +19,9 @@ import { renderDangerZoneSection } from '../components/SettingsDangerZoneSection
 import { renderWorkspaceSection } from '../components/SettingsWorkspaceSection.js';
 import { getActiveWorkspace } from '../core/workspace.js';
 import { MemoryPanel } from '../components/MemoryPanel.js';
-import { SkillsPanel } from '../components/SkillsPanel.js';
 import type { App } from '../types/index.js';
 
-type TabKey = 'workspaces' | 'llm' | 'search' | 'appearance' | 'youtube' | 'memory' | 'skills' | 'backup' | 'danger';
+type TabKey = 'workspaces' | 'llm' | 'search' | 'appearance' | 'youtube' | 'memory' | 'backup' | 'danger';
 
 interface TabDef {
   id: TabKey;
@@ -37,7 +36,6 @@ const TABS: TabDef[] = [
   { id: 'appearance', icon: '🎨', label: 'settings.tabAppearance' },
   { id: 'youtube', icon: '▶️', label: 'settings.youtube' },
   { id: 'memory', icon: '🧠', label: 'header.memory' },
-  { id: 'skills', icon: '🛠️', label: 'header.skills' },
   { id: 'backup', icon: '🗄️', label: 'settings.backup' },
   { id: 'danger', icon: '⚠️', label: 'settings.dangerZone' },
 ];
@@ -146,9 +144,6 @@ export class SettingsApp implements App {
         break;
       case 'memory':
         this.renderMemoryTab(panel);
-        break;
-      case 'skills':
-        this.renderSkillsTab(panel);
         break;
       case 'backup':
         this.renderBackupTab(panel);
@@ -295,13 +290,6 @@ export class SettingsApp implements App {
     const memoryPanel = new MemoryPanel();
     panel.appendChild(memoryPanel.element);
     memoryPanel.open();
-  }
-
-  private renderSkillsTab(panel: HTMLElement) {
-    panel.innerHTML = `<h3 class="settings-panel-title">🛠️ ${t('header.skills')}</h3>`;
-    const skillsPanel = new SkillsPanel();
-    panel.appendChild(skillsPanel.element);
-    skillsPanel.open();
   }
 
   private renderBackupTab(panel: HTMLElement) {

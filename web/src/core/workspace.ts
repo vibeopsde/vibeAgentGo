@@ -183,8 +183,8 @@ export async function migrateLegacyWorkspace(): Promise<void> {
 
 /** Copy all data from one IndexedDB to another (same schema). */
 async function copyDatabase(sourceName: string, targetName: string): Promise<void> {
-  const DB_VERSION = 5;
-  const STORE_NAMES = ['memory', 'sessions', 'skills', 'files', 'logs'];
+  const DB_VERSION = 6;
+  const STORE_NAMES = ['memory', 'sessions', 'files', 'logs'];
 
   // Open source DB
   const sourceDb = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -202,9 +202,6 @@ async function copyDatabase(sourceName: string, targetName: string): Promise<voi
       if (!db.objectStoreNames.contains('sessions')) {
         const sessStore = db.createObjectStore('sessions', { keyPath: 'id' });
         sessStore.createIndex('updated_at', 'updated_at', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('skills')) {
-        db.createObjectStore('skills', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('files')) {
         db.createObjectStore('files', { keyPath: 'path' });
@@ -233,9 +230,6 @@ async function copyDatabase(sourceName: string, targetName: string): Promise<voi
       if (!db.objectStoreNames.contains('sessions')) {
         const sessStore = db.createObjectStore('sessions', { keyPath: 'id' });
         sessStore.createIndex('updated_at', 'updated_at', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('skills')) {
-        db.createObjectStore('skills', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('files')) {
         db.createObjectStore('files', { keyPath: 'path' });

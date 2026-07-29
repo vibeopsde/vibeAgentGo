@@ -25,7 +25,6 @@ const de: Translations = {
   // Header
   'header.newChat': 'Neuer Chat',
   'header.memory': 'Memory',
-  'header.skills': 'Skills',
   'header.theme': 'Design',
 
   // Chat
@@ -71,7 +70,7 @@ const de: Translations = {
   'settings.youtubeLanguageHint': 'Bevorzugte Sprache für Transkripte, z. B. "de" oder "en". Fallback automatisch.',
   'settings.resetData': 'Alle lokalen Daten löschen',
   'settings.resetConfirm':
-    'Das löscht alle Sessions, Dateien, Memory-Einträge, Skills und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.',
+    'Das löscht alle Sessions, Dateien, Memory-Einträge und Einstellungen aus diesem Browser. Das kann nicht rückgängig gemacht werden.',
   'settings.resetCancel': 'Abbrechen',
   'settings.resetConfirmBtn': 'Ja, alles löschen',
   'settings.backup': 'Backup & Wiederherstellen',
@@ -81,7 +80,7 @@ const de: Translations = {
   'settings.exportSuccess': 'Backup erfolgreich heruntergeladen',
   'settings.exportError': 'Backup konnte nicht erstellt werden',
   'settings.importConfirm':
-    'Dies überschreibt alle aktuellen Daten (Sessions, Memory, Skills, Dateien, Einstellungen). Fortfahren?',
+    'Dies überschreibt alle aktuellen Daten (Sessions, Memory, Dateien, Einstellungen). Fortfahren?',
   'settings.importSuccess': 'Backup erfolgreich wiederhergestellt. Seite wird neu geladen.',
   'settings.importError': 'Backup konnte nicht wiederhergestellt werden',
   'settings.gitBackup': 'Git-Backup',
@@ -123,7 +122,7 @@ const de: Translations = {
   'onboarding.noModelsManual': 'Keine Modelle gelistet — manuell eingeben',
   'onboarding.dataSovereigntyTitle': 'Datenhoheit',
   'onboarding.dataSovereigntyText':
-    'Alle Sessions, Dateien, Memory und Skills liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen verlassen das Gerät.',
+    'Alle Sessions, Dateien und Memory liegen in deinem Browser (IndexedDB). Nur LLM-Anfragen verlassen das Gerät.',
   'onboarding.toolsTitle': 'Tools im Browser',
   'onboarding.toolsText':
     'Dateien lesen/schreiben, Code ausführen, Websuchen, Erinnerungen speichern und interaktive HTML-Views rendern.',
@@ -188,20 +187,6 @@ const de: Translations = {
   'editor.replaceOne': 'Ersetzen',
   'editor.replaceAll': 'Alle ersetzen',
 
-  // Skills
-  'skills.title': 'Skills',
-  'skills.hint':
-    'Projekt-Style Skills: Markdown mit Trigger-Wörtern. Passen den System-Prompt an, wenn ein Trigger im Chat fällt.',
-  'skills.empty': 'Noch keine Skills. Erstelle einen Skill mit Trigger-Wörtern.',
-  'skills.new': 'Neuer Skill',
-  'skills.edit': 'Skill bearbeiten',
-  'skills.name': 'Name',
-  'skills.description': 'Beschreibung',
-  'skills.triggers': 'Trigger-Wörter',
-  'skills.triggersHint': 'Komma-getrennt. Bei Treffer im Chat wird der Skill automatisch aktiviert.',
-  'skills.body': 'Skill-Body',
-  'skills.deleteConfirm': 'Diesen Skill wirklich löschen?',
-
   // Errors
   'error.noModel': 'Bitte Modell angeben.',
   'error.noApiKey': 'Bitte API Key eingeben.',
@@ -236,7 +221,7 @@ const de: Translations = {
   // Workspaces
   'workspace.tabLabel': 'Workspaces',
   'workspace.title': 'Workspaces',
-  'workspace.hint': 'Jeder Workspace hat eine eigene Datenbank mit Sessions, Dateien, Memory und Skills. Provider-Einstellungen bleiben geteilt.',
+  'workspace.hint': 'Jeder Workspace hat eine eigene Datenbank mit Sessions, Dateien und Memory. Provider-Einstellungen bleiben geteilt.',
   'workspace.create': 'Erstellen',
   'workspace.newName': 'Neuer Workspace',
   'workspace.newNamePlaceholder': 'z. B. Projekt Alpha',
@@ -270,7 +255,6 @@ const en: Translations = {
   // Header
   'header.newChat': 'New Chat',
   'header.memory': 'Memory',
-  'header.skills': 'Skills',
   'header.theme': 'Theme',
 
   // Chat
@@ -315,7 +299,7 @@ const en: Translations = {
   'settings.youtubeLanguageHint': 'Preferred transcript language, e.g. "de" or "en". Fallback is automatic.',
   'settings.resetData': 'Delete all local data',
   'settings.resetConfirm':
-    'This deletes all sessions, files, memories, skills and settings from this browser. Cannot be undone.',
+    'This deletes all sessions, files, memories and settings from this browser. Cannot be undone.',
   'settings.resetCancel': 'Cancel',
   'settings.resetConfirmBtn': 'Yes, delete everything',
   'settings.backup': 'Backup & Restore',
@@ -325,7 +309,7 @@ const en: Translations = {
   'settings.exportSuccess': 'Backup downloaded successfully',
   'settings.exportError': 'Could not create backup',
   'settings.importConfirm':
-    'This will overwrite all current data (sessions, memory, skills, files, settings). Continue?',
+    'This will overwrite all current data (sessions, memory, files, settings). Continue?',
   'settings.importSuccess': 'Backup restored successfully. Reloading page.',
   'settings.importError': 'Could not restore backup',
   'settings.gitBackup': 'Git Backup',
@@ -366,7 +350,7 @@ const en: Translations = {
   'onboarding.noModelsManual': 'No models listed — enter manually',
   'onboarding.dataSovereigntyTitle': 'Data sovereignty',
   'onboarding.dataSovereigntyText':
-    'All sessions, files, memories and skills stay in your browser (IndexedDB). Only LLM requests leave the device.',
+    'All sessions, files, and memories stay in your browser (IndexedDB). Only LLM requests leave the device.',
   'onboarding.toolsTitle': 'Browser tools',
   'onboarding.toolsText': 'Read/write files, run code, web search, save memories, and render interactive HTML views.',
   'onboarding.openaiTitle': 'OpenAI-compatible',
@@ -430,20 +414,6 @@ const en: Translations = {
   'editor.replaceOne': 'Replace',
   'editor.replaceAll': 'Replace All',
 
-  // Skills
-  'skills.title': 'Skills',
-  'skills.hint':
-    'Project-style skills: Markdown with trigger words. They adapt the system prompt when a trigger appears in chat.',
-  'skills.empty': 'No skills yet. Create a skill with trigger words.',
-  'skills.new': 'New Skill',
-  'skills.edit': 'Edit Skill',
-  'skills.name': 'Name',
-  'skills.description': 'Description',
-  'skills.triggers': 'Trigger Words',
-  'skills.triggersHint': 'Comma-separated. When matched in chat, the skill is automatically activated.',
-  'skills.body': 'Skill Body',
-  'skills.deleteConfirm': 'Delete this skill?',
-
   // Errors
   'error.noModel': 'Please provide a model.',
   'error.noApiKey': 'Please provide an API key.',
@@ -478,7 +448,7 @@ const en: Translations = {
   // Workspaces
   'workspace.tabLabel': 'Workspaces',
   'workspace.title': 'Workspaces',
-  'workspace.hint': 'Each workspace has its own database with sessions, files, memory and skills. Provider settings stay shared.',
+  'workspace.hint': 'Each workspace has its own database with sessions, files, and memory. Provider settings stay shared.',
   'workspace.create': 'Create',
   'workspace.newName': 'New Workspace',
   'workspace.newNamePlaceholder': 'e.g. Project Alpha',

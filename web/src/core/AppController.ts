@@ -13,7 +13,7 @@ import { AppStoreApp } from '../apps/AppStoreApp.js';
 import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { Agent } from './agent.js';
 import { registerGlobalErrorHandlers, captureFunctionError } from './global_errors.js';
-import { loadConfig, saveConfig, hasCompletedOnboarding, MemoryStore, SkillStore } from './memory.js';
+import { loadConfig, saveConfig, hasCompletedOnboarding, MemoryStore } from './memory.js';
 import { InstalledAppStore } from './app_store_db.js';
 import type { InstalledApp } from './app_store_db.js';
 import { isTextContentPart } from '../types/index.js';
@@ -429,7 +429,6 @@ export class AppController {
       chatApp.setOnSubmit(async (text: string, attachments: ChatAttachment[]) => {
         // Slash commands bypass the LLM entirely.
         if (isSlashCommand(text) && attachments.length === 0) {
-          const skillStore = new SkillStore();
           const handled = await handleSlashCommand({
             text,
             args: text.trim().split(/\s+/).slice(1),
@@ -446,10 +445,6 @@ export class AppController {
               this.isRunning = false;
             },
             getAgentStatus: () => (this.isRunning ? 'thinking' : 'idle'),
-            listSkills: async () => {
-              const skills = await skillStore.listSkills().catch(() => []);
-              return skills.map((s) => ({ name: s.name, description: s.description }));
-            },
           });
           if (handled) return;
           chatApp.appendSystem(

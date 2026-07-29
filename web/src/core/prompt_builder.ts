@@ -2,8 +2,7 @@
 // vibeAgentGo — Prompt Builder (browser-side, no fs access)
 // ============================================================
 
-import type { MemoryEntry, Skill, Tool, ToolSchema } from '../types/index.js';
-import { SkillStore } from './memory.js';
+import type { MemoryEntry, Tool, ToolSchema } from '../types/index.js';
 import { normalizeLanguage } from '../i18n/index.js';
 
 const IDENTITY_BLOCKS: Record<string, string> = {
@@ -48,12 +47,6 @@ function buildUserProfile(profile: MemoryEntry[]): string {
   return `## User Profile\n${lines.join('\n')}`;
 }
 
-function buildSkillsBlock(skills: Skill[]): string {
-  if (skills.length === 0) return '';
-  const blocks = skills.map((s) => `### Skill: ${s.name}\n${s.description}\n\n${s.content}`);
-  return `## Skills\n${blocks.join('\n\n---\n\n')}`;
-}
-
 function buildToolSchemas(tools: Tool[]): string {
   if (tools.length === 0) return '';
   const lines = tools.map((t) => `- **${t.name}**: ${t.description}`);
@@ -63,7 +56,6 @@ function buildToolSchemas(tools: Tool[]): string {
 export interface PromptContext {
   memories: MemoryEntry[];
   profile: MemoryEntry[];
-  skills: Skill[];
   tools: Tool[];
   extra?: string;
   language?: 'de' | 'en';
@@ -130,9 +122,6 @@ Rules for the HTML entry:
   const profile = buildUserProfile(ctx.profile);
   if (profile) parts.push(profile);
 
-  const skills = buildSkillsBlock(ctx.skills);
-  if (skills) parts.push(skills);
-
   const toolList = buildToolSchemas(ctx.tools);
   if (toolList) parts.push(toolList);
 
@@ -152,14 +141,4 @@ export function toolsToSchemas(tools: Tool[]): ToolSchema[] {
   }));
 }
 
-// Skills are loaded from IndexedDB via SkillStore.
-export async function loadSkills(): Promise<Skill[]> {
-  const store = new SkillStore();
-  const records = await store.listSkills();
-  return records.map((r) => ({
-    name: r.name,
-    description: r.description,
-    content: r.content,
-    trigger: r.trigger,
-  }));
-}
+
