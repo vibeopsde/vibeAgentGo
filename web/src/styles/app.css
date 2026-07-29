@@ -2004,6 +2004,12 @@ select {
   margin: 24px 0 20px;
 }
 
+.settings-section-separator {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0 20px;
+}
+
 .settings-section-subtitle {
   font-size: 15px;
   font-weight: 600;

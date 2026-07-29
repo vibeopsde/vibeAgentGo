@@ -20,7 +20,7 @@ import { getActiveWorkspace } from '../core/workspace.js';
 import { MemoryPanel } from '../components/MemoryPanel.js';
 import type { App } from '../types/index.js';
 
-type TabKey = 'workspaces' | 'llm' | 'search' | 'appearance' | 'memory' | 'backup' | 'danger';
+type TabKey = 'workspaces' | 'llm' | 'search' | 'appearance' | 'memory' | 'data';
 
 interface TabDef {
   id: TabKey;
@@ -34,8 +34,7 @@ const TABS: TabDef[] = [
   { id: 'search', icon: '🔍', label: 'settings.tabSearch' },
   { id: 'appearance', icon: '🎨', label: 'settings.tabAppearance' },
   { id: 'memory', icon: '🧠', label: 'header.memory' },
-  { id: 'backup', icon: '🗄️', label: 'settings.backup' },
-  { id: 'danger', icon: '⚠️', label: 'settings.dangerZone' },
+  { id: 'data', icon: '💾', label: 'settings.data' },
 ];
 
 export class SettingsApp implements App {
@@ -140,11 +139,8 @@ export class SettingsApp implements App {
       case 'memory':
         this.renderMemoryTab(panel);
         break;
-      case 'backup':
-        this.renderBackupTab(panel);
-        break;
-      case 'danger':
-        this.renderDangerTab(panel);
+      case 'data':
+        this.renderDataTab(panel);
         break;
     }
   }
@@ -265,16 +261,16 @@ export class SettingsApp implements App {
     memoryPanel.open();
   }
 
-  private renderBackupTab(panel: HTMLElement) {
-    panel.innerHTML = `<h3 class="settings-panel-title">🗄️ ${t('settings.backup')}</h3>`;
+  private renderDataTab(panel: HTMLElement) {
+    panel.innerHTML = `<h3 class="settings-panel-title">💾 ${t('settings.data')}</h3>`;
     renderBackupSection(panel, {
       onMessage: (message, kind) => this.showBackupMessage(panel, message, kind),
       onReload: () => this.emitReload(),
     });
-  }
-
-  private renderDangerTab(panel: HTMLElement) {
-    panel.innerHTML = `<h3 class="settings-panel-title">⚠️ ${t('settings.dangerZone')}</h3>`;
+    // Separator between backup and danger zone
+    const sep = document.createElement('div');
+    sep.className = 'settings-section-separator';
+    panel.appendChild(sep);
     renderDangerZoneSection(panel, () => this.emitReload());
   }
 
