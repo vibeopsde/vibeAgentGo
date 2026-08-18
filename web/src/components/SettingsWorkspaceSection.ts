@@ -15,9 +15,6 @@ import {
 import { resetDBConnection } from '../core/db.js';
 
 export function renderWorkspaceSection(modal: HTMLElement, onSwitch: () => void): void {
-  const workspaces = listWorkspaces();
-  const activeId = getActiveWorkspaceId();
-
   modal.insertAdjacentHTML(
     'beforeend',
     `
@@ -41,9 +38,7 @@ export function renderWorkspaceSection(modal: HTMLElement, onSwitch: () => void)
   const renderList = () => {
     const all = listWorkspaces();
     const currentActive = getActiveWorkspaceId();
-    listEl.innerHTML = all
-      .map((ws) => renderWorkspaceItem(ws, ws.id === currentActive))
-      .join('');
+    listEl.innerHTML = all.map((ws) => renderWorkspaceItem(ws, ws.id === currentActive)).join('');
     attachItemHandlers();
   };
 

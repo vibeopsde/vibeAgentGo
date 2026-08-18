@@ -20,7 +20,6 @@ const de: Translations = {
   'common.turn': 'Runde',
   'common.thinking': 'Denkt nach...',
   'common.idle': 'Bereit',
-  'common.edit': 'Bearbeiten',
 
   // Header
   'header.newChat': 'Neuer Chat',
@@ -31,7 +30,6 @@ const de: Translations = {
   'chat.placeholder': 'Nachricht an vibeAgentGo... (Enter = Zeilenumbruch, Shift+Enter = senden)',
   'chat.attachFile': 'Datei anhängen',
   'chat.sessions': 'Sessions',
-  'chat.menu': 'Menü',
   'chat.removeAttachment': 'Anhang entfernen',
   'chat.toolCall': 'Tool-Aufruf',
   'chat.send': 'Senden',
@@ -51,13 +49,13 @@ const de: Translations = {
   'settings.sounds': 'System-Sounds',
   'settings.soundsHint': '🔊 Akustische Signale bei Tool-Aufrufen und Fertig-Meldung',
   'settings.editorTabSize': 'Editor Tab-Größe',
-  'settings.unknownProvider': 'Gespeicherter Provider passt zu keinem Preset ({url}). Beim Speichern wird der oben gewählte Provider übernommen.',
+  'settings.unknownProvider':
+    'Gespeicherter Provider passt zu keinem Preset ({url}). Beim Speichern wird der oben gewählte Provider übernommen.',
   'settings.search': 'Search Provider',
   'settings.searchNone': 'Deaktiviert',
   'settings.searchTavily': 'Tavily',
   'settings.searchApiKey': 'Search API Key',
   'settings.tabLLM': 'LLM',
-  'settings.tabSearch': 'Suche',
   'settings.tabAppearance': 'Erscheinungsbild',
   'settings.connectionSuccess': 'Verbindung OK',
   'settings.connectionError': 'Verbindung fehlgeschlagen',
@@ -113,8 +111,6 @@ const de: Translations = {
   'onboarding.testConnection': 'Verbindung testen',
 
   // Memory
-  'memory.title': 'Memory',
-  'memory.local': 'lokal im Browser',
   'memory.userProfile': 'Nutzerprofil',
   'memory.memories': 'Erinnerungen',
   'memory.empty': 'Noch keine Erinnerungen.',
@@ -202,16 +198,17 @@ const de: Translations = {
   // Workspaces
   'workspace.tabLabel': 'Workspaces',
   'workspace.title': 'Workspaces',
-  'workspace.hint': 'Jeder Workspace hat eine eigene Datenbank mit Sessions, Dateien und Memory. Provider-Einstellungen bleiben geteilt.',
+  'workspace.hint':
+    'Jeder Workspace hat eine eigene Datenbank mit Sessions, Dateien und Memory. Provider-Einstellungen bleiben geteilt.',
   'workspace.create': 'Erstellen',
   'workspace.newName': 'Neuer Workspace',
   'workspace.newNamePlaceholder': 'z. B. Projekt Alpha',
   'workspace.switch': 'Wechseln',
   'workspace.active': 'Aktiv',
   'workspace.renamePrompt': 'Workspace umbenennen:',
-  'workspace.deleteConfirm': 'Workspace "{name}" und alle darin enthaltenen Daten (Sessions, Dateien, Memory) wirklich löschen?',
+  'workspace.deleteConfirm':
+    'Workspace "{name}" und alle darin enthaltenen Daten (Sessions, Dateien, Memory) wirklich löschen?',
   'workspace.cannotDeleteLast': 'Der letzte Workspace kann nicht gelöscht werden.',
-  'workspace.current': 'Aktuell: {name}',
   'settings.dangerZone': 'Gefahrenzone',
 };
 
@@ -231,7 +228,6 @@ const en: Translations = {
   'common.turn': 'Turn',
   'common.thinking': 'Thinking...',
   'common.idle': 'Ready',
-  'common.edit': 'Edit',
 
   // Header
   'header.newChat': 'New Chat',
@@ -242,7 +238,6 @@ const en: Translations = {
   'chat.placeholder': 'Message vibeAgentGo... (Enter = newline, Shift+Enter = send)',
   'chat.attachFile': 'Attach file',
   'chat.sessions': 'Sessions',
-  'chat.menu': 'Menu',
   'chat.removeAttachment': 'Remove attachment',
   'chat.toolCall': 'Tool call',
   'chat.send': 'Send',
@@ -262,13 +257,13 @@ const en: Translations = {
   'settings.sounds': 'System sounds',
   'settings.soundsHint': '🔊 Audible signals on tool calls and completion',
   'settings.editorTabSize': 'Editor tab size',
-  'settings.unknownProvider': 'Saved provider does not match any preset ({url}). Saving will apply the provider selected above.',
+  'settings.unknownProvider':
+    'Saved provider does not match any preset ({url}). Saving will apply the provider selected above.',
   'settings.search': 'Search Provider',
   'settings.searchNone': 'Disabled',
   'settings.searchTavily': 'Tavily',
   'settings.searchApiKey': 'Search API Key',
   'settings.tabLLM': 'LLM',
-  'settings.tabSearch': 'Search',
   'settings.tabAppearance': 'Appearance',
   'settings.connectionSuccess': 'Connection OK',
   'settings.connectionError': 'Connection failed',
@@ -291,8 +286,7 @@ const en: Translations = {
   'settings.import': 'Import backup',
   'settings.exportSuccess': 'Backup downloaded successfully',
   'settings.exportError': 'Could not create backup',
-  'settings.importConfirm':
-    'This will overwrite all current data (sessions, memory, files, settings). Continue?',
+  'settings.importConfirm': 'This will overwrite all current data (sessions, memory, files, settings). Continue?',
   'settings.importSuccess': 'Backup restored successfully. Reloading page.',
   'settings.importError': 'Could not restore backup',
   // Onboarding
@@ -322,8 +316,6 @@ const en: Translations = {
   'onboarding.testConnection': 'Test connection',
 
   // Memory
-  'memory.title': 'Memory',
-  'memory.local': 'local in browser',
   'memory.userProfile': 'User Profile',
   'memory.memories': 'Memories',
   'memory.empty': 'No memories yet.',
@@ -411,7 +403,8 @@ const en: Translations = {
   // Workspaces
   'workspace.tabLabel': 'Workspaces',
   'workspace.title': 'Workspaces',
-  'workspace.hint': 'Each workspace has its own database with sessions, files, and memory. Provider settings stay shared.',
+  'workspace.hint':
+    'Each workspace has its own database with sessions, files, and memory. Provider settings stay shared.',
   'workspace.create': 'Create',
   'workspace.newName': 'New Workspace',
   'workspace.newNamePlaceholder': 'e.g. Project Alpha',
@@ -420,7 +413,6 @@ const en: Translations = {
   'workspace.renamePrompt': 'Rename workspace:',
   'workspace.deleteConfirm': 'Delete workspace "{name}" and all its data (sessions, files, memory)?',
   'workspace.cannotDeleteLast': 'Cannot delete the last workspace.',
-  'workspace.current': 'Current: {name}',
   'settings.dangerZone': 'Danger Zone',
 };
 

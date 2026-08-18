@@ -139,5 +139,3 @@ export function toolsToSchemas(tools: Tool[]): ToolSchema[] {
     },
   }));
 }
-
-

@@ -4,7 +4,7 @@
 // Includes LLM, Search, Appearance, Memory, Backup and Danger Zone.
 // ============================================================
 
-import { loadConfig, saveConfig, type ClientConfig } from '../core/memory.js';
+import { loadConfig, saveConfig } from '../core/memory.js';
 import { findPresetByUrlAndModel, PROVIDER_PRESETS } from '../core/presets.js';
 import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 import { escapeHtml } from '../utils/escape.js';

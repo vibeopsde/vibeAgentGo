@@ -5,7 +5,6 @@
 // ============================================================
 
 import type { App, BridgeRequest, BridgeResponse } from '../types/index.js';
-import type { MemoryStore } from '../types/index.js';
 import { loadConfig } from '../core/memory.js';
 
 interface ProgramAppState {

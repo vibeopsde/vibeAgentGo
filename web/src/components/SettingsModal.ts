@@ -6,7 +6,6 @@ import { loadConfig, saveConfig } from '../core/memory.js';
 import { findPresetByUrlAndModel, PROVIDER_PRESETS } from '../core/presets.js';
 import { getTheme, setTheme, type ThemeMode } from '../core/theme.js';
 import { escapeHtml } from '../utils/escape.js';
-import { VERSION } from '../version.js';
 import { t, setLanguage, getAvailableLanguages } from '../i18n/index.js';
 import { renderLLMConfigSection } from './SettingsLLMSection.js';
 import { renderSearchConfigSection } from './SettingsSearchSection.js';

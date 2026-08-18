@@ -259,9 +259,7 @@ export class Agent {
     const historyHasImages = (msgs: Message[]): boolean =>
       msgs.some(
         (m) =>
-          typeof m.content !== 'string' &&
-          Array.isArray(m.content) &&
-          m.content.some((p) => p.type === 'image_url')
+          typeof m.content !== 'string' && Array.isArray(m.content) && m.content.some((p) => p.type === 'image_url')
       );
 
     // Helper: strip image_url parts → text placeholder (used on retry after 400)

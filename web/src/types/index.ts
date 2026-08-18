@@ -224,5 +224,3 @@ export interface Session {
   created_at: string;
   updated_at: string;
 }
-
-

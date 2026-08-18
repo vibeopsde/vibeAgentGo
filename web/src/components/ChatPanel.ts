@@ -129,9 +129,7 @@ export class ChatPanel {
 
     for (const file of files) {
       if (file.size > MAX_FILE_SIZE) {
-        this.appendError(
-          `${file.name}: ${t('chat.fileTooLarge') || 'File too large (max 10 MB)'}`
-        );
+        this.appendError(`${file.name}: ${t('chat.fileTooLarge') || 'File too large (max 10 MB)'}`);
         continue;
       }
       const isImage = file.type.startsWith('image/');
@@ -151,9 +149,7 @@ export class ChatPanel {
         this.renderAttachments();
       };
       reader.onerror = () => {
-        this.appendError(
-          `${file.name}: ${t('chat.fileReadError') || 'Failed to read file'}`
-        );
+        this.appendError(`${file.name}: ${t('chat.fileReadError') || 'Failed to read file'}`);
       };
 
       if (isImage || isPdf) {
@@ -232,7 +228,9 @@ export class ChatPanel {
     // Try to find the tool name from a matching tool-call element
     let toolName = t('chat.toolCall');
     if (toolCallId) {
-      const toolEl = this.messagesEl.querySelector(`.msg-tool[data-tool-call-id="${CSS.escape(toolCallId)}"] .tool-name`) as HTMLElement | null;
+      const toolEl = this.messagesEl.querySelector(
+        `.msg-tool[data-tool-call-id="${CSS.escape(toolCallId)}"] .tool-name`
+      ) as HTMLElement | null;
       if (toolEl) toolName = toolEl.textContent || toolName;
     }
     const el = document.createElement('details');
@@ -278,7 +276,6 @@ export class ChatPanel {
       this.startStream();
     }
     const stream = this.streamEl!;
-    const contentEl = stream.querySelector('.msg-content') as HTMLElement;
     const current = stream.dataset.raw || '';
     const next = current + delta;
     stream.dataset.raw = next;
@@ -390,7 +387,7 @@ export class ChatPanel {
     this.isStopped = running;
     if (this.sendBtn) {
       this.sendBtn.textContent = running ? '⏹' : '➤';
-      this.sendBtn.title = running ? (t('chat.stop') || 'Stop') : (t('chat.send') || 'Send');
+      this.sendBtn.title = running ? t('chat.stop') || 'Stop' : t('chat.send') || 'Send';
       this.sendBtn.classList.toggle('stop-active', running);
     }
   }
@@ -410,17 +407,20 @@ export class ChatPanel {
         const code = pre.querySelector('code');
         const text = code ? code.textContent : pre.textContent;
         if (!text) return;
-        navigator.clipboard.writeText(text).then(() => {
-          btn.textContent = '✓';
-          setTimeout(() => {
-            btn.textContent = t('chat.copyCode') || 'Copy';
-          }, 1500);
-        }).catch(() => {
-          btn.textContent = '✗';
-          setTimeout(() => {
-            btn.textContent = t('chat.copyCode') || 'Copy';
-          }, 1500);
-        });
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            btn.textContent = '✓';
+            setTimeout(() => {
+              btn.textContent = t('chat.copyCode') || 'Copy';
+            }, 1500);
+          })
+          .catch(() => {
+            btn.textContent = '✗';
+            setTimeout(() => {
+              btn.textContent = t('chat.copyCode') || 'Copy';
+            }, 1500);
+          });
       });
       pre.appendChild(btn);
     });

@@ -3,7 +3,7 @@
 // DB connection and schema live in db.ts — single source of truth.
 // ============================================================
 
-import type { Message, MemoryEntry, Session } from '../types/index.js';
+import type { MemoryEntry, Session } from '../types/index.js';
 import { logger } from './logger.js';
 import { tx, txAll, cursorAll, cursorByIndex } from './db.js';
 
@@ -215,7 +215,6 @@ export class MemoryStore {
 export const CONFIG_KEY = 'vibeAgentGo-config';
 const ONBOARDING_KEY = 'vibeAgentGo-onboarding';
 
-
 export interface ClientConfig {
   model: string;
   baseUrl: string;
@@ -250,7 +249,11 @@ export function loadConfig(): ClientConfig {
     editorTabSize: 2,
   };
   // Strip legacy keys from old stored configs
-  const stripped = (parsed || {}) as Partial<ClientConfig> & { maxTokens?: number; youtubeProxyUrl?: string; youtubeLanguage?: string };
+  const stripped = (parsed || {}) as Partial<ClientConfig> & {
+    maxTokens?: number;
+    youtubeProxyUrl?: string;
+    youtubeLanguage?: string;
+  };
   delete stripped.maxTokens;
   delete stripped.youtubeProxyUrl;
   delete stripped.youtubeLanguage;

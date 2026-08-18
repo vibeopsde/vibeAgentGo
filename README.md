@@ -8,7 +8,7 @@ A fully client-side AI agent PWA, built from scratch for mobile and data soverei
 
 - **Agent Loop** with OpenAI-compatible tool calling (multi-turn, streaming)
 - **Persistent Memory** in IndexedDB across sessions
-- **20 Tools** including file I/O, PDF extraction, patch editing, web search, YouTube transcripts, memory, error log, system check, vAG-App Store toolkit, and code execution in a Web Worker sandbox
+- **21 Tools** including file I/O, PDF extraction, patch editing, web search, YouTube transcripts, memory, error log, system check, vAG-App Store toolkit, and code execution in a Web Worker sandbox
 - **Slash Commands** in the chat input that run locally without an LLM round-trip (`/sys_check`, `/new`, `/clear`, `/help`)
 - **Code Sandbox**: A single `run` tool executes JavaScript in a Web Worker with CDN imports, workspace I/O, and interactive HTML rendering
 - **Multimodal Attachments**: Images are sent directly to the LLM; text files and PDFs are stored in the workspace

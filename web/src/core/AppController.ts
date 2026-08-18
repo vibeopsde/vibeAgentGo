@@ -13,7 +13,7 @@ import { AppStoreApp } from '../apps/AppStoreApp.js';
 import { OnboardingWizard } from '../components/OnboardingWizard.js';
 import { Agent } from './agent.js';
 import { registerGlobalErrorHandlers, captureFunctionError } from './global_errors.js';
-import { loadConfig, saveConfig, hasCompletedOnboarding, MemoryStore } from './memory.js';
+import { loadConfig, hasCompletedOnboarding, MemoryStore } from './memory.js';
 import { InstalledAppStore } from './app_store_db.js';
 import type { InstalledApp } from './app_store_db.js';
 import { isTextContentPart } from '../types/index.js';
@@ -23,9 +23,8 @@ import { initTheme } from './theme.js';
 import { setLanguage, t } from '../i18n/index.js';
 import { WindowManager } from './window_manager.js';
 import { sounds } from './sounds.js';
-import { migrateLegacyWorkspace, getActiveWorkspace } from './workspace.js';
-import { resetDBConnection } from './db.js';
-import type { BridgeRequest, BridgeResponse, ChatAttachment, App } from '../types/index.js';
+import { migrateLegacyWorkspace } from './workspace.js';
+import type { BridgeRequest, BridgeResponse, ChatAttachment } from '../types/index.js';
 
 export class AppController {
   private memory = new MemoryStore();
