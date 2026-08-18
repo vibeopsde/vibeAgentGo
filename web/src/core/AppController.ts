@@ -17,7 +17,7 @@ import { loadConfig, hasCompletedOnboarding, MemoryStore } from './memory.js';
 import { InstalledAppStore } from './app_store_db.js';
 import type { InstalledApp } from './app_store_db.js';
 import { isTextContentPart } from '../types/index.js';
-import { createDefaultTools } from './tools.js';
+import { createDefaultTools } from './tools/index.js';
 import { isSlashCommand, handleSlashCommand } from './slash_commands.js';
 import { initTheme } from './theme.js';
 import { setLanguage, t } from '../i18n/index.js';

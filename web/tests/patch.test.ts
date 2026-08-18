@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createDefaultTools } from '../src/core/tools.js';
+import { createDefaultTools } from '../src/core/tools/index.js';
 import { MemoryStore } from '../src/core/memory.js';
 
 const makeCtx = (mem: MemoryStore) => ({

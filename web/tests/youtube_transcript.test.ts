@@ -5,8 +5,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import 'fake-indexeddb/auto';
 
-import { extractVideoId } from '../src/core/tools.js';
-import { createDefaultTools } from '../src/core/tools.js';
+import { extractVideoId } from '../src/core/tools/index.js';
+import { createDefaultTools } from '../src/core/tools/index.js';
 import { loadConfig } from '../src/core/memory.js';
 
 vi.mock('../src/core/memory.js', async () => {
