@@ -24,7 +24,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
   {
     key: 'ki-vibeops',
     label: 'ki.vibeops.de',
-    model: 'qwen/qwen3.6-35b-a3b',
+    model: 'qwen3.8',
     baseUrl: 'https://ki.vibeops.de/v1',
     apiKeyPlaceholder: 'sk-...',
     apiKeyRequired: true,
