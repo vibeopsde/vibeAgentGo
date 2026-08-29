@@ -26,15 +26,15 @@ Output landet in `results/<name>/` mit `{1-core,2-apps,3-wm-ui,4-persist}.md`, `
 
 ### Stand: 2026-08-29
 
-| Metric | qwen3.6:35b | qwen3.8:27b |
-|--------|-------------|-------------|
-| Task 1 (Core) | 3,4 min / 121 Zeilen | 57,7 min / 217 Zeilen |
-| Task 2 (Apps) | 2,9 min / 99 Zeilen | 23,6 min / 236 Zeilen |
-| Task 3 (WM+UI) | 2,7 min / 84 Zeilen | 21,4 min / 142 Zeilen |
-| Task 4 (Persist) | 1,9 min / 92 Zeilen | 50,3 min / 111 Zeilen |
-| **Gesamtzeit** | **~18 min** | **~153 min (2,5 h)** |
-| **Output gesamt** | 396 Zeilen | 706 Zeilen |
-| **Verhältnis** | 1× (Referenz) | 8,5x langsamer, 1,8x mehr Output |
+| Metric | qwen3.6:35b | qwen3.8:27b | glm-5.2 |
+|--------|-------------|-------------|---------|
+| Task 1 (Core) | 3,4 min / 121 Zeilen | 57,7 min / 217 Zeilen | 1,2 min / 190 Zeilen |
+| Task 2 (Apps) | 2,9 min / 99 Zeilen | 23,6 min / 236 Zeilen | 2,4 min / 538 Zeilen |
+| Task 3 (WM+UI) | 2,7 min / 84 Zeilen | 21,4 min / 142 Zeilen | 4,0 min / 283 Zeilen |
+| Task 4 (Persist) | 1,9 min / 92 Zeilen | 50,3 min / 111 Zeilen | 1,2 min / 169 Zeilen |
+| **Gesamtzeit** | **~11 min** | **~153 min (2,5 h)** | **~8,8 min** |
+| **Output gesamt** | 396 Zeilen | 706 Zeilen | 1180 Zeilen |
+| **Verhältnis** | 1,3x Referenz | 17,3x langsamer, 1,8x mehr Output | **1× (schnellste)**, 3× mehr Output |
 
 ### Genauigkeit (manuell verifiziert)
 
@@ -52,9 +52,11 @@ Output landet in `results/<name>/` mit `{1-core,2-apps,3-wm-ui,4-persist}.md`, `
 
 **qwen3.6:35b** — schnell, oberflächlich. Gut für einen ersten Überblick, aber ~30% der KRITISCH-Funde waren halluziniert. Der serverseitige SSRF-Proxy wurde komplett übersehen. Brauchbar als Kandidatenliste, wenn jeder Fund manuell verifiziert wird.
 
-**qwen3.8:27b** — 8,5x langsamer, dafür 0 Halluzinationen bei den getesteten Fällen. Untersucht selbstständig verwandten Code (Server, Types, Sandbox), findet deutlich mehr echte Probleme und liefert konkrete Fix-Vorschläge mit korrekten Zeilenummern. Der agent.ts:303-Bug wurde verpasst, dafür 12 andere echte gefunden, die 3.6 nie sah.
+**qwen3.8:27b** — 17,3x langsamer als glm-5.2, dafür 0 Halluzinationen bei den getesteten Fällen. Untersucht selbstständig verwandten Code (Server, Types, Sandbox), findet deutlich mehr echte Probleme und liefert konkrete Fix-Vorschläge mit korrekten Zeilenummern. Der agent.ts:303-Bug wurde verpasst, dafür 12 andere echte gefunden, die 3.6 nie sah.
 
-**Empfehlung:** 3.6 für schnelles Trichting ("was gibt's grob?"), 3.8 wenn echte Tiefe brauchbar ist und Zeit spielt. Das 3.8er Ergebnis ist deutlich höherwertig und direkt ohne Verifikation verwendbar.
+**glm-5.2** — schnellste Gesamtzeit (8,8 min) bei höchstem Output (1180 Zeilen, 3× mehr als qwen3.6). Findet die gleichen kritischen Sicherheitslücken (Path-Traversal, XSS via innerHTML, SSRF via CORS-Proxy, Bridge-Hijacking) wie qwen3.8, zusätzlich DOM-Leak-Analyse und Race-Condition-Details. Alle 4 Tasks vollständig mit 3-Satz-Zusammenfassung. Output-Qualität im Bereich Core/Persistenz dicht, bei Apps extrem ausführlich (538 Zeilen). Muss noch auf Halluzinationen verifiziert werden — die initiale Lesung wirkt aber solide (konkrete Zeilennummern, plausible Code-Zusammenhänge).
+
+**Empfehlung:** glm-5.2 als Default für Code-Reviews — schnell, umfangreich und findet die kritischen Issues. qwen3.8:27b für finale Tiefe wenn Zeit spielt und 0-Halluzination-Garantie braucht. qwen3.6:35b nur für schnelles Trichting.
 
 ## Verzeichnisstruktur
 
@@ -72,6 +74,8 @@ docs/llm-benchmarks/
     │   ├── progress.log
     │   └── timing.jsonl
     └── qwen3.8-27b/
+        └── ...
+    └── glm-5.2/
         └── ...
 ```
 

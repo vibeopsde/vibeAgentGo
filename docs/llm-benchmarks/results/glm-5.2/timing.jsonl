@@ -1,0 +1,5 @@
+{"task": "1-core", "model": "ollama/glm-5.2", "rc": 0, "duration_s": 73}
+{"task": "2-apps", "model": "ollama/glm-5.2", "rc": 0, "duration_s": 143}
+{"task": "3-wm-ui", "model": "ollama/glm-5.2", "rc": 0, "duration_s": 242}
+{"task": "4-persist", "model": "ollama/glm-5.2", "rc": 0, "duration_s": 72}
+{"model": "ollama/glm-5.2", "total_duration_s": 530, "tasks": 4}
