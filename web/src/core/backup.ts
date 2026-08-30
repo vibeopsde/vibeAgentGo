@@ -6,7 +6,6 @@
 import type { Session, MemoryEntry } from '../types/index.js';
 import JSZip from 'jszip';
 import { MemoryStore, CONFIG_KEY, loadConfig } from './memory.js';
-import { tx } from './db.js';
 import { getActiveWorkspace } from './workspace.js';
 
 export interface BackupManifest {
@@ -164,16 +163,21 @@ export class BackupManager {
     const restoredConfig = { ...current, ...config };
     if (config.apiKey === '[REDACTED]') restoredConfig.apiKey = current.apiKey;
     if (config.searchApiKey === '[REDACTED]') restoredConfig.searchApiKey = current.searchApiKey;
+
+    // Restore IndexedDB FIRST. Each store is written in a single readwrite
+    // transaction (all-or-nothing per store); a quota error or abort rolls the
+    // whole store back, so the DB never ends up half-restored. Files are
+    // restored next, routing binary entries back through writeFileBinary and
+    // never clobbering an existing binary file with empty text.
+    await this.memory.saveMemoryBulk(memory);
+    await this.memory.saveSessionsBulk(sessions as unknown as Session[]);
+    await this.restoreFiles(files);
+
+    // Restore localStorage last — it has no transactions, so only run it once
+    // the structured DB restore has fully succeeded.
     localStorage.setItem(CONFIG_KEY, JSON.stringify(restoredConfig));
     if (theme !== null) localStorage.setItem('vibeAgentGo-theme', theme);
     if (onboarding !== null) localStorage.setItem('vibeAgentGo-onboarding', onboarding);
-
-    // Restore IndexedDB. Memory and sessions are written all-or-nothing after the
-    // validation above; files are restored next, routing binary entries back through
-    // writeFileBinary and never clobbering an existing binary file with empty text.
-    await Promise.all(memory.map((m) => this.saveMemoryRaw(m)));
-    await Promise.all(sessions.map((s) => this.memory.saveSession(s as unknown as Session)));
-    await this.restoreFiles(files);
   }
 
   /** Reconstruct the file list from the legacy files/ folder (pre-binary backups). */
@@ -293,10 +297,5 @@ export class BackupManager {
     const out = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
     return out;
-  }
-
-  private async saveMemoryRaw(entry: MemoryEntry): Promise<void> {
-    // Use direct IndexedDB put to preserve id and timestamps.
-    await tx('memory', 'readwrite', (store: IDBObjectStore) => store.put(entry));
   }
 }

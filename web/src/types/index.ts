@@ -77,7 +77,9 @@ export interface MemoryStore {
   searchByCategory(category: string, limit?: number): Promise<MemoryEntry[]>;
   deleteMemory(id: number): Promise<boolean>;
   updateMemory(id: number, content: string, category?: string): Promise<boolean>;
+  saveMemoryBulk(entries: MemoryEntry[]): Promise<void>;
   saveSession(session: Session): Promise<void>;
+  saveSessionsBulk(sessions: Session[]): Promise<void>;
   getSession(id: string): Promise<Session | null>;
   listSessions(): Promise<{ id: string; title: string; created_at: string; updated_at: string }[]>;
   deleteSession(id: string): Promise<boolean>;

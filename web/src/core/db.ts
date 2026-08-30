@@ -101,7 +101,7 @@ function isRecoverableDBError(err: unknown): boolean {
 async function withDBRetry<T>(
   storeName: string,
   mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest,
+  fn: (store: IDBObjectStore) => IDBRequest | IDBRequest[],
   attempt = 0
 ): Promise<T> {
   try {
@@ -118,14 +118,19 @@ async function withDBRetry<T>(
   }
 }
 
-function runTx<T>(storeName: string, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest): Promise<T> {
+function runTx<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => IDBRequest | IDBRequest[]
+): Promise<T> {
   return openDB().then(
     (db) =>
       new Promise<T>((resolve, reject) => {
         let settled = false;
         const transaction = db.transaction(storeName, mode);
         const store = transaction.objectStore(storeName);
-        const req = fn(store);
+        const result = fn(store);
+        const reqs = Array.isArray(result) ? result : [result];
 
         const settle = (fn: () => void) => {
           if (!settled) {
@@ -134,15 +139,17 @@ function runTx<T>(storeName: string, mode: IDBTransactionMode, fn: (store: IDBOb
           }
         };
 
-        req.onsuccess = () => settle(() => resolve(req.result as T));
-        req.onerror = () => settle(() => reject(req.error));
+        for (const req of reqs) {
+          req.onsuccess = () => settle(() => resolve(reqs[0] ? (reqs[0].result as T) : (undefined as T)));
+          req.onerror = () => settle(() => reject(req.error));
+        }
 
         // If the transaction is aborted (quota, browser GC, versionchange from
         // another tab), the request's onsuccess/onerror may never fire.
         // Without these handlers, the Promise hangs forever — the agent stalls,
         // the user reloads, currentSessionId is lost, and a new session starts.
         transaction.onabort = () => settle(() => reject(transaction.error || new Error('Transaction aborted')));
-        transaction.oncomplete = () => settle(() => resolve(req.result as T));
+        transaction.oncomplete = () => settle(() => resolve(reqs[0] ? (reqs[0].result as T) : (undefined as T)));
       })
   );
 }
@@ -150,7 +157,7 @@ function runTx<T>(storeName: string, mode: IDBTransactionMode, fn: (store: IDBOb
 export function tx<T>(
   storeName: string,
   mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest
+  fn: (store: IDBObjectStore) => IDBRequest | IDBRequest[]
 ): Promise<T> {
   return withDBRetry<T>(storeName, mode, fn);
 }
