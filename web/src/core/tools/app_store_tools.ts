@@ -6,7 +6,17 @@
 import type { Tool } from '../../types/index.js';
 import { corsFetch } from '../cors_fetch.js';
 import { parseAppManifest, injectAppManifest } from '../appManifest.js';
-import { getMemoryStore, asString, asBoolean, asNumber } from './shared.js';
+import {
+  getMemoryStore,
+  asString,
+  asBoolean,
+  asNumber,
+  ALLOWED_APP_CATEGORIES,
+  isValidAppId,
+  isValidAppCategory,
+  isValidRepoRoot,
+  isSafeRelPath,
+} from './shared.js';
 
 // --- vAG-App Store Tools ---
 
@@ -75,9 +85,8 @@ export const app_store_search: Tool = {
     const category = asString(args.category).trim();
     const limit = Math.max(1, Math.min(100, asNumber(args.limit, 20)));
 
-    const allowedCategories = ['Productivity', 'Utilities', 'Development', 'Creative', 'Games', 'System'];
-    if (category && !allowedCategories.includes(category)) {
-      return `Invalid category "${category}". Allowed: ${allowedCategories.join(', ')}.`;
+    if (category && !isValidAppCategory(category)) {
+      return `Invalid category "${category}". Allowed: ${ALLOWED_APP_CATEGORIES.join(', ')}.`;
     }
 
     let apps = index.apps;
@@ -134,14 +143,25 @@ export const app_store_install: Tool = {
     if (!app) return `App "${id}" not found in the vAG-App Store.`;
 
     const basePath = `apps/${app.category}/${app.id}`;
+    const targetPath = `${basePath}/index.html`;
+    if (!isValidAppCategory(app.category)) {
+      return `Install refused: invalid app category "${app.category}". Allowed: ${ALLOWED_APP_CATEGORIES.join(', ')}.`;
+    }
+    if (!isValidAppId(app.id)) {
+      return `Install refused: invalid app id "${app.id}" (must be lowercase alphanumeric with . or - separators).`;
+    }
+    if (!isSafeRelPath(targetPath)) {
+      return `Install refused: unsafe target path "${targetPath}".`;
+    }
+
     const entryUrl = `https://raw.githubusercontent.com/vibeopsde/vAG-Apps/main/apps/${app.path}/index.html`;
 
     try {
       const res = await corsFetch(entryUrl);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const entryContent = await res.text();
-      await mem.writeFile(`${basePath}/index.html`, entryContent);
-      return `Installed ${app.name} (${app.id}) into workspace at ${basePath}/index.html.`;
+      await mem.writeFile(targetPath, entryContent);
+      return `Installed ${app.name} (${app.id}) into workspace at ${targetPath}.`;
     } catch (e) {
       return `Install failed: ${e instanceof Error ? e.message : String(e)}`;
     }
@@ -197,8 +217,14 @@ export const app_store_publish: Tool = {
     const targetRepoRoot = asString(args.target_repo_root, 'vAG-Apps').replace(/\/$/, '');
 
     if (!sourcePath) return 'Error: source_path is required.';
+    if (!isValidRepoRoot(targetRepoRoot)) {
+      return 'Error: target_repo_root must be a bare folder name (a-z / A-Z / 0-9 / . / _ / -), e.g. "vAG-Apps".';
+    }
 
     const htmlPath = sourcePath.endsWith('.html') ? sourcePath : `${sourcePath}/index.html`;
+    if (!isSafeRelPath(htmlPath)) {
+      return `Error: unsafe source path "${htmlPath}" (no '..' segments, no absolute paths).`;
+    }
     const htmlContent = await mem.readFile(htmlPath);
     if (htmlContent === null) {
       return `App file not found in workspace: ${htmlPath}`;
@@ -217,9 +243,8 @@ export const app_store_publish: Tool = {
       if (!id || !name || !category || !description) {
         return 'No manifest block found and missing required fields. Pass id, name, category, and description to create one.';
       }
-      const allowedCategories = ['Productivity', 'Utilities', 'Development', 'Creative', 'Games', 'System'];
-      if (!allowedCategories.includes(category)) {
-        return `Invalid category "${category}". Allowed: ${allowedCategories.join(', ')}.`;
+      if (!isValidAppCategory(category)) {
+        return `Invalid category "${category}". Allowed: ${ALLOWED_APP_CATEGORIES.join(', ')}.`;
       }
       manifest = {
         id,
@@ -233,7 +258,17 @@ export const app_store_publish: Tool = {
       };
     }
 
+    if (!isValidAppCategory(manifest.category)) {
+      return `Publish refused: invalid app category "${manifest.category}". Allowed: ${ALLOWED_APP_CATEGORIES.join(', ')}.`;
+    }
+    if (!isValidAppId(manifest.id)) {
+      return `Publish refused: invalid app id "${manifest.id}" (must be lowercase alphanumeric with . or - separators).`;
+    }
+
     const targetPath = `${targetRepoRoot}/apps/${manifest.category}/${manifest.id}/index.html`;
+    if (!isSafeRelPath(targetPath)) {
+      return `Publish refused: unsafe target path "${targetPath}".`;
+    }
     const targetHtml = injectAppManifest(htmlContent, manifest);
     await mem.writeFile(targetPath, targetHtml);
 

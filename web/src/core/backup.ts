@@ -229,6 +229,15 @@ export class BackupManager {
       if (f.kind === 'binary' && (typeof f.base64 !== 'string' || !f.base64)) {
         throw new Error(`Invalid backup: binary file ${f.path} is missing base64 data`);
       }
+      // Validate base64 decodability up front: atob() on corrupt data would only
+      // throw later in restoreFiles, AFTER memory+sessions have already been written.
+      if (f.kind === 'binary') {
+        try {
+          atob(f.base64 as string);
+        } catch {
+          throw new Error(`Invalid backup: binary file ${f.path} contains corrupt base64 data`);
+        }
+      }
     }
   }
 
@@ -237,15 +246,24 @@ export class BackupManager {
     const out: MemoryEntry[] = [];
     for (const m of raw as unknown[]) {
       if (!m || typeof m !== 'object') throw new Error('Invalid backup: memory.json contains a non-object entry');
-      if (typeof (m as MemoryEntry).id !== 'number')
-        throw new Error('Invalid backup: memory entry missing a numeric id');
-      if (typeof (m as MemoryEntry).content !== 'string')
+      if (typeof (m as Record<string, unknown>).content !== 'string')
         throw new Error('Invalid backup: memory entry missing string content');
-      out.push(m as MemoryEntry);
+      // Import is a restore, not a merge: adopting backup autoIncrement IDs would
+      // overwrite unrelated local entries sharing the same id. Dropping `id` lets
+      // IndexedDB assign fresh autoIncrement IDs, so backup entries are appended.
+      const { id, ...rest } = m as Record<string, unknown>;
+      void id;
+      out.push(rest as unknown as MemoryEntry);
     }
     return out;
   }
 
+  /**
+   * Unlike memory (autoIncrement), session ids are opaque strings and restoring the
+   * original id is semantically correct: a session restores its own history under
+   * its own identity, so backup sessions keep their id keyPath (overwriting a local
+   * session with the same id is an intentional last-write-wins restore).
+   */
   private normalizeSessions(raw: unknown): SessionLike[] {
     if (raw == null) return [];
     const out: SessionLike[] = [];

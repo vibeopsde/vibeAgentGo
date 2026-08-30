@@ -63,16 +63,24 @@ export function parseAppManifest(html: string): { manifest: AppManifest; error?:
   return { manifest };
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function safeReplaceAll(haystack: string, needle: string, replacement: () => string): string {
+  return haystack.replace(new RegExp(escapeRegExp(needle), 'g'), replacement);
+}
+
 export function injectAppManifest(html: string, manifest: AppManifest): string {
-  const json = JSON.stringify(manifest, null, 2);
+  const json = JSON.stringify(manifest, null, 2).replace(/</g, '\\u003c');
   const block = `<script type="application/vnd.vag+json">\n${json}\n</script>`;
   const existing = html.match(/<script\s+type="application\/vnd\.vag\+json"[^>]*>[\s\S]*?<\/script>/i);
   if (existing) {
-    return html.replace(existing[0], block);
+    return safeReplaceAll(html, existing[0], () => block);
   }
   // Insert before </head> if present, otherwise at the top of the document.
   if (html.includes('</head>')) {
-    return html.replace('</head>', `${block}\n</head>`);
+    return safeReplaceAll(html, '</head>', () => `${block}\n</head>`);
   }
   return block + '\n' + html;
 }

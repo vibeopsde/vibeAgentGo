@@ -20,7 +20,7 @@ ALLOWLIST = [h.strip().lower() for h in os.environ.get("VAG_PROXY_ALLOWLIST", ""
 # Only these request headers are forwarded upstream. Everything else (cookie,
 # user-agent, origin, referer, accept-encoding, ...) is dropped so browser
 # credentials are never leaked to arbitrary upstream targets.
-FORWARDED_REQUEST_HEADERS = {"content-type", "accept", "authorization"}
+FORWARDED_REQUEST_HEADERS = {"content-type", "accept"}
 
 MAX_REDIRECTS = 5
 
@@ -44,9 +44,12 @@ def _is_blocked_ip(ip_str: str) -> bool:
     )
 
 
-def _validate_target_url(target: str) -> None:
+def _validate_target_url(target: str) -> tuple:
     """Validate a target URL against scheme, allowlist and SSRF rules.
 
+    Returns a (host, ip) tuple: the hostname and the first resolved address,
+    so the connection can be pinned to the exact IP that passed validation
+    and httpx cannot re-resolve the hostname to a different one (DNS rebinding).
     Raises HTTPException if the target must not be proxied.
     """
     try:
@@ -75,6 +78,7 @@ def _validate_target_url(target: str) -> None:
         ip_str = info[4][0]
         if _is_blocked_ip(ip_str):
             raise HTTPException(status_code=403, detail=f"Blocked target address: {host}")
+    return host, infos[0][4][0]
 
 @app.get("/api/proxy/")
 async def proxy_get(request: Request):
@@ -91,15 +95,50 @@ async def proxy_get(request: Request):
         if name.lower() in FORWARDED_REQUEST_HEADERS:
             headers[name] = value
 
+    def _pin(target_url: str):
+        """Validate a target and return (pinned_url, host_header_value).
+
+        The connection is made to the exact validated IP so the hostname cannot
+        re-resolve to a different address (DNS rebinding), while the original
+        hostname is preserved in the Host header for virtual hosting.
+        """
+        hostname, ip = _validate_target_url(target_url)
+        parsed = urlparse(target_url)
+        ip_host = f"[{ip}]" if ":" in ip else ip
+        if parsed.port:
+            port_part = f":{parsed.port}"
+        else:
+            port_part = ""
+        pinned_url = (
+            f"{parsed.scheme}://{ip_host}{port_part}"
+            f"{parsed.path or ''}{('?' + parsed.query) if parsed.query else ''}"
+        )
+        return pinned_url, hostname
+
     # follow_redirects is disabled: each redirect destination is re-validated
-    # (allowlist + SSRF guard) before being followed, so no 302 from an
-    # allowed host can lead to internal targets.
+    # (allowlist + SSRF guard) and re-pinned to its validated IP before being
+    # followed, so no 302 from an allowed host can lead to internal targets or
+    # to a differently-resolved address (DNS rebinding).
     async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT, follow_redirects=False) as client:
-        url = target
+        current_target = target
         redirects = 0
         while True:
+            pinned_url, hostname = _pin(current_target)
+            req_headers = dict(headers)
+            req_headers["host"] = hostname
             try:
-                upstream = await client.request(method, url, headers=headers, content=body)
+                # sni_hostname extension: connect to the validated IP (DNS
+                # pinning) while TLS SNI and certificate verification use the
+                # ORIGINAL hostname. Without this, https targets fail with
+                # SSLV3_ALERT_HANDSHAKE_FAILURE (no SNI) or verify against
+                # the IP literal instead of the domain.
+                upstream = await client.request(
+                    method,
+                    pinned_url,
+                    headers=req_headers,
+                    content=body,
+                    extensions={"sni_hostname": hostname},
+                )
             except httpx.RequestError as e:
                 raise HTTPException(status_code=502, detail=f"Upstream error: {e}") from e
             if upstream.status_code not in (301, 302, 303, 307, 308):
@@ -111,8 +150,7 @@ async def proxy_get(request: Request):
                 break
             if redirects == 0 and method == "POST" and upstream.status_code == 303:
                 method = "GET"
-            url = str(upstream.url.join(location))
-            _validate_target_url(url)
+            current_target = str(upstream.url.join(location))
             redirects += 1
 
     response_headers = dict(upstream.headers)
@@ -122,7 +160,7 @@ async def proxy_get(request: Request):
     response_headers.pop("set-cookie", None)
     response_headers["Access-Control-Allow-Origin"] = "*"
     response_headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response_headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response_headers["Access-Control-Allow-Headers"] = "Content-Type"
 
     return Response(
         content=upstream.content,
@@ -139,7 +177,7 @@ async def proxy_options():
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Headers": "Content-Type",
         },
     )
 

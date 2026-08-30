@@ -76,8 +76,9 @@ describe('BackupManager', () => {
 
     const memory = new MemoryStore();
     const allMemories = await memory.searchAllMemory(100);
-    expect(allMemories.length).toBe(1);
-    expect(allMemories[0].content).toBe('I love coffee');
+    // Import is a restore-append: backup memory entries get fresh autoIncrement
+    // ids instead of overwriting unrelated local entries with colliding ids.
+    expect(allMemories.some((m) => m.content === 'I love coffee')).toBe(true);
 
     const sessions = await memory.listSessions();
     expect(sessions.length).toBe(1);

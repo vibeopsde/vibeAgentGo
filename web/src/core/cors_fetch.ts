@@ -26,6 +26,19 @@ export function proxiedUrl(target: string): string {
  * for cross-origin requests. Keeps same-origin requests untouched.
  */
 export function corsFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  // A Request object carries its own method, headers and body — proxying only its
+  // URL would silently drop them (401s / corrupted payloads in generated apps).
+  // Inherit the Request's fields; an explicit `init` takes precedence per field.
+  if (typeof Request !== 'undefined' && input instanceof Request) {
+    const effectiveInit: RequestInit = {
+      method: init?.method ?? input.method,
+      headers: init?.headers ?? input.headers,
+      body: init?.body ?? input.body,
+      signal: init?.signal,
+      redirect: init?.redirect ?? input.redirect,
+    };
+    return fetch(proxiedUrl(input.url), effectiveInit);
+  }
   const url = typeof input === 'string' ? input : input.toString();
   return fetch(proxiedUrl(url), init);
 }

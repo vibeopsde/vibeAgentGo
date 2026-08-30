@@ -43,6 +43,7 @@ export class Agent {
   private currentHistory: Message[] = [];
   private currentRunSessionId: string | null = null;
   private running = false;
+  private abortRequested = false;
   private doneEmitted = false;
 
   constructor(tools: Tool[], memory: MemoryStore, opts: AgentOptions = {}) {
@@ -85,6 +86,7 @@ export class Agent {
 
   abort() {
     if (this.abortController) {
+      this.abortRequested = true;
       this.abortController.abort();
       this.emit('abort', {});
     }
@@ -95,15 +97,24 @@ export class Agent {
   }
 
   private buildToolContext(): ToolContext {
+    const env: Record<string, unknown> = {
+      memoryStore: this.memory,
+      isDark: document.documentElement.getAttribute('data-theme') !== 'light',
+      // sessionId must be live: buildToolContext() runs once per run() BEFORE the
+      // first saveCurrentSession assigns this.sessionId, so a static value would
+      // stay null/undefined for the whole run (e.g. rename_session fails). A getter
+      // ensures every tool call reads the CURRENT sessionId at call time.
+      ...this.extraEnv,
+    };
+    Object.defineProperty(env, 'sessionId', {
+      get: () => this.sessionId ?? undefined,
+      enumerable: true,
+      configurable: true,
+    });
     return {
       workspace: 'indexeddb://workspace',
       emit: (event, data) => this.emit(event as keyof AgentEventMap, data as AgentEventMap[keyof AgentEventMap]),
-      env: {
-        memoryStore: this.memory,
-        isDark: document.documentElement.getAttribute('data-theme') !== 'light',
-        sessionId: this.sessionId ?? undefined,
-        ...this.extraEnv,
-      },
+      env,
     };
   }
 
@@ -119,7 +130,11 @@ export class Agent {
     sessionId?: string,
     attachments: ChatAttachment[] = []
   ): Promise<string> {
-    if (this.running) {
+    // Reject genuine concurrent runs, but NOT the follow-up that lands in the
+    // window between abort() and the aborting run's finally() clearing
+    // `running` — abort() sets abortRequested so that race does not hang the
+    // UI with a spurious 'already running' rejection.
+    if (this.running && !this.abortRequested) {
       const err = new Error('Agent is already running — wait for the current run to finish before starting a new one');
       logger.warn('agent.run', 'Rejected concurrent run()', { activeSessionId: this.sessionId });
       this.emit('error', { message: err.message });
@@ -127,6 +142,7 @@ export class Agent {
     }
 
     this.running = true;
+    this.abortRequested = false;
     this.doneEmitted = false;
     this.sessionId = sessionId || this.sessionId || null;
     this.abortController = new AbortController();
@@ -326,6 +342,10 @@ export class Agent {
       } catch (e) {
         if (e instanceof Error && e.name === 'AbortError') {
           this.emit('error', { message: 'Request aborted' });
+          // Release the run guard NOW (before run()'s finally) so a follow-up
+          // run() right after abort() is not rejected with 'already running';
+          // the finally still emits done exactly once.
+          this.running = false;
           return 'Aborted';
         }
         const errMsg = e instanceof Error ? e.message : String(e);
@@ -357,6 +377,9 @@ export class Agent {
           } catch (retryErr) {
             if (retryErr instanceof Error && retryErr.name === 'AbortError') {
               this.emit('error', { message: 'Request aborted' });
+              // Same as the primary abort path: clear the guard immediately so a
+              // follow-up run() is not spurned by a stale 'already running' state.
+              this.running = false;
               return 'Aborted';
             }
             const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);

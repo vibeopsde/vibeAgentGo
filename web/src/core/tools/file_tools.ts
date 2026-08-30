@@ -5,7 +5,7 @@
 
 import type { Tool } from '../../types/index.js';
 import type { MemoryStore } from '../memory.js';
-import { getMemoryStore, asString, asNumber, asBoolean } from './shared.js';
+import { getMemoryStore, asString, asNumber, asBoolean, isSafeRelPath } from './shared.js';
 import { corsFetch } from '../cors_fetch.js';
 
 export const read_file: Tool = {
@@ -24,6 +24,9 @@ export const read_file: Tool = {
   handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
     const path = asString(args.path);
+    if (!isSafeRelPath(path)) {
+      return `Error: unsafe path "${path}" (must be a relative workspace path; no '..', no absolute paths).`;
+    }
     const content = await mem.readFile(path);
     if (content === null) return `File not found: ${path}`;
 
@@ -69,6 +72,9 @@ export const read_pdf: Tool = {
   handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
     const path = asString(args.path);
+    if (!isSafeRelPath(path)) {
+      return `Error: unsafe path "${path}" (must be a relative workspace path; no '..', no absolute paths).`;
+    }
     const content = await mem.readFile(path);
     if (content === null) return `File not found: ${path}`;
     try {
@@ -107,8 +113,12 @@ export const write_file: Tool = {
   },
   handler: async (args: Record<string, unknown>, ctx) => {
     const mem = getMemoryStore(ctx);
-    await mem.writeFile(asString(args.path), asString(args.content));
-    return `Wrote ${asString(args.content).length} bytes to ${asString(args.path)}`;
+    const path = asString(args.path);
+    if (!isSafeRelPath(path)) {
+      return `Error: unsafe path "${path}" (must be a relative workspace path; no '..', no absolute paths).`;
+    }
+    await mem.writeFile(path, asString(args.content));
+    return `Wrote ${asString(args.content).length} bytes to ${path}`;
   },
 };
 
@@ -275,6 +285,14 @@ async function applyV4APatch(
   const files = parseV4APatch(patchText);
   const results: { path: string; status: string; error?: string }[] = [];
   for (const file of files) {
+    if (!isSafeRelPath(file.path)) {
+      results.push({
+        path: file.path,
+        status: 'error',
+        error: `Rejected unsafe path "${file.path}" (must be a relative workspace path; no '..' segments, no absolute paths, no backslashes).`,
+      });
+      continue;
+    }
     let content = await mem.readFile(file.path);
     if (content === null) {
       content = '';
@@ -343,6 +361,9 @@ export const patch: Tool = {
       const newString = asString(args.new_string);
       const replaceAll = asBoolean(args.replace_all);
       if (!path) return 'Error: path is required for mode=replace';
+      if (!isSafeRelPath(path)) {
+        return `Error: unsafe path "${path}" (must be a relative workspace path; no '..', no absolute paths).`;
+      }
       if (!oldString) return 'Error: old_string is required for mode=replace';
       const content = await mem.readFile(path);
       if (content === null) return `File not found: ${path}`;
