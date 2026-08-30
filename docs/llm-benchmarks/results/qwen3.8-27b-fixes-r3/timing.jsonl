@@ -2,3 +2,5 @@
 {"task": "AP2-tools", "model": "ollama/qwen3.8:27b", "title": "tool path traversal guard", "rc": 0, "duration_s": 1611, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
 {"task": "AP3-core", "model": "ollama/qwen3.8:27b", "title": "rename_session fix, abort race, logger recursion", "rc": 0, "duration_s": 2220, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
 {"task": "AP4-apps", "model": "ollama/qwen3.8:27b", "title": "appstore xss, manifest injection", "rc": 0, "duration_s": 883, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP5-persist", "model": "ollama/qwen3.8:27b", "title": "corsFetch request fix, backup merge collision", "rc": 0, "duration_s": 480, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"model": "ollama/qwen3.8:27b", "total_duration_s": 5600, "total_repair_s": 0, "tasks": 5}
