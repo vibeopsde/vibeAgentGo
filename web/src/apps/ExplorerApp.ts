@@ -33,6 +33,9 @@ export class ExplorerApp implements App {
   private activePath: string | null = null;
   private contextMenu: HTMLElement | null = null;
   private searchQuery = '';
+  private onDocClick: ((e: Event) => void) | null = null;
+  private onDocKeydown: ((e: KeyboardEvent) => void) | null = null;
+  private statusTimer: number | null = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -74,10 +77,69 @@ export class ExplorerApp implements App {
     });
 
     this.setupDragDrop();
-    document.addEventListener('click', () => this.closeContextMenu());
-    document.addEventListener('keydown', (e) => {
+    this.onDocClick = () => this.closeContextMenu();
+    this.onDocKeydown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') this.closeContextMenu();
-    });
+    };
+    document.addEventListener('click', this.onDocClick);
+    document.addEventListener('keydown', this.onDocKeydown);
+  }
+
+  unmount(): void {
+    if (this.onDocClick) {
+      document.removeEventListener('click', this.onDocClick);
+      this.onDocClick = null;
+    }
+    if (this.onDocKeydown) {
+      document.removeEventListener('keydown', this.onDocKeydown);
+      this.onDocKeydown = null;
+    }
+    if (this.statusTimer !== null) {
+      window.clearTimeout(this.statusTimer);
+      this.statusTimer = null;
+    }
+    this.closeContextMenu();
+  }
+
+  private showStatus(message: string) {
+    let el = this.element.querySelector('.explorer-status') as HTMLElement | null;
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'explorer-status';
+      const list = this.element.querySelector('.explorer-list') as HTMLElement;
+      list.parentElement?.insertBefore(el, list);
+    }
+    el.textContent = message;
+    if (this.statusTimer !== null) window.clearTimeout(this.statusTimer);
+    this.statusTimer = window.setTimeout(() => {
+      el?.remove();
+      this.statusTimer = null;
+    }, 5000);
+  }
+
+  /** Validates a user-supplied path; returns the cleaned path or null (with UI feedback). */
+  private assertSafePath(raw: string): string | null {
+    const path = raw.trim().replace(/^\/+/, '').replace(/\/+$/, '');
+    if (!path || path.includes('\\') || this.hasControlChars(path)) {
+      this.showStatus(
+        t('explorer.invalidPath') || 'Invalid path: use relative names without "..", "\\" or control characters'
+      );
+      return null;
+    }
+    const segments = path.split('/');
+    if (segments.some((seg) => seg === '' || seg === '.' || seg === '..')) {
+      this.showStatus(t('explorer.invalidPath') || 'Invalid path: ".." and empty segments are not allowed');
+      return null;
+    }
+    return path;
+  }
+
+  private hasControlChars(s: string): boolean {
+    for (let i = 0; i < s.length; i++) {
+      const code = s.charCodeAt(i);
+      if (code < 32 || code === 127) return true;
+    }
+    return false;
   }
 
   private setupDragDrop() {
@@ -610,7 +672,7 @@ export class ExplorerApp implements App {
   private async createFolder() {
     const name = window.prompt(t('explorer.newFolderPrompt') || 'New folder name (e.g. my-project):');
     if (!name) return;
-    const folderPath = name.trim().replace(/^\/+/, '').replace(/\/+$/, '');
+    const folderPath = this.assertSafePath(name);
     if (!folderPath) return;
     const path = `${folderPath}/.keep`;
 
@@ -633,7 +695,7 @@ export class ExplorerApp implements App {
   private async createFile() {
     const name = window.prompt(t('explorer.newFilePrompt') || 'New file name (e.g. notes.md or my-folder/notes.md):');
     if (!name) return;
-    const path = name.trim().replace(/^\/+/, '');
+    const path = this.assertSafePath(name);
     if (!path) return;
 
     const existing = this.files.find((f) => f.path === path);

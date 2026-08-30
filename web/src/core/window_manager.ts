@@ -297,6 +297,7 @@ export class WindowManager {
 
     app?.element?.remove();
     win.element.remove();
+    app?.unmount?.();
     this.windows.delete(id);
     this.instances.delete(id);
     this.windowData.delete(id);

@@ -175,6 +175,8 @@ export interface App {
   onBlur?(): void;
   /** Optional: called when the window is closed. Return false to prevent closing. */
   onClose?(): boolean | Promise<boolean>;
+  /** Optional: called after the window is closed, to release global listeners/resources. */
+  unmount?(): void;
   /** Optional: called when new data is pushed to the window (e.g. open a file in an editor). */
   setData?(data: Record<string, unknown>): void;
 }

@@ -2437,6 +2437,17 @@ select {
   font-size: 13px;
 }
 
+.explorer-status {
+  padding: 6px 10px;
+  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 6px;
+  margin: 8px 10px 0;
+  font-size: 12px;
+  word-break: break-word;
+}
+
 .explorer-item {
   display: flex;
   align-items: center;
