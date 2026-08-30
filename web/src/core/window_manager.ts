@@ -5,6 +5,7 @@
 // ============================================================
 
 import type { App, AppFactory, AppWindow, OpenWindowOptions, WindowManagerEventMap } from '../types/index.js';
+import { escapeHtml } from '../utils/escape.js';
 
 interface WindowData {
   data?: Record<string, unknown>;
@@ -155,8 +156,8 @@ export class WindowManager {
       const bar = document.createElement('div');
       bar.className = 'wm-space-bar';
       bar.innerHTML = `
-        <span class="wm-space-icon">${icon}</span>
-        <span class="wm-space-title">${title}</span>
+        <span class="wm-space-icon">${escapeHtml(icon)}</span>
+        <span class="wm-space-title">${escapeHtml(title)}</span>
         <button class="wm-space-close" title="Close" aria-label="Close window">×</button>
       `;
       bar.querySelector('.wm-space-close')!.addEventListener('click', (e) => {
@@ -185,8 +186,8 @@ export class WindowManager {
       const bar = document.createElement('div');
       bar.className = 'wm-window-bar';
       bar.innerHTML = `
-        <span class="wm-window-icon">${icon}</span>
-        <span class="wm-window-title">${title}</span>
+        <span class="wm-window-icon">${escapeHtml(icon)}</span>
+        <span class="wm-window-title">${escapeHtml(title)}</span>
         <div class="wm-window-controls">
           <button class="wm-minimize" title="Minimize">_</button>
           <button class="wm-window-close" title="Close">×</button>
@@ -482,7 +483,7 @@ export class WindowManager {
   private createDockIcon(icon: string, title: string, onClick: () => void): HTMLButtonElement {
     const btn = document.createElement('button');
     btn.className = 'wm-dock-icon';
-    btn.innerHTML = `<span class="wm-dock-icon-emoji">${icon}</span><span class="wm-dock-icon-label">${title}</span>`;
+    btn.innerHTML = `<span class="wm-dock-icon-emoji">${escapeHtml(icon)}</span><span class="wm-dock-icon-label">${escapeHtml(title)}</span>`;
     btn.addEventListener('click', onClick);
     return btn;
   }

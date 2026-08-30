@@ -98,6 +98,12 @@ export class MemoryStore {
 
   // --- Sessions ---
 
+  /** Write multiple memory entries in a single readwrite transaction (all-or-nothing). */
+  async saveMemoryBulk(entries: MemoryEntry[]): Promise<void> {
+    if (entries.length === 0) return;
+    await tx('memory', 'readwrite', (store) => entries.map((entry) => store.put(entry)));
+  }
+
   async saveSession(session: Session): Promise<void> {
     const existing = await this.getSession(session.id);
     const toSave: Session = {
@@ -106,6 +112,13 @@ export class MemoryStore {
       updated_at: new Date().toISOString(),
     };
     await tx('sessions', 'readwrite', (store) => store.put(toSave));
+  }
+
+  /** Write multiple sessions in a single readwrite transaction (all-or-nothing). */
+  async saveSessionsBulk(sessions: Session[]): Promise<void> {
+    if (sessions.length === 0) return;
+    const now = new Date().toISOString();
+    await tx('sessions', 'readwrite', (store) => sessions.map((session) => store.put({ ...session, updated_at: now })));
   }
 
   async getSession(id: string): Promise<Session | null> {

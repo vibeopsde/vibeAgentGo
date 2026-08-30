@@ -419,10 +419,35 @@ export class TextEditorApp implements App {
     return this.promptForPath(t('editor.saveAsPrompt') || 'File name?');
   }
 
+  private assertSafePath(raw: string): string | null {
+    const path = raw.trim().replace(/^\/+/, '').replace(/\/+$/, '');
+    if (
+      !path ||
+      path.includes('\\') ||
+      path.split('/').some((seg) => seg === '' || seg === '.' || seg === '..') ||
+      this.hasControlChars(path)
+    ) {
+      this.setStatus(
+        t('explorer.invalidPath') || 'Invalid path: use relative names without "..", "\\" or control characters',
+        true
+      );
+      return null;
+    }
+    return path;
+  }
+
+  private hasControlChars(s: string): boolean {
+    for (let i = 0; i < s.length; i++) {
+      const code = s.charCodeAt(i);
+      if (code < 32 || code === 127) return true;
+    }
+    return false;
+  }
+
   private async promptForPath(message: string): Promise<string | null> {
     const input = window.prompt(message, this.currentPath || 'untitled.txt');
     if (!input) return null;
-    const path = input.trim().replace(/^\/+|\/+$/g, '');
+    const path = this.assertSafePath(input);
     if (!path) return null;
     return path;
   }

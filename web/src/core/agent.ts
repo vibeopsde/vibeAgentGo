@@ -123,7 +123,6 @@ export class Agent {
       const err = new Error('Agent is already running — wait for the current run to finish before starting a new one');
       logger.warn('agent.run', 'Rejected concurrent run()', { activeSessionId: this.sessionId });
       this.emit('error', { message: err.message });
-      this.emitDoneOnce(null);
       throw err;
     }
 
@@ -494,7 +493,7 @@ export class Agent {
 
       await this.saveCurrentSession(history, runSessionId);
 
-      this.emit('done', { sessionId: this.sessionId! });
+      this.emitDoneOnce(this.sessionId);
 
       // Extract durable memories asynchronously for future sessions
       this.extractMemoryFromConversation(history, config).catch(() => {});
