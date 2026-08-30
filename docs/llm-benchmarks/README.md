@@ -90,6 +90,20 @@ Iterative Schleife: Nach v2608.3.0 erneut Review (gleiche Prompts) → 7286s (12
 
 **Loop-Muster:** Runde 1 Fixes 99 min → Runde 2 Review findet Bugs in Runde-1-Fixes → Runde 2 Fixes nur 40 min. Die Schleife konvergiert — jede Runde findet die nächste Schicht, kein neuer KRITISCH-Fund in altem Code.
 
+### Runde 3 — Review auf v2608.3.1 + Fix-Loop (2026-08-30)
+
+Review: 8112s (135 min). Keine Regressionen der Runde-1/2-Fixes, dafür 4× KRITISCH auf neuer Tiefe: **DNS-Rebinding/TOCTOU-Bypass im eigenen SSRF-Guard** (httpx löst beim Connect neu auf), Path-Traversal in `app_store_install/publish` + `patch`-Tool über LLM/extern kontrollierte Pfade, `rename_session` war bei neuen Sessions immer kaputt (stale `ctx.env.sessionId`), Logger-Rekursion `console.error` ↔ `logger.error`. Fix-Runde 3 (`scripts/vag-fix-bench-round3.sh`): 5 APs, 5600s + 1379s Retry, tsc grün, 64/64 Tests → **v2608.3.2**.
+
+| AP | Paket | Dauer |
+|----|-------|-------|
+| AP1 | proxy: DNS-Pinning + Auth-Header raus | 406 s (**fehlgeschlagen**) + 1379 s Retry ✅ |
+| AP2 | tools: zentraler Path-Traversal-Guard (shared.ts) | 1611 s |
+| AP3 | agent: sessionId-Getter, abort-race, logger-Rekursion | 2220 s |
+| AP4 | AppStore XSS/manifest safeReplaceAll | 883 s |
+| AP5 | corsFetch Request-Handling, backup restore-append | 480 s |
+
+**Lehrreich:** AP1 war der erste komplette Task-Fail in 3 Runden — das Modell geriet bei dem anspruchsvollen DNS-Pinning in httpcore-Introspektions-Recherche, wurde von der OpenCode-Sandbox geblockt (external_directory) und verwurf den AP still statt zu editieren. Retry mit prescriptivem Prompt („nur editieren, IP-Literal + Host-Header") lieferte in 1379 s. Live-Test fand dann aber einen echten Fehler in der umgesetzten Lösung: https-Ziele failten (SSL-Handshake, kein SNI bei IP-Literals) — manuell per `sni_hostname`-Extension korrigiert (httpx verbindet zur validierten IP, TLS/SNI laufen gegen den Original-Hostnamen). Lern: (a) Prompts prescriptive halten bei schwierigen APIs, (b) deployed-Verifikation bleibt Pflicht — tsc/Tests alleine hätten den HTTPS-Brick nicht gesehen.
+
 ## Verzeichnisstruktur
 
 ```
