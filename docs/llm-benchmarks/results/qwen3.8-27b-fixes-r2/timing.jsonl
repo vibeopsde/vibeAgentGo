@@ -1,1 +1,2 @@
 {"task": "AP1-core", "model": "ollama/qwen3.8:27b", "title": "agent.ts double-done fix, reject-path isolation", "rc": 0, "duration_s": 573, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP2-wm-ui", "model": "ollama/qwen3.8:27b", "title": "window_manager XSS escape", "rc": 0, "duration_s": 274, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}

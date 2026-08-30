@@ -461,14 +461,15 @@ export class ExplorerApp implements App {
     const file = this.files.find((f) => f.path === filePath);
     if (!file) return;
     const name = filePath.split('/').pop() || filePath;
-    const newPath = `${folderPath}/${name}`;
-    if (this.files.some((f) => f.path === newPath)) {
+    const safePath = this.assertSafePath(`${folderPath}/${name}`);
+    if (!safePath) return;
+    if (this.files.some((f) => f.path === safePath)) {
       window.alert(t('explorer.fileExists') || 'A file already exists in that folder');
       return;
     }
-    await this.onBridgeRequest?.({ type: 'writeFile', path: newPath, content: file.content });
+    await this.onBridgeRequest?.({ type: 'writeFile', path: safePath, content: file.content });
     await this.onBridgeRequest?.({ type: 'deleteFile', path: filePath });
-    if (this.activePath === filePath) this.activePath = newPath;
+    if (this.activePath === filePath) this.activePath = safePath;
     this.expandedFolders.add(folderPath);
     await this.refresh();
   }
@@ -726,15 +727,16 @@ export class ExplorerApp implements App {
     if (!newName || newName.trim() === oldName.trim()) return;
     const cleanName = newName.trim().replace(/^\/+/, '');
     if (!cleanName) return;
-    const newPath = oldPath.split('/').slice(0, -1).concat(cleanName).join('/');
-    if (this.files.some((f) => f.path === newPath)) {
+    const safePath = this.assertSafePath(oldPath.split('/').slice(0, -1).concat(cleanName).join('/'));
+    if (!safePath) return;
+    if (this.files.some((f) => f.path === safePath)) {
       window.alert(t('explorer.fileExists') || 'A file already exists with that name');
       return;
     }
     const content = this.files.find((f) => f.path === oldPath)?.content ?? '';
-    await this.onBridgeRequest?.({ type: 'writeFile', path: newPath, content });
+    await this.onBridgeRequest?.({ type: 'writeFile', path: safePath, content });
     await this.onBridgeRequest?.({ type: 'deleteFile', path: oldPath });
-    if (this.activePath === oldPath) this.activePath = newPath;
+    if (this.activePath === oldPath) this.activePath = safePath;
     await this.refresh();
   }
 
@@ -763,26 +765,28 @@ export class ExplorerApp implements App {
     if (!cleanName) return;
     const parentPath = oldPath.split('/').slice(0, -1).join('/');
     const newPath = parentPath ? `${parentPath}/${cleanName}` : cleanName;
+    const safePath = this.assertSafePath(newPath);
+    if (!safePath) return;
 
-    if (this.files.some((f) => f.path === newPath || f.path.startsWith(`${newPath}/`))) {
+    if (this.files.some((f) => f.path === safePath || f.path.startsWith(`${safePath}/`))) {
       window.alert(t('explorer.folderExists') || 'A folder already exists with that name');
       return;
     }
 
     const affected = this.files.filter((f) => f.path === oldPath || f.path.startsWith(`${oldPath}/`));
     for (const file of affected) {
-      const newFilePath = file.path.replace(oldPath, newPath);
+      const newFilePath = file.path.replace(oldPath, safePath);
       await this.onBridgeRequest?.({ type: 'writeFile', path: newFilePath, content: file.content });
     }
     for (const file of affected) {
       await this.onBridgeRequest?.({ type: 'deleteFile', path: file.path });
     }
     if (this.activePath && this.activePath.startsWith(`${oldPath}/`)) {
-      this.activePath = this.activePath.replace(oldPath, newPath);
+      this.activePath = this.activePath.replace(oldPath, safePath);
     }
     if (this.expandedFolders.has(oldPath)) {
       this.expandedFolders.delete(oldPath);
-      this.expandedFolders.add(newPath);
+      this.expandedFolders.add(safePath);
     }
     await this.refresh();
   }
