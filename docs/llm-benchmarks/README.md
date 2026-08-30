@@ -77,7 +77,18 @@ Zweiter Benchmark-Typ: statt Review soll das Modell verifizierte Fixes umsetzen.
 | AP5 | proxy_server.py: SSRF-Guard (DNS-Auflösung + ipaddress), Redirect-Recheck, Header-Whitelist | 660 s (11,0 min) | ✅ 1. Versuch | 0 |
 | **Gesamt** | 5 APs, 15 Dateien, +2383/−54 Zeilen | **5940 s (99 min)** | **5/5 grün** | **0** |
 
-Verifikation über tsc hinaus: alle 5 Diffs manuell gegen die Vorgaben geprüft (Fixes wie spezifiziert, minimal-invasiv, keine Halluzinationen), `npm test` 64/64 ✅, `npm run lint` 0 Errors. Auffällig: AP4 (backup.ts) brauchte 5,6× länger als der Durchschnitt — das komplexeste Paket (Export/Import-Roundtrip + Abwärtskompatibilität). Branch: `bench/fix-qwen3.8-27b-fixes`.
+### Runde 2 — Review auf v2608.3.0 + Fix-Loop (2026-08-30)
+
+Iterative Schleife: Nach v2608.3.0 erneut Review (gleiche Prompts) → 7286s (121 min). **Alle 10 Round-1-Fixes bestätigt** (alte Issues nicht wiedergefunden), dafür **2 echte Bugs in den Round-1-Fixes selbst** (doppelte done-Emission, Reject-Pfad korrumpiert laufenden Run) + neue Funde (window_manager XSS via title/icon, rename ohne Pfad-Validierung, Backup-Import nicht atomar trotz Kommentar). Fix-Runde 2 (`scripts/vag-fix-bench-round2.sh`): 4 APs, **2382s (40 min), 4/4 tsc grün, 0 Repairs**, 64/64 Tests → **v2608.3.1**.
+
+| AP | Paket | Dauer |
+|----|-------|-------|
+| AP1 | agent.ts: single done-emission, reject-path isolation | 573 s |
+| AP2 | window_manager.ts: escapeHtml title/icon (XSS) | 274 s |
+| AP3 | ExplorerApp/TextEditorApp: assertSafePath bei rename/move/saveAs | 681 s |
+| AP4 | backup.ts: atomarer Import (bulk-tx), db.ts runTx batch | 854 s |
+
+**Loop-Muster:** Runde 1 Fixes 99 min → Runde 2 Review findet Bugs in Runde-1-Fixes → Runde 2 Fixes nur 40 min. Die Schleife konvergiert — jede Runde findet die nächste Schicht, kein neuer KRITISCH-Fund in altem Code.
 
 ## Verzeichnisstruktur
 
