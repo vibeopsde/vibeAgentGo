@@ -1,7 +1,7 @@
 {
   "name": "vibeAgentGo",
   "short_name": "vibeAgentGo",
-  "version": "2608.3.1",
+  "version": "2608.3.2",
   "description": "AI Agent with memory and Web Worker code sandbox",
   "start_url": "./",
   "display": "standalone",
