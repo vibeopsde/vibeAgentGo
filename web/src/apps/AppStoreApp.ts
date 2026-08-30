@@ -67,6 +67,11 @@ export class AppStoreApp implements App {
     this.load();
   }
 
+  unmount(): void {
+    this.stopRefreshLoop();
+    this.onBridgeRequest = null;
+  }
+
   private async bridge(req: BridgeRequest): Promise<BridgeResponse> {
     if (!this.onBridgeRequest) return { ok: false, error: 'No bridge handler' };
     return this.onBridgeRequest(req);
@@ -436,7 +441,9 @@ export class AppStoreApp implements App {
   }
 
   private renderPermissions(perms: string[]): string {
-    if (!perms.length) return t('appstore.noPermissions') || 'No permissions required';
-    return `${t('appstore.permissions') || 'Permissions'}: ${perms.join(', ')}`;
+    if (!perms.length) return escapeHtml(t('appstore.noPermissions') || 'No permissions required');
+    return `${escapeHtml(t('appstore.permissions') || 'Permissions')}: ${perms
+      .map((p) => escapeHtml(String(p)))
+      .join(', ')}`;
   }
 }

@@ -1,2 +1,3 @@
 {"task": "AP1-proxy", "model": "ollama/qwen3.8:27b", "title": "proxy DNS rebinding pin, auth header", "rc": 0, "duration_s": 406, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
 {"task": "AP2-tools", "model": "ollama/qwen3.8:27b", "title": "tool path traversal guard", "rc": 0, "duration_s": 1611, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP3-core", "model": "ollama/qwen3.8:27b", "title": "rename_session fix, abort race, logger recursion", "rc": 0, "duration_s": 2220, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
