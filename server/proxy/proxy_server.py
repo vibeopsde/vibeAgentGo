@@ -127,7 +127,18 @@ async def proxy_get(request: Request):
             req_headers = dict(headers)
             req_headers["host"] = hostname
             try:
-                upstream = await client.request(method, pinned_url, headers=req_headers, content=body)
+                # sni_hostname extension: connect to the validated IP (DNS
+                # pinning) while TLS SNI and certificate verification use the
+                # ORIGINAL hostname. Without this, https targets fail with
+                # SSLV3_ALERT_HANDSHAKE_FAILURE (no SNI) or verify against
+                # the IP literal instead of the domain.
+                upstream = await client.request(
+                    method,
+                    pinned_url,
+                    headers=req_headers,
+                    content=body,
+                    extensions={"sni_hostname": hostname},
+                )
             except httpx.RequestError as e:
                 raise HTTPException(status_code=502, detail=f"Upstream error: {e}") from e
             if upstream.status_code not in (301, 302, 303, 307, 308):
