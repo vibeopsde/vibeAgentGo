@@ -62,6 +62,23 @@ Output landet in `results/<name>/` mit `{1-core,2-apps,3-wm-ui,4-persist}.md`, `
 
 **Empfehlung:** glm-5.2 als Default für Code-Reviews — schnell, umfangreich und findet die kritischen Issues. qwen3.8:27b (Q4 KV) für finale Tiefe wenn Zeit spielt und 0-Halluzination-Garantie braucht — mit Q4 nun in 85 min statt 2,5 h realistisch einsetzbar. qwen3.6:35b nur für schnelles Triage.
 
+## Fix-Benchmark (Umsetzung von Review-Findings)
+
+Zweiter Benchmark-Typ: statt Review soll das Modell verifizierte Fixes umsetzen. `scripts/vag-fix-bench.sh "ollama/qwen3.8:27b" "qwen3.8-27b-fixes"` — 5 Arbeitspakete (APs) aus den 0-Halluzination-Funden des qwen3.8-27b-q4 Reviews, sequenziell via `opencode run`, pro AP: tsc-Verifikation → 1 Repair-Run falls nötig → Auto-Commit auf Branch `bench/fix-<name>`.
+
+### Stand: 2026-08-30 — qwen3.8:27b (Q4 KV), Basis commit aff7ae9
+
+| AP | Paket | Dauer | tsc | Repair |
+|----|-------|-------|-----|--------|
+| AP1 | agent.ts: run()-Race, done-Event, emit-Isolation | 352 s (5,9 min) | ✅ 1. Versuch | 0 |
+| AP2 | ExplorerApp: Listener-Leak (unmount+WM-Teardown), Pfad-Validierung | 719 s (12,0 min) | ✅ 1. Versuch | 0 |
+| AP3 | RenderPanel: `</script>`-Escape, Bridge source-Check + Whitelist, dispose() | 434 s (7,2 min) | ✅ 1. Versuch | 0 |
+| AP4 | backup.ts: Binärdaten als base64+kind:'binary', Payload-Validierung, Legacy-Skip | 3775 s (62,9 min) | ✅ 1. Versuch | 0 |
+| AP5 | proxy_server.py: SSRF-Guard (DNS-Auflösung + ipaddress), Redirect-Recheck, Header-Whitelist | 660 s (11,0 min) | ✅ 1. Versuch | 0 |
+| **Gesamt** | 5 APs, 15 Dateien, +2383/−54 Zeilen | **5940 s (99 min)** | **5/5 grün** | **0** |
+
+Verifikation über tsc hinaus: alle 5 Diffs manuell gegen die Vorgaben geprüft (Fixes wie spezifiziert, minimal-invasiv, keine Halluzinationen), `npm test` 64/64 ✅, `npm run lint` 0 Errors. Auffällig: AP4 (backup.ts) brauchte 5,6× länger als der Durchschnitt — das komplexeste Paket (Export/Import-Roundtrip + Abwärtskompatibilität). Branch: `bench/fix-qwen3.8-27b-fixes`.
+
 ## Verzeichnisstruktur
 
 ```

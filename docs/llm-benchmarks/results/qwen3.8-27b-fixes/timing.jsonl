@@ -1,0 +1,6 @@
+{"task": "AP1-core", "model": "ollama/qwen3.8:27b", "title": "agent.ts race condition, done-event, emit isolation", "rc": 0, "duration_s": 352, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP2-apps", "model": "ollama/qwen3.8:27b", "title": "ExplorerApp listener leak, path validation", "rc": 0, "duration_s": 719, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP3-wm-ui", "model": "ollama/qwen3.8:27b", "title": "RenderPanel script escape, bridge validation, dispose", "rc": 0, "duration_s": 434, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP4-persist", "model": "ollama/qwen3.8:27b", "title": "backup binary data loss fix", "rc": 0, "duration_s": 3775, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP5-proxy", "model": "ollama/qwen3.8:27b", "title": "proxy SSRF guard, header whitelist", "rc": 0, "duration_s": 660, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"model": "ollama/qwen3.8:27b", "total_duration_s": 5940, "total_repair_s": 0, "tasks": 5}

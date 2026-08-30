@@ -42,6 +42,8 @@ export class Agent {
   private abortController: AbortController | null = null;
   private currentHistory: Message[] = [];
   private currentRunSessionId: string | null = null;
+  private running = false;
+  private doneEmitted = false;
 
   constructor(tools: Tool[], memory: MemoryStore, opts: AgentOptions = {}) {
     this.tools = tools;
@@ -67,7 +69,18 @@ export class Agent {
 
   private emit<K extends keyof AgentEventMap>(event: K, data: AgentEventMap[K]): void {
     const handlers = this.listeners[event];
-    if (handlers) handlers.forEach((h) => (h as EventHandler<K>)(data));
+    if (!handlers) return;
+    const snapshot = handlers.slice();
+    for (const h of snapshot) {
+      try {
+        (h as EventHandler<K>)(data);
+      } catch (e) {
+        logger.error('agent.emit', `Handler for "${String(event)}" threw`, {
+          event: String(event),
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
   }
 
   abort() {
@@ -94,12 +107,28 @@ export class Agent {
     };
   }
 
+  private emitDoneOnce(sessionId: string | null): void {
+    if (this.doneEmitted) return;
+    this.doneEmitted = true;
+    this.emit('done', { sessionId: sessionId || 'unknown' });
+  }
+
   async run(
     userMessage: string,
     config: AgentConfig,
     sessionId?: string,
     attachments: ChatAttachment[] = []
   ): Promise<string> {
+    if (this.running) {
+      const err = new Error('Agent is already running — wait for the current run to finish before starting a new one');
+      logger.warn('agent.run', 'Rejected concurrent run()', { activeSessionId: this.sessionId });
+      this.emit('error', { message: err.message });
+      this.emitDoneOnce(null);
+      throw err;
+    }
+
+    this.running = true;
+    this.doneEmitted = false;
     this.sessionId = sessionId || this.sessionId || null;
     this.abortController = new AbortController();
     const runSessionId = this.sessionId;
@@ -125,9 +154,11 @@ export class Agent {
         baseUrl: config.baseUrl,
       });
       this.emit('error', { message: friendly });
-      // Ensure UI is unlocked even when the run failed hard
-      this.emit('done', { sessionId: runSessionId || 'unknown' });
       return `Error: ${friendly}`;
+    } finally {
+      // Guarantee done is emitted exactly once for UI unlock, regardless of path
+      this.emitDoneOnce(runSessionId);
+      this.running = false;
     }
   }
 

@@ -142,6 +142,7 @@ const de: Translations = {
   'explorer.renameFolderPrompt': 'Ordner umbenennen:',
   'explorer.empty': 'Noch keine Dateien.',
   'explorer.refresh': 'Aktualisieren',
+  'explorer.invalidPath': 'Ungültiger Pfad: verwende relative Namen ohne "..", Backslash oder Steuerzeichen.',
 
   // Editor
   'editor.untitled': 'Unbenannt',
@@ -342,6 +343,7 @@ const en: Translations = {
   'explorer.fileExists': 'File already exists.',
   'explorer.folderExists': 'Folder already exists.',
   'explorer.confirmDelete': 'Delete {path}?',
+  'explorer.invalidPath': 'Invalid path: use relative names without "..", backslashes or control characters.',
   'explorer.confirmDeleteFolder': 'Delete folder {path} and all its contents?',
   'explorer.renamePrompt': 'Rename file:',
   'explorer.renameFolderPrompt': 'Rename folder:',
