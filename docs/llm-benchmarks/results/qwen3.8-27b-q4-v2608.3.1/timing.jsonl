@@ -1,0 +1,5 @@
+{"task": "1-core", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 1008}
+{"task": "2-apps", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 2098}
+{"task": "3-wm-ui", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 1260}
+{"task": "4-persist", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 3746}
+{"model": "ollama/qwen3.8:27b", "total_duration_s": 8112, "tasks": 4}
