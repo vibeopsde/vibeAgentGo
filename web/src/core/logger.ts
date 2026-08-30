@@ -7,6 +7,21 @@ import { tx, openDB } from './db.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
+// Grab the RAW console methods NOW, at module load — BEFORE global_errors.ts
+// wraps console.error. writeLog() uses these stored references instead of
+// `console.error` directly, so a logger entry reaches the real console exactly
+// once and never re-enters the wrapper's `logger.error()` call. That breaks
+// the wrapper → logger.error() → log() → console.error() recursion loop.
+const rawConsole: Record<LogLevel, (...args: unknown[]) => void> = {
+  // eslint-disable-next-line no-console
+  debug: console.debug.bind(console),
+  // eslint-disable-next-line no-console
+  info: console.info.bind(console),
+  warn: console.warn.bind(console),
+  error: console.error.bind(console),
+  fatal: console.error.bind(console),
+};
+
 export interface LogEntry {
   id?: number;
   timestamp: string;
@@ -25,17 +40,12 @@ function writeLog(entry: LogEntry): Promise<number> {
     timestamp: entry.timestamp || new Date().toISOString(),
   };
 
-  // Mirror to console so DevTools still shows it
+  // Mirror to console so DevTools still shows it.
+  // Use the raw references captured at load time (NOT the live console, which
+  // global_errors.ts wraps for 'error') so each logger entry yields exactly one
+  // console line and does NOT re-enter the wrapper's logger.error() callback.
   try {
-    const consoleMethod =
-      record.level === 'debug'
-        ? console.debug
-        : record.level === 'info'
-          ? console.info
-          : record.level === 'warn'
-            ? console.warn
-            : console.error;
-    consoleMethod(`[${record.source}] ${record.message}`, record.details ?? '');
+    rawConsole[record.level](`[${record.source}] ${record.message}`, record.details ?? '');
   } catch {
     /* ignore console failure */
   }
