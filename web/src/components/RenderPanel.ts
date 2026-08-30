@@ -42,6 +42,7 @@ export class RenderPanel {
   private views: ViewTab[] = [];
   private activeTitle: string | null = null;
   private onBridgeRequest?: BridgeHandler;
+  private messageHandler: ((event: MessageEvent) => void) | null = null;
 
   constructor(options: RenderPanelOptions = {}) {
     this.onBridgeRequest = options.onBridgeRequest;
@@ -78,9 +79,12 @@ export class RenderPanel {
   }
 
   private attachMessageListener() {
-    window.addEventListener('message', (event: MessageEvent) => {
+    this.messageHandler = (event: MessageEvent) => {
       const data = event.data;
       if (!data || typeof data !== 'object') return;
+
+      // Only trust messages coming from our own sandboxed iframe.
+      if (event.source !== this.iframe.contentWindow) return;
 
       // Log capture from the iframe
       if (data.vibeAgentGoViewLog === true) {
@@ -97,9 +101,44 @@ export class RenderPanel {
 
       // Bridge request from the iframe
       if (data.vibeAgentGoBridgeRequest === true) {
-        this.handleBridgeRequest(data.id as number, data.request as BridgeRequest, event.source as WindowProxy);
+        const id = data.id as number;
+        const request = data.request as BridgeRequest;
+        if (!this.isAllowedBridgeRequest(request)) return;
+        this.handleBridgeRequest(id, request, event.source as WindowProxy);
       }
-    });
+    };
+    window.addEventListener('message', this.messageHandler);
+  }
+
+  private isAllowedBridgeRequest(request: BridgeRequest): boolean {
+    if (!request || typeof request !== 'object') return false;
+    const type = (request as { type: unknown }).type;
+    const str = (v: unknown): v is string => typeof v === 'string';
+    switch (type) {
+      case 'readFile':
+        return str((request as { path?: unknown }).path);
+      case 'writeFile':
+        return str((request as { path?: unknown }).path) && str((request as { content?: unknown }).content);
+      case 'listFiles':
+        return true;
+      case 'getMemory':
+        return str((request as { query?: unknown }).query);
+      case 'getConfig':
+        return true;
+      case 'sendMessage':
+        return str((request as { text?: unknown }).text);
+      default:
+        return false;
+    }
+  }
+
+  dispose() {
+    if (this.messageHandler) {
+      window.removeEventListener('message', this.messageHandler);
+      this.messageHandler = null;
+    }
+    this.iframe.remove();
+    this.element.remove();
   }
 
   private async handleBridgeRequest(id: number, request: BridgeRequest, source: WindowProxy) {
@@ -198,6 +237,10 @@ export class RenderPanel {
 
   private setupLogCapture(html: string, title: string): string {
     const bridgeScript = this.bridgeProxyScript();
+    // JSON.stringify escapes quotes/control chars but not the `</` sequence,
+    // which would close the surrounding <script> element. Escape it to a
+    // unicode escape so a crafted title cannot break out into a new script.
+    const safeTitle = JSON.stringify(title).replace(/</g, '\\u003c');
     const captureScript = `
 <script>
 (function() {
@@ -207,7 +250,7 @@ export class RenderPanel {
       return typeof a === 'object' ? JSON.stringify(a) : String(a);
     }).join(' ');
     const stack = args.find(a => a instanceof Error)?.stack || undefined;
-    parent.postMessage({ vibeAgentGoViewLog: true, title: ${JSON.stringify(title)}, level, message, stack, timestamp: new Date().toISOString() }, '*');
+    parent.postMessage({ vibeAgentGoViewLog: true, title: ${safeTitle}, level, message, stack, timestamp: new Date().toISOString() }, '*');
   };
   const levels = ['log','error','warn','info','debug','trace'];
   levels.forEach(level => {

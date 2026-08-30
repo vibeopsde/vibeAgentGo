@@ -1,1 +1,2 @@
 {"task": "AP1-core", "model": "ollama/qwen3.8:27b", "title": "agent.ts race condition, done-event, emit isolation", "rc": 0, "duration_s": 352, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP2-apps", "model": "ollama/qwen3.8:27b", "title": "ExplorerApp listener leak, path validation", "rc": 0, "duration_s": 719, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
