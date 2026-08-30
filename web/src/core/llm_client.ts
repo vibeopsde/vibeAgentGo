@@ -9,6 +9,17 @@ import { logger } from './logger.js';
 const DEFAULT_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 500;
 
+/**
+ * Strip non-ASCII characters from a string.
+ * Browser fetch() rejects header values containing non ISO-8859-1 code points.
+ * This removes invisible Unicode (zero-width spaces, smart quotes, BOM, etc.)
+ * that can sneak in via copy-paste.
+ */
+function sanitizeHeader(str: string): string {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/[^\x20-\x7E]/g, '');
+}
+
 function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
@@ -65,10 +76,10 @@ export async function testConnection(config: {
   baseUrl: string;
   apiKey: string;
 }): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> {
-  const url = `${config.baseUrl.trim().replace(/\/$/, '')}/models`;
+  const url = `${sanitizeHeader(config.baseUrl).trim().replace(/\/$/, '')}/models`;
   const headers: Record<string, string> = {};
   if (config.apiKey) {
-    headers.Authorization = `Bearer ${config.apiKey}`;
+    headers.Authorization = `Bearer ${sanitizeHeader(config.apiKey)}`;
   }
   try {
     const res = await fetchWithRetry(url, { headers });
@@ -95,7 +106,7 @@ export async function llmChatStream(opts: {
   onDelta?: (delta: string) => void;
   signal?: AbortSignal;
 }): Promise<LLMResponse> {
-  const url = `${opts.baseUrl.trim().replace(/\/$/, '')}/chat/completions`;
+  const url = `${sanitizeHeader(opts.baseUrl).trim().replace(/\/$/, '')}/chat/completions`;
   const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const body: Record<string, unknown> = {
@@ -123,7 +134,7 @@ export async function llmChatStream(opts: {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(opts.apiKey ? { Authorization: `Bearer ${opts.apiKey}` } : {}),
+      ...(opts.apiKey ? { Authorization: `Bearer ${sanitizeHeader(opts.apiKey)}` } : {}),
     },
     body: JSON.stringify(body),
     signal: opts.signal,
