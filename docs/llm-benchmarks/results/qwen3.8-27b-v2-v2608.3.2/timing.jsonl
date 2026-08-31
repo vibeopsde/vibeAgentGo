@@ -1,0 +1,6 @@
+{"task": "1-logic", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 5129}
+{"task": "2-gui", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 2125}
+{"task": "3-sandbox", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 6036}
+{"task": "4-dataflow", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 4120}
+{"task": "5-infra", "model": "ollama/qwen3.8:27b", "rc": 0, "duration_s": 169}
+{"model": "ollama/qwen3.8:27b", "total_duration_s": 17579, "tasks": 5}
