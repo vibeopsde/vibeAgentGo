@@ -102,7 +102,34 @@ Review: 8112s (135 min). Keine Regressionen der Runde-1/2-Fixes, dafür 4× KRIT
 | AP4 | AppStore XSS/manifest safeReplaceAll | 883 s |
 | AP5 | corsFetch Request-Handling, backup restore-append | 480 s |
 
-**Lehrreich:** AP1 war der erste komplette Task-Fail in 3 Runden — das Modell geriet bei dem anspruchsvollen DNS-Pinning in httpcore-Introspektions-Recherche, wurde von der OpenCode-Sandbox geblockt (external_directory) und verwurf den AP still statt zu editieren. Retry mit prescriptivem Prompt („nur editieren, IP-Literal + Host-Header") lieferte in 1379 s. Live-Test fand dann aber einen echten Fehler in der umgesetzten Lösung: https-Ziele failten (SSL-Handshake, kein SNI bei IP-Literals) — manuell per `sni_hostname`-Extension korrigiert (httpx verbindet zur validierten IP, TLS/SNI laufen gegen den Original-Hostnamen). Lern: (a) Prompts prescriptive halten bei schwierigen APIs, (b) deployed-Verifikation bleibt Pflicht — tsc/Tests alleine hätten den HTTPS-Brick nicht gesehen.
+**Lehrreich (R3):** AP1 fehlgeschlagen (Modell driftete in httpcore-Introspektion, Sandbox-Block, stiller AP-Verwurf) → Retry mit prescriptivem Prompt lieferte in 1379 s. Dessen Lösung war live kaputt (https ohne SNI bei IP-Literals) — manuell per `sni_hostname`-Extension korrigiert. Lern: prescriptive Prompts bei schwierigen APIs; Deploy-Verifikation ist Pflicht, tsc/Tests allein sehen Runtime-Bricks nicht. Daraus der Agenten-Split (siehe Bilanz).
+
+### Runde 4 — Dimensions-Review v2 auf v2608.3.2 + Fix-Loop (2026-08-30, Experiment-Abschluss)
+
+**Neue Review-Methode v2** (`scripts/vag-review-bench-v2.sh`): Schnitt nach FUNKTIONSDIMENSIONEN (Agent-Logik/Zustandsmaschine, GUI-Flows, Sandbox/Isolation, End-to-End-Datenfluss-Traces, Client/Server-Grenze) statt nach Dateien — Flüsse werden über Dateigrenzen verfolgt. Ergebnis: 17579s (**4,9 h**, Input-lastig: dieselben Dateien werden pro Dimension mit anderer Fragestellung neu gelesen), 628 Zeilen Output. **2× KRITISCH von neuer Qualitätsstufe**: (1) abortRequested-Durchlass aus R3 öffnet Parallel-Run-Fenster (Abort während Tool-Ausführung → zwei lebende Runs teilen sich Instanz-State, Session-Last-Writer-Wins), (2) AppController.handleBridgeRequest ist der LIVE-Bridge-Gate — ohne isSafeRelPath, ohne sendMessage-Caps (Prompt-Injection aus jeder installierten App). Dazu die Erkenntnis des Tages: **RenderPanel.ts war toter Code** (0 Imports) — die Härtungen aus R1/R3 saßen auf einem toten Pfad, der live Pfad (ProgramApp/AppController) lief ungeschützt. Datei-Slicing hätte das nie gefunden; erst der Isolations-Flow mit Verifikations-Grep brachte es ans Licht.
+
+Fix-Runde 4 (`scripts/vag-fix-bench-round4.sh`): 3 APs, **10565s (176 min), 3/3 tsc grün, 0 Repairs**, 64/64 Tests → **v2608.3.3**.
+
+| AP | Paket | Dauer |
+|----|-------|-------|
+| AP1 | agent.ts: run identity (runSeq/activeRunId, isStale() an jeder Await-Grenze) | 3135 s |
+| AP2 | AppController-Bridge: isSafeRelPath + 10MB-Cap + sendMessage-4k-Cap | 1462 s |
+| AP3 | Orphaned-Run-Abort bei window-close + RenderPanel.ts entfernt (−338 Zeilen toter Code) | 5968 s |
+
+## Gesamtbilanz des Experiments (30.8.2026)
+
+| Runde | Review | Fix | Release |
+|-------|--------|-----|---------|
+| 1 (v1-Methode) | 85 min → 10 Funde | 99 min, 5 APs | v2608.3.0 |
+| 2 (v1) | 121 min → 4 Funde (2 in R1-Fixes) | 40 min, 4 APs | v2608.3.1 |
+| 3 (v1) | 135 min → DNS-Rebinding im eigenen Fix | 116 min + Retry, 5 APs (1 Silent-Fail) | v2608.3.2 |
+| 4 (v2-Methode) | 293 min → 2 KRITISCH + toter Pfad | 176 min, 3 APs | v2608.3.3 |
+
+- **19 Arbeitspakete** umgesetzt, **4 Releases an einem Tag**, alle Fixes von qwen3.8:27b (lokal, Evo X2), verifiziert durch tsc + 64 Unit-Tests + Live-Checks
+- **Betriebskosten:** ~11,6 M Token Input / 660 K Output über OpenCode heute — **$0,00** (lokal). Cloud-Äquivalent grob $15–40
+- **Methoden-Lern:** v1 (Datei-Slicing) findet Code-Smells; v2 (Flow-Tracing) findet Integrationsbrüche — 3× länger, aber die schwerwiegendsten Funde (toter Live-Pfad, Parallel-Run-Race) kamen erst aus v2
+- **Agenten-Split etabliert:** qwen+OpenCode = Code in web/src; Infra (server/, Deploy, DNS/TLS) = Hermes+glm. R3 zeigte warum (Silent-Fail + kaputtes HTTPS in Produktion)
+- **Offen:** R5-Konvergenzcheck auf v2608.3.3 (Experiment pausiert)
 
 ## Verzeichnisstruktur
 
