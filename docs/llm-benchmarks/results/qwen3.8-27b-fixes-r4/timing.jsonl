@@ -1,1 +1,2 @@
 {"task": "AP1-core", "model": "ollama/qwen3.8:27b", "title": "agent.ts run identity", "rc": 0, "duration_s": 3135, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}
+{"task": "AP2-bridge", "model": "ollama/qwen3.8:27b", "title": "AppController bridge hardening", "rc": 0, "duration_s": 1462, "verify_rc": 0, "verify_s": 3, "repair_rc": 0, "repair_s": 0}

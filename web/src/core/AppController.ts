@@ -37,6 +37,12 @@ export class AppController {
   private agent: Agent | null = null;
   private isRunning = false;
   private activeChatWindowId: string | null = null;
+  // Window that triggered the current bridge sendMessage run (if any).
+  // We abort the run if and when that specific window is closed — see window_closed
+  // handler below. Single-agent, single-user desktop model: there is at most one
+  // in-flight run() at any time (guarded by isRunning), so tracking the one
+  // owning window is sufficient and simpler than a per-window AbortController map.
+  private sendMessageWindowId: string | null = null;
   private installedApps = new Map<string, InstalledApp>();
 
   private readonly LAST_SESSION_KEY = 'vibeAgentGo-lastSession';
@@ -172,7 +178,7 @@ export class AppController {
 
   // --- View bridge (ProgramApp iframe) ---
 
-  private handleBridgeRequest = async (req: BridgeRequest): Promise<BridgeResponse> => {
+  private handleBridgeRequest = async (req: BridgeRequest, callerWindowId?: string): Promise<BridgeResponse> => {
     try {
       switch (req.type) {
         case 'readFile': {
@@ -251,6 +257,7 @@ export class AppController {
           chat?.setRunning(true);
           chat?.startStream();
           this.isRunning = true;
+          this.sendMessageWindowId = callerWindowId ?? null;
           try {
             await this.agent.run(text, config, this.currentSessionId || undefined);
           } catch (e) {
@@ -262,6 +269,7 @@ export class AppController {
             chat?.setRunning(false);
           } finally {
             this.isRunning = false;
+            this.sendMessageWindowId = null;
           }
           return { ok: true, data: null };
         }
@@ -571,6 +579,30 @@ export class AppController {
     this.wm.on('window_focused', ({ windowId, appId }) => {
       if (appId === 'chat') {
         this.activeChatWindowId = windowId;
+      }
+    });
+
+    // Tag each freshly opened ProgramApp instance with its window id so its
+    // bridge messages can be attributed back to the requesting window. This covers
+    // both builtin `program` windows and installed-app ProgramApp wrappers.
+    this.wm.on('window_opened', ({ windowId }) => {
+      const inst = this.wm.getInstance(windowId) as ProgramApp | undefined;
+      // Attached instances expose attachWindowId; other App impls do not.
+      if (inst && typeof (inst as ProgramApp).attachWindowId === 'function') {
+        (inst as ProgramApp).attachWindowId(windowId);
+      }
+    });
+
+    // If the window that opened the last bridge sendMessage run is closed while
+    // the agent is still running, abort it — otherwise the LLM run would keep
+    // going unobserved (orphaned). Single-agent model makes the "last sender"
+    // window unambiguous, so no per-window AbortController map is needed.
+    // Matching on windowId alone (no appId check) covers both built-in
+    // `program` windows and installed apps rendered by ProgramApp.
+    this.wm.on('window_closed', ({ windowId }) => {
+      if (this.isRunning && this.sendMessageWindowId === windowId) {
+        this.agent?.abort();
+        this.sendMessageWindowId = null;
       }
     });
   }
