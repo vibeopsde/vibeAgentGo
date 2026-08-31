@@ -18,6 +18,7 @@ import { InstalledAppStore } from './app_store_db.js';
 import type { InstalledApp } from './app_store_db.js';
 import { isTextContentPart } from '../types/index.js';
 import { createDefaultTools } from './tools/index.js';
+import { isSafeRelPath } from './tools/shared.js';
 import { isSlashCommand, handleSlashCommand } from './slash_commands.js';
 import { initTheme } from './theme.js';
 import { setLanguage, t } from '../i18n/index.js';
@@ -36,9 +37,17 @@ export class AppController {
   private agent: Agent | null = null;
   private isRunning = false;
   private activeChatWindowId: string | null = null;
+  // Window that triggered the current bridge sendMessage run (if any).
+  // We abort the run if and when that specific window is closed — see window_closed
+  // handler below. Single-agent, single-user desktop model: there is at most one
+  // in-flight run() at any time (guarded by isRunning), so tracking the one
+  // owning window is sufficient and simpler than a per-window AbortController map.
+  private sendMessageWindowId: string | null = null;
   private installedApps = new Map<string, InstalledApp>();
 
   private readonly LAST_SESSION_KEY = 'vibeAgentGo-lastSession';
+  private static readonly MAX_BRIDGE_CONTENT_BYTES = 10 * 1024 * 1024;
+  private static readonly MAX_SEND_MESSAGE_CHARS = 4000;
 
   constructor() {
     initTheme();
@@ -169,26 +178,39 @@ export class AppController {
 
   // --- View bridge (ProgramApp iframe) ---
 
-  private handleBridgeRequest = async (req: BridgeRequest): Promise<BridgeResponse> => {
+  private handleBridgeRequest = async (req: BridgeRequest, callerWindowId?: string): Promise<BridgeResponse> => {
     try {
       switch (req.type) {
         case 'readFile': {
+          if (!isSafeRelPath(req.path)) return { ok: false, error: 'Invalid path' };
           const content = await this.memory.readFile(req.path);
           return { ok: true, data: content };
         }
         case 'writeFile': {
+          if (!isSafeRelPath(req.path)) return { ok: false, error: 'Invalid path' };
+          if (typeof req.content !== 'string') return { ok: false, error: 'Invalid content' };
+          if (new TextEncoder().encode(req.content).byteLength > AppController.MAX_BRIDGE_CONTENT_BYTES) {
+            return { ok: false, error: 'Content too large' };
+          }
           await this.memory.writeFile(req.path, req.content);
           return { ok: true, data: null };
         }
         case 'writeFileBinary': {
+          if (!isSafeRelPath(req.path)) return { ok: false, error: 'Invalid path' };
+          if (!Array.isArray(req.data)) return { ok: false, error: 'Invalid data' };
+          if (req.data.length > AppController.MAX_BRIDGE_CONTENT_BYTES) {
+            return { ok: false, error: 'Content too large' };
+          }
           await this.memory.writeFileBinary(req.path, new Uint8Array(req.data));
           return { ok: true, data: null };
         }
         case 'readFileBinary': {
+          if (!isSafeRelPath(req.path)) return { ok: false, error: 'Invalid path' };
           const data = await this.memory.readFileBinary(req.path);
           return { ok: true, data: data ? Array.from(data) : null };
         }
         case 'deleteFile': {
+          if (!isSafeRelPath(req.path)) return { ok: false, error: 'Invalid path' };
           const ok = await this.memory.deleteFile(req.path);
           return { ok, data: null };
         }
@@ -198,7 +220,7 @@ export class AppController {
         }
         case 'getMemory': {
           const all = await this.memory.searchAllMemory(1000);
-          const query = req.query.toLowerCase();
+          const query = String(req.query ?? '').trim();
           const filtered = all
             .filter((m) => (req.category ? m.category === req.category : true))
             .filter((m) => m.content.toLowerCase().includes(query))
@@ -212,6 +234,12 @@ export class AppController {
           return { ok: true, data: safe };
         }
         case 'sendMessage': {
+          if (typeof req.text !== 'string') return { ok: false, error: 'Invalid message' };
+          const text = req.text.trim();
+          if (text.length === 0) return { ok: false, error: 'Invalid message' };
+          if (text.length > AppController.MAX_SEND_MESSAGE_CHARS) {
+            return { ok: false, error: 'Invalid message' };
+          }
           if (!this.agent || this.isRunning) {
             return { ok: false, error: 'Agent is busy or not ready' };
           }
@@ -224,13 +252,14 @@ export class AppController {
             this.activeChatWindowId = winId;
           }
           const chat = this.getChatApp();
-          chat?.appendUser(req.text);
+          chat?.appendUser(text);
           chat?.setStatus('thinking');
           chat?.setRunning(true);
           chat?.startStream();
           this.isRunning = true;
+          this.sendMessageWindowId = callerWindowId ?? null;
           try {
-            await this.agent.run(req.text, config, this.currentSessionId || undefined);
+            await this.agent.run(text, config, this.currentSessionId || undefined);
           } catch (e) {
             captureFunctionError('AppController.handleBridgeRequest.sendMessage', e, {
               sessionId: this.currentSessionId,
@@ -240,6 +269,7 @@ export class AppController {
             chat?.setRunning(false);
           } finally {
             this.isRunning = false;
+            this.sendMessageWindowId = null;
           }
           return { ok: true, data: null };
         }
@@ -549,6 +579,30 @@ export class AppController {
     this.wm.on('window_focused', ({ windowId, appId }) => {
       if (appId === 'chat') {
         this.activeChatWindowId = windowId;
+      }
+    });
+
+    // Tag each freshly opened ProgramApp instance with its window id so its
+    // bridge messages can be attributed back to the requesting window. This covers
+    // both builtin `program` windows and installed-app ProgramApp wrappers.
+    this.wm.on('window_opened', ({ windowId }) => {
+      const inst = this.wm.getInstance(windowId) as ProgramApp | undefined;
+      // Attached instances expose attachWindowId; other App impls do not.
+      if (inst && typeof (inst as ProgramApp).attachWindowId === 'function') {
+        (inst as ProgramApp).attachWindowId(windowId);
+      }
+    });
+
+    // If the window that opened the last bridge sendMessage run is closed while
+    // the agent is still running, abort it — otherwise the LLM run would keep
+    // going unobserved (orphaned). Single-agent model makes the "last sender"
+    // window unambiguous, so no per-window AbortController map is needed.
+    // Matching on windowId alone (no appId check) covers both built-in
+    // `program` windows and installed apps rendered by ProgramApp.
+    this.wm.on('window_closed', ({ windowId }) => {
+      if (this.isRunning && this.sendMessageWindowId === windowId) {
+        this.agent?.abort();
+        this.sendMessageWindowId = null;
       }
     });
   }

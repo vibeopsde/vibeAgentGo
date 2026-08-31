@@ -19,16 +19,26 @@ export class ProgramApp implements App {
   element: HTMLElement;
   private container: HTMLElement | null = null;
   private iframe: HTMLIFrameElement | null = null;
-  private onBridgeRequest: (req: BridgeRequest) => Promise<BridgeResponse>;
+  private onBridgeRequest: (req: BridgeRequest, callerWindowId?: string) => Promise<BridgeResponse>;
   private state: ProgramAppState = { title: 'Program', html: '' };
   private messageHandler: ((e: MessageEvent) => void) | null = null;
   private allowedPermissions: string[] | null = null;
+  private windowId: string | null = null;
 
-  constructor(onBridgeRequest: (req: BridgeRequest) => Promise<BridgeResponse>, allowedPermissions?: string[]) {
+  constructor(
+    onBridgeRequest: (req: BridgeRequest, callerWindowId?: string) => Promise<BridgeResponse>,
+    allowedPermissions?: string[]
+  ) {
     this.onBridgeRequest = onBridgeRequest;
     this.allowedPermissions = allowedPermissions ?? null;
     this.element = document.createElement('div');
     this.element.className = 'program-app';
+  }
+
+  /** Set by AppController after the window is opened, so bridge callbacks
+   *  can identify their sender window (used to abort an in-flight run on close). */
+  attachWindowId(id: string) {
+    this.windowId = id;
   }
 
   mount(container: HTMLElement) {
@@ -80,7 +90,7 @@ export class ProgramApp implements App {
         return;
       }
 
-      this.onBridgeRequest(e.data.payload as BridgeRequest).then((res) => {
+      this.onBridgeRequest(e.data.payload as BridgeRequest, this.windowId ?? undefined).then((res) => {
         this.iframe?.contentWindow?.postMessage({ type: 'vibeAgentGo', id: e.data.id, payload: res }, '*');
       });
     };

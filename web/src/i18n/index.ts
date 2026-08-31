@@ -119,10 +119,6 @@ const de: Translations = {
   'sessions.title': 'Sessions',
   'sessions.empty': 'Noch keine Sessions.',
 
-  // Render
-  'render.title': 'Render View',
-  'render.emptyHint': 'Der Agent kann hier HTML-Mini-Apps anzeigen.',
-
   // Explorer
   'explorer.title': 'Explorer',
   'explorer.newFile': 'Neue Datei',
@@ -324,10 +320,6 @@ const en: Translations = {
   // Sessions
   'sessions.title': 'Sessions',
   'sessions.empty': 'No sessions yet.',
-
-  // Render
-  'render.title': 'Render View',
-  'render.emptyHint': 'The agent can render HTML mini-apps here.',
 
   // Explorer
   'explorer.title': 'Explorer',

@@ -45,6 +45,8 @@ export class Agent {
   private running = false;
   private abortRequested = false;
   private doneEmitted = false;
+  private runSeq = 0;
+  private activeRunId: number | null = null;
 
   constructor(tools: Tool[], memory: MemoryStore, opts: AgentOptions = {}) {
     this.tools = tools;
@@ -118,8 +120,9 @@ export class Agent {
     };
   }
 
-  private emitDoneOnce(sessionId: string | null): void {
+  private emitDoneOnce(runId: number, sessionId: string | null): void {
     if (this.doneEmitted) return;
+    if (runId !== this.runSeq || runId !== this.activeRunId) return;
     this.doneEmitted = true;
     this.emit('done', { sessionId: sessionId || 'unknown' });
   }
@@ -144,6 +147,8 @@ export class Agent {
     this.running = true;
     this.abortRequested = false;
     this.doneEmitted = false;
+    const runId = ++this.runSeq;
+    this.activeRunId = runId;
     this.sessionId = sessionId || this.sessionId || null;
     this.abortController = new AbortController();
     const runSessionId = this.sessionId;
@@ -158,7 +163,7 @@ export class Agent {
     });
 
     try {
-      return await this._runInner(userMessage, config, runSessionId, attachments, controller);
+      return await this._runInner(userMessage, config, runSessionId, attachments, controller, runId);
     } catch (e) {
       const friendly =
         e instanceof Error && e.name === 'AbortError' ? 'Request aborted' : e instanceof Error ? e.message : String(e);
@@ -168,12 +173,18 @@ export class Agent {
         model: config.model,
         baseUrl: config.baseUrl,
       });
-      this.emit('error', { message: friendly });
+      if (this.activeRunId === runId) {
+        this.emit('error', { message: friendly });
+      }
       return `Error: ${friendly}`;
     } finally {
-      // Guarantee done is emitted exactly once for UI unlock, regardless of path
-      this.emitDoneOnce(runSessionId);
-      this.running = false;
+      // Only the still-active run may emit done / release the guard; a
+      // superseded run vanishes silently so it cannot stomp the new run's state.
+      if (this.activeRunId === runId) {
+        // Guarantee done is emitted exactly once for UI unlock, regardless of path
+        this.emitDoneOnce(runId, runSessionId);
+        this.running = false;
+      }
     }
   }
 
@@ -182,16 +193,21 @@ export class Agent {
     config: AgentConfig,
     runSessionId: string | null,
     attachments: ChatAttachment[],
-    controller: AbortController
+    controller: AbortController,
+    runId: number
   ): Promise<string> {
     this.currentRunSessionId = runSessionId;
     this.currentHistory = [];
 
     try {
-      return await this._runInnerCore(userMessage, config, runSessionId, attachments, controller);
+      return await this._runInnerCore(userMessage, config, runSessionId, attachments, controller, runId);
     } finally {
-      this.currentRunSessionId = null;
-      this.currentHistory = [];
+      // Only the active run may clear shared instance state; a superseded run
+      // must not wipe currentRunSessionId/currentHistory of the newer run.
+      if (this.activeRunId === runId) {
+        this.currentRunSessionId = null;
+        this.currentHistory = [];
+      }
     }
   }
 
@@ -200,8 +216,14 @@ export class Agent {
     config: AgentConfig,
     runSessionId: string | null,
     attachments: ChatAttachment[],
-    controller: AbortController
+    controller: AbortController,
+    runId: number
   ): Promise<string> {
+    // A run is stale as soon as a newer run has taken over (runSeq advanced)
+    // or its own abort signal fired. Stale runs must vanish silently: no
+    // events, no saves — otherwise they stomp the active run's state.
+    const isStale = (): boolean => runId !== this.runSeq || controller.signal.aborted;
+
     // Save text files and PDFs into workspace so the agent can read them with read_file / read_pdf
     for (const a of attachments) {
       if (a.type === 'text' || a.type === 'pdf') {
@@ -325,6 +347,7 @@ export class Agent {
     };
 
     for (let turn = 0; turn < config.maxTurns; turn++) {
+      if (isStale()) return 'Aborted';
       this.emit('turn', { turn: turn + 1, total: config.maxTurns });
       logger.debug('agent.turn', `Turn ${turn + 1}/${config.maxTurns}`, { sessionId: runSessionId });
 
@@ -339,15 +362,21 @@ export class Agent {
           onDelta: (delta) => this.emit('stream_delta', { delta }),
           signal: controller.signal,
         });
+        if (isStale()) return 'Aborted';
       } catch (e) {
         if (e instanceof Error && e.name === 'AbortError') {
-          this.emit('error', { message: 'Request aborted' });
+          if (!isStale()) {
+            this.emit('error', { message: 'Request aborted' });
+          }
           // Release the run guard NOW (before run()'s finally) so a follow-up
           // run() right after abort() is not rejected with 'already running';
           // the finally still emits done exactly once.
-          this.running = false;
+          if (this.activeRunId === runId) {
+            this.running = false;
+          }
           return 'Aborted';
         }
+        if (isStale()) return 'Aborted';
         const errMsg = e instanceof Error ? e.message : String(e);
 
         // Retry: if the model doesn't support image input (HTTP 400 mentioning
@@ -376,12 +405,17 @@ export class Agent {
             });
           } catch (retryErr) {
             if (retryErr instanceof Error && retryErr.name === 'AbortError') {
-              this.emit('error', { message: 'Request aborted' });
+              if (!isStale()) {
+                this.emit('error', { message: 'Request aborted' });
+              }
               // Same as the primary abort path: clear the guard immediately so a
               // follow-up run() is not spurned by a stale 'already running' state.
-              this.running = false;
+              if (this.activeRunId === runId) {
+                this.running = false;
+              }
               return 'Aborted';
             }
+            if (isStale()) return 'Aborted';
             const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
             logger.error('agent.llm', `LLM retry also failed: ${retryMsg}`, {
               sessionId: runSessionId,
@@ -390,7 +424,7 @@ export class Agent {
               baseUrl: config.baseUrl,
             });
             this.emit('error', { message: retryMsg });
-            await this.saveCurrentSession(history, runSessionId);
+            await this.saveCurrentSession(history, runSessionId, runId);
             return `Error during LLM request: ${retryMsg}`;
           }
         } else {
@@ -402,7 +436,7 @@ export class Agent {
           });
           this.emit('error', { message: errMsg });
           // Save what we have so the user can inspect / retry in the same session
-          await this.saveCurrentSession(history, runSessionId);
+          await this.saveCurrentSession(history, runSessionId, runId);
           return `Error during LLM request: ${errMsg}`;
         }
       }
@@ -439,6 +473,7 @@ export class Agent {
         this.currentHistory = history;
 
         for (const tc of sanitizedToolCalls) {
+          if (isStale()) return 'Aborted';
           const toolName = tc.function.name;
           let args: Record<string, unknown>;
           try {
@@ -466,7 +501,8 @@ export class Agent {
           // Checkpoint: save the session before executing the tool, so if the
           // tool crashes the browser tab (e.g. infinite loop in a Worker), the
           // conversation history is already persisted and can be resumed.
-          await this.saveCurrentSession(history, runSessionId);
+          if (isStale()) return 'Aborted';
+          await this.saveCurrentSession(history, runSessionId, runId);
 
           let result: string;
           const toolStart = Date.now();
@@ -481,6 +517,10 @@ export class Agent {
               stack: e instanceof Error ? e.stack : undefined,
             });
           }
+
+          // A newer run may have taken over while the tool ran — stop before
+          // emitting tool_result / saving so we don't stomp the active run.
+          if (isStale()) return 'Aborted';
 
           // Audit log: record the tool result AFTER execution, with duration.
           // Truncate to 500 chars to avoid flooding the log with large outputs.
@@ -502,7 +542,7 @@ export class Agent {
           });
           this.currentHistory = history;
           // Checkpoint immediately after each tool result so the result survives a tab crash
-          await this.saveCurrentSession(history, runSessionId);
+          await this.saveCurrentSession(history, runSessionId, runId);
         }
 
         continue;
@@ -514,9 +554,11 @@ export class Agent {
       history.push({ role: 'assistant', content: finalContent });
       this.currentHistory = history;
 
-      await this.saveCurrentSession(history, runSessionId);
+      if (isStale()) return 'Aborted';
+      await this.saveCurrentSession(history, runSessionId, runId);
 
-      this.emitDoneOnce(this.sessionId);
+      if (isStale()) return 'Aborted';
+      this.emitDoneOnce(runId, this.sessionId);
 
       // Extract durable memories asynchronously for future sessions
       this.extractMemoryFromConversation(history, config).catch(() => {});
@@ -527,18 +569,21 @@ export class Agent {
     const msg = `Max turns (${config.maxTurns}) exceeded`;
     logger.warn('agent.maxTurns', msg, { sessionId: runSessionId });
     this.emit('error', { message: msg });
-    await this.saveCurrentSession(history, runSessionId);
+    await this.saveCurrentSession(history, runSessionId, runId);
     return msg;
   }
 
-  private async saveCurrentSession(history: Message[], runSessionId: string | null): Promise<void> {
+  private async saveCurrentSession(history: Message[], runSessionId: string | null, runId?: number): Promise<void> {
     try {
       // runSessionId is a const from run() and stays null on the first run.
       // this.sessionId is set after the first save — reuse it so repeated
       // checkpoints within the same run don't create duplicate sessions.
+      // A superseded run must not overwrite the newer run's state (last-writer-wins).
+      if (runId !== undefined && (runId !== this.runSeq || runId !== this.activeRunId)) return;
       const id = runSessionId || this.sessionId || randomUUID().slice(0, 8);
       this.sessionId = id;
       const existing = await this.memory.getSession(id);
+      if (runId !== undefined && (runId !== this.runSeq || runId !== this.activeRunId)) return;
       const existingTitle = existing?.title;
       const firstUser = history.find((m) => m.role === 'user')?.content;
       const firstUserText =
